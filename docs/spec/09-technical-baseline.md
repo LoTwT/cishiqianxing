@@ -188,7 +188,7 @@ Godot 内部同时排除 .NET／C# 双栈、以 `GridMap`／物理／动画作�
 
 ## 11. 版本、许可与升级规则
 
-- 当前生产基线精确锁定Godot 4.7.2 Standard；出现更高版本不会自动升级，开发版不得用于生产工程。
+- 当前生产基线精确锁定Godot 4.7.2 Standard；出现更高版本不会自动升级，开发版不得用于生产工程。开始制作或验收前运行 `godot --headless --path game --script res://tools/verify_environment.gd` 检查实际引擎版本、Standard构建、Forward+配置和Compatibility自动回退；该命令是环境前置检查，不替代第7节尚待建立的正式测试入口。
 - Godot 使用 MIT 许可证。发行包必须保留 Godot 和第三方组件的版权与许可文本，游戏内容无需因此开源。
 - Godot 的 MIT 许可证不自动决定本项目源码许可证；在用户另行确认前，不为项目源码声明 MIT 或其他开放源码许可证。
 - 当前技术底线暂记为 Windows 10 x64 与 Apple Silicon macOS 13；这是 Godot 对简单 Forward+ 导出项目的最低要求，不是本作最终最低配置承诺。

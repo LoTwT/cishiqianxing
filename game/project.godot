@@ -4,7 +4,7 @@ config_version=5
 [application]
 
 config/name="此世千形"
-config/features=PackedStringArray("4.7", "Forward Plus")
+config/features=PackedStringArray("4.7", "4.7.2.stable.official", "Forward Plus")
 config/use_custom_user_dir=true
 config/custom_user_dir_name="cishiqianxing"
 
@@ -24,3 +24,4 @@ locale/fallback="zh_CN"
 [rendering]
 
 renderer/rendering_method="forward_plus"
+rendering_device/fallback_to_opengl3=false
