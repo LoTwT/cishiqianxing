@@ -23,7 +23,6 @@ jobs:
       GODOT_RELEASE: 4.7.2-stable
       GODOT_ARCHIVE: Godot_v4.7.2-stable_linux.x86_64.zip
       GODOT_SHA512: 9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
-      VK_DRIVER_FILES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
 
     steps:
       - name: Check out repository and LFS assets
@@ -36,7 +35,10 @@ jobs:
         run: git lfs fsck --objects --pointers HEAD
 
       - name: Install Linux runtime dependencies
+        shell: bash
         run: |
+          set -euo pipefail
+
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             libasound2t64 \
@@ -53,6 +55,14 @@ jobs:
             unzip \
             xauth \
             xvfb
+
+          lavapipe_icd="$(
+            dpkg-query --listfiles mesa-vulkan-drivers \
+              | awk '/\/lvp_icd(\.[[:alnum:]_]+)?\.json$/ { print; exit }'
+          )"
+          test -n "$lavapipe_icd"
+          test -r "$lavapipe_icd"
+          printf 'VK_DRIVER_FILES=%s\n' "$lavapipe_icd" >> "$GITHUB_ENV"
 
       - name: Install verified Godot Standard build
         shell: bash
