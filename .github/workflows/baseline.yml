@@ -1,0 +1,113 @@
+name: Baseline
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: baseline-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GODOT_RELEASE: 4.7.2-stable
+      GODOT_ARCHIVE: Godot_v4.7.2-stable_linux.x86_64.zip
+      GODOT_SHA512: 9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
+      VK_DRIVER_FILES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+
+    steps:
+      - name: Check out repository and LFS assets
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - name: Verify Git LFS objects and pointers
+        run: git lfs fsck --objects --pointers HEAD
+
+      - name: Install Linux runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libasound2t64 \
+            libfontconfig1 \
+            libgl1 \
+            libpulse0 \
+            libvulkan1 \
+            libx11-6 \
+            libxcursor1 \
+            libxi6 \
+            libxinerama1 \
+            libxrandr2 \
+            mesa-vulkan-drivers \
+            unzip \
+            xauth \
+            xvfb
+
+      - name: Install verified Godot Standard build
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot_directory="${RUNNER_TEMP:?}/godot-4.7.2"
+          godot_archive_path="${RUNNER_TEMP:?}/${GODOT_ARCHIVE}"
+          godot_binary="${godot_directory}/Godot_v4.7.2-stable_linux.x86_64"
+
+          mkdir -p "$godot_directory"
+          curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --retry 3 \
+            --show-error \
+            --silent \
+            --tlsv1.2 \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_ARCHIVE}" \
+            --output "$godot_archive_path"
+          printf '%s  %s\n' "$GODOT_SHA512" "$godot_archive_path" \
+            | sha512sum --check --strict
+          unzip -q "$godot_archive_path" -d "$godot_directory"
+          chmod +x "$godot_binary"
+          printf 'GODOT_BIN=%s\n' "$godot_binary" >> "$GITHUB_ENV"
+
+      - name: Verify Forward+ production environment
+        run: |
+          test -r "$VK_DRIVER_FILES"
+          xvfb-run --auto-servernum \
+            "$GODOT_BIN" \
+            --audio-driver Dummy \
+            --display-driver x11 \
+            --rendering-method forward_plus \
+            --rendering-driver vulkan \
+            --path game \
+            --script res://tools/verify_environment.gd
+
+      - name: Verify resource import
+        shell: bash
+        run: |
+          set -euo pipefail
+          import_log="${RUNNER_TEMP:?}/godot-import.log"
+
+          xvfb-run --auto-servernum \
+            "$GODOT_BIN" \
+            --audio-driver Dummy \
+            --display-driver x11 \
+            --rendering-method forward_plus \
+            --rendering-driver vulkan \
+            --path game \
+            --import \
+            2>&1 | tee "$import_log"
+
+          if grep --fixed-strings --quiet 'ERROR:' "$import_log"; then
+            echo 'Godot reported one or more resource import errors.' >&2
+            exit 1
+          fi
