@@ -121,3 +121,9 @@ jobs:
             echo 'Godot reported one or more resource import errors.' >&2
             exit 1
           fi
+
+      - name: Run authoritative headless tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash game/tools/run_headless_tests.sh
