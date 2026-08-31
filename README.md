@@ -18,13 +18,15 @@
 ```bash
 git lfs install
 git lfs pull
-git lfs fsck --objects
+git lfs fsck --objects --pointers HEAD
 godot --headless --path game --script res://tools/verify_environment.gd
 ```
 
 最后一条命令只检查引擎版本、Standard 构建、Forward+ 配置和 Compatibility 自动回退，不替代后续正式测试入口。若本机 Godot 可执行文件使用其他名称，请只替换命令中的 `godot`。
 
-GitHub 生成的 ZIP 或 tar.gz 源码归档可能只包含 LFS 指针而不包含实际资源。正式制作与复审应使用安装了 Git LFS 的 Git clone，并以上述 `git lfs fsck --objects` 结果为准。
+GitHub 生成的 ZIP 或 tar.gz 源码归档可能只包含 LFS 指针而不包含实际资源。正式制作与复审应使用安装了 Git LFS 的 Git clone，并以上述 `git lfs fsck --objects --pointers HEAD` 结果为准。
+
+GitHub Actions 的 `Baseline / verify` 检查会在 pull request 与 `main` 更新时重新验证 LFS、官方 Godot 4.7.2 Standard 发行包、Forward+／Vulkan 启动和编辑器导入。它是生产环境与工程导入门禁，不替代后续随正式规则代码建立的项目测试入口。
 
 ## 文档
 
