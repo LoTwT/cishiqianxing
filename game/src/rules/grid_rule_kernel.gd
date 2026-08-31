@@ -12,7 +12,7 @@ const VECTOR3I_COMPONENT_MAX := 2_147_483_647
 static func execute(
 	state: GridRuleStateScript, command: GridRuleCommandScript
 ) -> GridRuleResultScript:
-	if state == null:
+	if state == null or state.get_script() != GridRuleStateScript:
 		var invalid_state: GridRuleStateScript = GridRuleStateScript.new()
 		return _rejected(
 			invalid_state,
@@ -21,17 +21,19 @@ static func execute(
 			Vector3i.ZERO,
 			GridRuleEventScript.RejectionReason.INVALID_STATE,
 		)
-	if not state.is_valid():
+
+	var authoritative_state: GridRuleStateScript = state.copy()
+	if not authoritative_state.is_valid():
 		return _rejected(
-			state,
+			authoritative_state,
 			&"",
 			Vector3i.ZERO,
 			Vector3i.ZERO,
 			GridRuleEventScript.RejectionReason.INVALID_STATE,
 		)
-	if command == null:
+	if command == null or command.get_script() != GridRuleCommandScript:
 		return _rejected(
-			state,
+			authoritative_state,
 			&"",
 			Vector3i.ZERO,
 			Vector3i.ZERO,
@@ -39,39 +41,43 @@ static func execute(
 		)
 
 	var command_kind: int = command.kind()
-	var actor_id: StringName = command.actor_id()
-	var direction: Vector3i = command.direction()
-	var from_cell := Vector3i.ZERO
-	if state.has_actor(actor_id):
-		from_cell = state.actor_position(actor_id)
-
 	if command_kind != GridRuleCommandScript.Kind.MOVE:
+		var unknown_actor_id: StringName = command.actor_id()
+		var unknown_from_cell := Vector3i.ZERO
+		if authoritative_state.has_actor(unknown_actor_id):
+			unknown_from_cell = authoritative_state.actor_position(unknown_actor_id)
 		return _rejected(
-			state,
-			actor_id,
-			from_cell,
-			from_cell,
+			authoritative_state,
+			unknown_actor_id,
+			unknown_from_cell,
+			unknown_from_cell,
 			GridRuleEventScript.RejectionReason.UNKNOWN_COMMAND,
 		)
+
+	var actor_id: StringName = command.actor_id()
+	var from_cell := Vector3i.ZERO
+	if authoritative_state.has_actor(actor_id):
+		from_cell = authoritative_state.actor_position(actor_id)
+	var direction: Vector3i = command.direction()
 	if not _is_horizontal_unit_direction(direction):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			from_cell,
 			GridRuleEventScript.RejectionReason.INVALID_DIRECTION,
 		)
-	if not state.has_actor(actor_id):
+	if not authoritative_state.has_actor(actor_id):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			from_cell,
 			GridRuleEventScript.RejectionReason.UNKNOWN_ACTOR,
 		)
-	if state.world_step() >= GridRuleStateScript.MAX_WORLD_STEP:
+	if authoritative_state.world_step() >= GridRuleStateScript.MAX_WORLD_STEP:
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			from_cell,
@@ -79,7 +85,7 @@ static func execute(
 		)
 	if _would_overflow_target(from_cell, direction):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			from_cell,
@@ -87,35 +93,44 @@ static func execute(
 		)
 
 	var to_cell: Vector3i = from_cell + direction
-	if not state.is_grid_cell(to_cell):
+	if not authoritative_state.is_grid_cell(to_cell):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			to_cell,
 			GridRuleEventScript.RejectionReason.OUT_OF_BOUNDS,
 		)
-	if state.is_blocked_cell(to_cell):
+	if authoritative_state.is_blocked_cell(to_cell):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			to_cell,
 			GridRuleEventScript.RejectionReason.BLOCKED,
 		)
-	if state.is_occupied_cell(to_cell, actor_id):
+	if authoritative_state.is_occupied_cell(to_cell, actor_id):
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			to_cell,
 			GridRuleEventScript.RejectionReason.OCCUPIED,
 		)
 
-	var next_state: GridRuleStateScript = state.copy_with_actor_position(actor_id, to_cell)
+	var next_actor_positions: Dictionary[StringName, Vector3i] = (
+		authoritative_state.actor_positions()
+	)
+	next_actor_positions[actor_id] = to_cell
+	var next_state: GridRuleStateScript = GridRuleStateScript.create(
+		authoritative_state.grid_cells(),
+		authoritative_state.blocked_cells(),
+		next_actor_positions,
+		authoritative_state.world_step() + 1,
+	)
 	if not next_state.is_valid():
 		return _rejected(
-			state,
+			authoritative_state,
 			actor_id,
 			from_cell,
 			to_cell,

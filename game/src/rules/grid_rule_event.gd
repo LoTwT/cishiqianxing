@@ -80,6 +80,16 @@ func rejection_reason() -> int:
 	return _rejection_reason
 
 
+func copy() -> GridRuleEvent:
+	return new(
+		_kind,
+		_actor_id,
+		_from_cell,
+		_to_cell,
+		_rejection_reason,
+	)
+
+
 func is_equal_to(other: GridRuleEvent) -> bool:
 	return (
 		other != null

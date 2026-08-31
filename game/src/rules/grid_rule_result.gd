@@ -12,17 +12,18 @@ func _init(
 	next_state: GridRuleStateScript,
 	domain_events: Array[GridRuleEventScript],
 ) -> void:
-	_next_state = next_state
+	_next_state = next_state.copy()
 	for domain_event: GridRuleEventScript in domain_events:
-		_domain_events.append(domain_event)
+		_domain_events.append(domain_event.copy())
+	_domain_events.make_read_only()
 
 
 func next_state() -> GridRuleStateScript:
-	return _next_state
+	return _next_state.copy()
 
 
 func domain_events() -> Array[GridRuleEventScript]:
 	var copied_events: Array[GridRuleEventScript] = []
 	for domain_event: GridRuleEventScript in _domain_events:
-		copied_events.append(domain_event)
+		copied_events.append(domain_event.copy())
 	return copied_events
