@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Godot generated data
+.godot/
+*.translation
+
+# Local editors
+.vscode/
+.idea/
+
+# Helper tooling
+__pycache__/
+*.py[cod]
+
+# Local logs and generated output
+*.log
+*.tmp
+build/
+builds/
+dist/
+exports/
+artifacts/
+test-results/
