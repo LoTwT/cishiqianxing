@@ -28,8 +28,8 @@ const GlobalProgressionValidatorScript := preload(
 )
 
 const CANONICAL_MANIFEST_PATH: String = "res://content/content_manifest.tres"
-const SUPPORTED_SCHEMA_VERSION: int = 2
-const SUPPORTED_CONTENT_VERSION: int = 2
+const SUPPORTED_SCHEMA_VERSION: int = 3
+const SUPPORTED_CONTENT_VERSION: int = 3
 const EXPECTED_DEFINITION_COUNT: int = 24
 const ADVANCED_ORDINALS: Array[int] = [6, 7, 13, 14, 18, 19, 23, 24]
 const EXPECTED_CATEGORIES: Array[int] = [

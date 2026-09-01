@@ -16,6 +16,9 @@ const MainlineProgressionDefinitionScript := preload(
 const OptionalProgressionDefinitionScript := preload(
 	"res://src/content/definitions/optional_progression_definition_resource.gd"
 )
+const PermanentGrowthRewardDefinitionScript := preload(
+	"res://src/content/definitions/permanent_growth_reward_definition_resource.gd"
+)
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
@@ -30,6 +33,10 @@ const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
 
+const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
+const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
+const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
+
 var _schema_version: int
 var _content_version: int
 var _material_ids: Array[StringName] = []
@@ -41,8 +48,11 @@ var _progression_catalog_id: StringName = &""
 var _initial_player_stats: PlayerStatProfileScript
 var _mainline_progression_ids: Array[StringName] = []
 var _optional_progression_ids: Array[StringName] = []
+var _permanent_growth_reward_ids: Array[StringName] = []
+var _permanent_growth_rewards: Array[PermanentGrowthRewardDefinitionScript] = []
 var _mainline_progression_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
 var _optional_progression_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
+var _permanent_growth_rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
 
 
 func _init() -> void:
@@ -75,8 +85,11 @@ func _initialize_validated(
 	var stored_recipes_by_id: Dictionary[StringName, RecipeDefinitionScript] = {}
 	var stored_mainline_ids: Array[StringName] = []
 	var stored_optional_ids: Array[StringName] = []
+	var stored_reward_ids: Array[StringName] = []
+	var stored_rewards: Array[PermanentGrowthRewardDefinitionScript] = []
 	var stored_mainline_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
 	var stored_optional_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
+	var stored_rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		var stored_blueprint: BlueprintDefinitionScript = (
 			BlueprintDefinitionScript.snapshot(blueprint)
@@ -103,20 +116,34 @@ func _initialize_validated(
 		)
 		stored_optional_ids.append(stored_definition.content_id)
 		stored_optional_by_id[stored_definition.content_id] = stored_definition
+	for reward: PermanentGrowthRewardDefinitionScript in (
+		progression_catalog.permanent_growth_rewards
+	):
+		var stored_reward: PermanentGrowthRewardDefinitionScript = (
+			PermanentGrowthRewardDefinitionScript.snapshot(reward)
+		)
+		stored_reward_ids.append(stored_reward.reward_id)
+		stored_rewards.append(stored_reward)
+		stored_rewards_by_id[stored_reward.reward_id] = stored_reward
 	stored_blueprint_ids.sort_custom(_content_id_less_than)
 	stored_recipe_ids.sort_custom(_content_id_less_than)
 	stored_mainline_ids.sort_custom(_content_id_less_than)
 	stored_optional_ids.sort_custom(_content_id_less_than)
+	stored_reward_ids.sort_custom(_content_id_less_than)
+	stored_rewards.sort_custom(_permanent_growth_reward_less_than)
 	stored_material_ids.sort_custom(_content_id_less_than)
 	stored_material_ids.make_read_only()
 	stored_blueprint_ids.make_read_only()
 	stored_recipe_ids.make_read_only()
 	stored_mainline_ids.make_read_only()
 	stored_optional_ids.make_read_only()
+	stored_reward_ids.make_read_only()
+	stored_rewards.make_read_only()
 	stored_blueprints_by_id.make_read_only()
 	stored_recipes_by_id.make_read_only()
 	stored_mainline_by_id.make_read_only()
 	stored_optional_by_id.make_read_only()
+	stored_rewards_by_id.make_read_only()
 	_schema_version = schema_version
 	_content_version = content_version
 	_material_ids = stored_material_ids
@@ -130,8 +157,11 @@ func _initialize_validated(
 	)
 	_mainline_progression_ids = stored_mainline_ids
 	_optional_progression_ids = stored_optional_ids
+	_permanent_growth_reward_ids = stored_reward_ids
+	_permanent_growth_rewards = stored_rewards
 	_mainline_progression_by_id = stored_mainline_by_id
 	_optional_progression_by_id = stored_optional_by_id
+	_permanent_growth_rewards_by_id = stored_rewards_by_id
 
 
 func is_initialized() -> bool:
@@ -216,6 +246,10 @@ func global_progression_catalog() -> GlobalProgressionCatalogScript:
 				_optional_progression_by_id[content_id]
 			)
 		)
+	for reward: PermanentGrowthRewardDefinitionScript in _permanent_growth_rewards:
+		result.permanent_growth_rewards.append(
+			PermanentGrowthRewardDefinitionScript.snapshot(reward)
+		)
 	return result
 
 
@@ -242,6 +276,16 @@ func optional_progression_ids() -> Array[StringName]:
 	return _copy_ids(_optional_progression_ids)
 
 
+func permanent_growth_reward_count() -> int:
+	return _permanent_growth_reward_ids.size() if is_initialized() else 0
+
+
+func permanent_growth_reward_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_permanent_growth_reward_ids)
+
+
 func mainline_progression_definitions() -> Array[MainlineProgressionDefinitionScript]:
 	var result: Array[MainlineProgressionDefinitionScript] = []
 	if not is_initialized():
@@ -265,6 +309,15 @@ func optional_progression_definitions() -> Array[OptionalProgressionDefinitionSc
 				_optional_progression_by_id[content_id]
 			)
 		)
+	return result
+
+
+func permanent_growth_reward_definitions() -> Array[PermanentGrowthRewardDefinitionScript]:
+	var result: Array[PermanentGrowthRewardDefinitionScript] = []
+	if not is_initialized():
+		return result
+	for reward: PermanentGrowthRewardDefinitionScript in _permanent_growth_rewards:
+		result.append(PermanentGrowthRewardDefinitionScript.snapshot(reward))
 	return result
 
 
@@ -316,6 +369,30 @@ func lookup_optional_progression(
 	)
 
 
+func lookup_permanent_growth_reward(
+	reward_id: StringName,
+) -> GlobalProgressionQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.PERMANENT_GROWTH_REWARD,
+			reward_id,
+		)
+	if not _permanent_growth_rewards_by_id.has(reward_id):
+		return GlobalProgressionQueryResultScript.failed(
+			GlobalProgressionQueryResultScript.Kind.PERMANENT_GROWTH_REWARD,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_PERMANENT_GROWTH_REWARD_ID,
+				reward_id,
+				"reward_id",
+				"No permanent growth reward is registered for ID '%s'."
+				% String(reward_id),
+			),
+		)
+	return GlobalProgressionQueryResultScript.found_permanent_growth_reward(
+		_permanent_growth_rewards_by_id[reward_id]
+	)
+
+
 func mainline_stats_after_chapter(
 	chapter: int,
 ) -> GlobalProgressionQueryResultScript:
@@ -344,7 +421,7 @@ func mainline_stats_after_chapter(
 			_mainline_progression_by_id[content_id]
 		)
 		if definition.chapter <= chapter:
-			_apply_mainline_delta(result_stats, definition)
+			_apply_permanent_growth_rewards(result_stats, definition.reward_ids)
 	return GlobalProgressionQueryResultScript.found_player_stats(result_stats)
 
 
@@ -358,14 +435,14 @@ func full_completion_player_stats() -> GlobalProgressionQueryResultScript:
 		PlayerStatProfileScript.snapshot(_initial_player_stats)
 	)
 	for content_id: StringName in _mainline_progression_ids:
-		_apply_mainline_delta(
+		_apply_permanent_growth_rewards(
 			result_stats,
-			_mainline_progression_by_id[content_id],
+			_mainline_progression_by_id[content_id].reward_ids,
 		)
 	for content_id: StringName in _optional_progression_ids:
-		_apply_optional_delta(
+		_apply_permanent_growth_rewards(
 			result_stats,
-			_optional_progression_by_id[content_id],
+			_optional_progression_by_id[content_id].reward_ids,
 		)
 	return GlobalProgressionQueryResultScript.found_player_stats(result_stats)
 
@@ -439,8 +516,19 @@ func _has_valid_contract() -> bool:
 	if (
 		_blueprint_ids.size() != _blueprints_by_id.size()
 		or _recipe_ids.size() != _recipes_by_id.size()
+		or _mainline_progression_ids.size() != EXPECTED_MAINLINE_PROGRESSION_COUNT
 		or _mainline_progression_ids.size() != _mainline_progression_by_id.size()
+		or _optional_progression_ids.size() != EXPECTED_OPTIONAL_PROGRESSION_COUNT
 		or _optional_progression_ids.size() != _optional_progression_by_id.size()
+		or (
+			_permanent_growth_reward_ids.size()
+			!= EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
+		)
+		or _permanent_growth_rewards.size() != EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
+		or (
+			_permanent_growth_reward_ids.size()
+			!= _permanent_growth_rewards_by_id.size()
+		)
 	):
 		return false
 	var ordered_blueprint_ids: Array[StringName] = _copy_ids(_blueprint_ids)
@@ -451,15 +539,20 @@ func _has_valid_contract() -> bool:
 	var ordered_optional_ids: Array[StringName] = _copy_ids(
 		_optional_progression_ids
 	)
+	var ordered_reward_ids: Array[StringName] = _copy_ids(
+		_permanent_growth_reward_ids
+	)
 	ordered_blueprint_ids.sort_custom(_content_id_less_than)
 	ordered_recipe_ids.sort_custom(_content_id_less_than)
 	ordered_mainline_ids.sort_custom(_content_id_less_than)
 	ordered_optional_ids.sort_custom(_content_id_less_than)
+	ordered_reward_ids.sort_custom(_content_id_less_than)
 	if (
 		_blueprint_ids != ordered_blueprint_ids
 		or _recipe_ids != ordered_recipe_ids
 		or _mainline_progression_ids != ordered_mainline_ids
 		or _optional_progression_ids != ordered_optional_ids
+		or _permanent_growth_reward_ids != ordered_reward_ids
 	):
 		return false
 	var blueprints: Array[BlueprintDefinitionScript] = []
@@ -498,6 +591,7 @@ func _has_valid_contract() -> bool:
 		or profile_resource.get_script() != PlayerStatProfileScript
 	):
 		return false
+	var referenced_reward_ids: Array[StringName] = []
 	var mainline_progression: Array[MainlineProgressionDefinitionScript] = []
 	for content_id: StringName in _mainline_progression_ids:
 		if not _mainline_progression_by_id.has(content_id):
@@ -515,6 +609,16 @@ func _has_valid_contract() -> bool:
 		)
 		if definition.content_id != content_id:
 			return false
+		var ordered_membership_ids: Array[StringName] = _copy_ids(
+			definition.reward_ids
+		)
+		ordered_membership_ids.sort_custom(_content_id_less_than)
+		if definition.reward_ids != ordered_membership_ids:
+			return false
+		for reward_id: StringName in definition.reward_ids:
+			if not _permanent_growth_rewards_by_id.has(reward_id):
+				return false
+			referenced_reward_ids.append(reward_id)
 		mainline_progression.append(definition)
 	var optional_progression: Array[OptionalProgressionDefinitionScript] = []
 	for content_id: StringName in _optional_progression_ids:
@@ -533,7 +637,61 @@ func _has_valid_contract() -> bool:
 		)
 		if definition.content_id != content_id:
 			return false
+		var ordered_membership_ids: Array[StringName] = _copy_ids(
+			definition.reward_ids
+		)
+		ordered_membership_ids.sort_custom(_content_id_less_than)
+		if definition.reward_ids != ordered_membership_ids:
+			return false
+		for reward_id: StringName in definition.reward_ids:
+			if not _permanent_growth_rewards_by_id.has(reward_id):
+				return false
+			referenced_reward_ids.append(reward_id)
 		optional_progression.append(definition)
+	referenced_reward_ids.sort_custom(_content_id_less_than)
+	if referenced_reward_ids != _permanent_growth_reward_ids:
+		return false
+	var rewards: Array[PermanentGrowthRewardDefinitionScript] = []
+	for index: int in range(_permanent_growth_reward_ids.size()):
+		var reward_id: StringName = _permanent_growth_reward_ids[index]
+		var listed_reward_resource: Resource = (
+			_permanent_growth_rewards[index] as Resource
+		)
+		if (
+			listed_reward_resource == null
+			or (
+				listed_reward_resource.get_script()
+				!= PermanentGrowthRewardDefinitionScript
+			)
+		):
+			return false
+		var listed_reward: PermanentGrowthRewardDefinitionScript = (
+			listed_reward_resource as PermanentGrowthRewardDefinitionScript
+		)
+		if listed_reward.reward_id != reward_id:
+			return false
+		if not _permanent_growth_rewards_by_id.has(reward_id):
+			return false
+		var mapped_reward_resource: Resource = (
+			_permanent_growth_rewards_by_id[reward_id] as Resource
+		)
+		if (
+			mapped_reward_resource == null
+			or (
+				mapped_reward_resource.get_script()
+				!= PermanentGrowthRewardDefinitionScript
+			)
+		):
+			return false
+		var mapped_reward: PermanentGrowthRewardDefinitionScript = (
+			mapped_reward_resource as PermanentGrowthRewardDefinitionScript
+		)
+		if (
+			mapped_reward.reward_id != reward_id
+			or not listed_reward.is_equal_to(mapped_reward)
+		):
+			return false
+		rewards.append(listed_reward)
 	var progression_catalog := GlobalProgressionCatalogScript.new()
 	progression_catalog.catalog_id = _progression_catalog_id
 	progression_catalog.initial_stats = _initial_player_stats
@@ -541,6 +699,8 @@ func _has_valid_contract() -> bool:
 		progression_catalog.mainline_progression.append(definition)
 	for definition: OptionalProgressionDefinitionScript in optional_progression:
 		progression_catalog.optional_progression.append(definition)
+	for reward: PermanentGrowthRewardDefinitionScript in rewards:
+		progression_catalog.permanent_growth_rewards.append(reward)
 	return ContentContractFingerprintScript.matches(
 		_schema_version,
 		_content_version,
@@ -550,24 +710,30 @@ func _has_valid_contract() -> bool:
 	)
 
 
-static func _apply_mainline_delta(
+func _apply_permanent_growth_rewards(
 	stats: PlayerStatProfileScript,
-	definition: MainlineProgressionDefinitionScript,
+	reward_ids: Array[StringName],
 ) -> void:
-	stats.maximum_health += definition.maximum_health_increase
-	stats.attack += definition.attack_increase
-	stats.defense += definition.defense_increase
-	stats.speed += definition.speed_increase
+	for reward_id: StringName in reward_ids:
+		_apply_permanent_growth_reward(
+			stats,
+			_permanent_growth_rewards_by_id[reward_id],
+		)
 
 
-static func _apply_optional_delta(
+static func _apply_permanent_growth_reward(
 	stats: PlayerStatProfileScript,
-	definition: OptionalProgressionDefinitionScript,
+	reward: PermanentGrowthRewardDefinitionScript,
 ) -> void:
-	stats.maximum_health += definition.maximum_health_increase
-	stats.attack += definition.attack_increase
-	stats.defense += definition.defense_increase
-	stats.speed += definition.speed_increase
+	match reward.stat_kind:
+		PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH:
+			stats.maximum_health += reward.increase
+		PermanentGrowthRewardDefinitionScript.StatKind.ATTACK:
+			stats.attack += reward.increase
+		PermanentGrowthRewardDefinitionScript.StatKind.DEFENSE:
+			stats.defense += reward.increase
+		PermanentGrowthRewardDefinitionScript.StatKind.SPEED:
+			stats.speed += reward.increase
 
 
 static func _copy_ids(source: Array[StringName]) -> Array[StringName]:
@@ -579,3 +745,10 @@ static func _copy_ids(source: Array[StringName]) -> Array[StringName]:
 
 static func _content_id_less_than(left: StringName, right: StringName) -> bool:
 	return String(left) < String(right)
+
+
+static func _permanent_growth_reward_less_than(
+	left: PermanentGrowthRewardDefinitionScript,
+	right: PermanentGrowthRewardDefinitionScript,
+) -> bool:
+	return String(left.reward_id) < String(right.reward_id)

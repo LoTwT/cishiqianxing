@@ -1,5 +1,9 @@
 extends RefCounted
 
+const FROZEN_V3_FINGERPRINT: String = (
+	"e213f5a2f75fb3744c68c3046422df2ead4891dfd1b470f452f0c9facd210adc"
+)
+
 
 class PlayerStatsRow extends RefCounted:
 	var profile_id: StringName
@@ -25,142 +29,213 @@ class PlayerStatsRow extends RefCounted:
 		return [maximum_health, attack, defense, speed]
 
 
-class MainlineRow extends RefCounted:
+class RewardRow extends RefCounted:
+	var reward_id: StringName
+	var stat_kind: int
+	var increase: int
+
+	func _init(
+		row_reward_id: StringName,
+		row_stat_kind: int,
+		row_increase: int,
+	) -> void:
+		reward_id = row_reward_id
+		stat_kind = row_stat_kind
+		increase = row_increase
+
+
+class GroupRow extends RefCounted:
 	var content_id: StringName
+	var group_kind: int
 	var chapter: int
-	var maximum_health_increase: int
-	var attack_increase: int
-	var defense_increase: int
-	var speed_increase: int
+	var optional_map_id: StringName
+	var available_after_chapter: int
+	var reward_ids: Array[StringName]
 	var chapter_end_stats: Array[int]
 
 	func _init(
 		row_content_id: StringName,
+		row_group_kind: int,
 		row_chapter: int,
-		row_maximum_health_increase: int,
-		row_attack_increase: int,
-		row_defense_increase: int,
-		row_speed_increase: int,
+		row_optional_map_id: StringName,
+		row_available_after_chapter: int,
+		row_reward_ids: Array[StringName],
 		row_chapter_end_stats: Array[int],
 	) -> void:
 		content_id = row_content_id
+		group_kind = row_group_kind
 		chapter = row_chapter
-		maximum_health_increase = row_maximum_health_increase
-		attack_increase = row_attack_increase
-		defense_increase = row_defense_increase
-		speed_increase = row_speed_increase
+		optional_map_id = row_optional_map_id
+		available_after_chapter = row_available_after_chapter
+		reward_ids = []
+		for reward_id: StringName in row_reward_ids:
+			reward_ids.append(reward_id)
 		chapter_end_stats = []
 		for value: int in row_chapter_end_stats:
 			chapter_end_stats.append(value)
-
-	func delta_values() -> Array[int]:
-		return [
-			maximum_health_increase,
-			attack_increase,
-			defense_increase,
-			speed_increase,
-		]
-
-
-class OptionalRow extends RefCounted:
-	var content_id: StringName
-	var optional_map_id: StringName
-	var available_after_chapter: int
-	var maximum_health_increase: int
-	var attack_increase: int
-	var defense_increase: int
-	var speed_increase: int
-
-	func _init(
-		row_content_id: StringName,
-		row_optional_map_id: StringName,
-		row_available_after_chapter: int,
-		row_maximum_health_increase: int,
-		row_attack_increase: int,
-		row_defense_increase: int,
-		row_speed_increase: int,
-	) -> void:
-		content_id = row_content_id
-		optional_map_id = row_optional_map_id
-		available_after_chapter = row_available_after_chapter
-		maximum_health_increase = row_maximum_health_increase
-		attack_increase = row_attack_increase
-		defense_increase = row_defense_increase
-		speed_increase = row_speed_increase
-
-	func delta_values() -> Array[int]:
-		return [
-			maximum_health_increase,
-			attack_increase,
-			defense_increase,
-			speed_increase,
-		]
 
 
 static func initial_stats() -> PlayerStatsRow:
 	return PlayerStatsRow.new(&"progression.player.loer", 100, 10, 5, 10)
 
 
-static func mainline_rows() -> Array[MainlineRow]:
+static func reward_rows() -> Array[RewardRow]:
 	return [
-		_mainline(1, 10, 1, 0, 0, [110, 11, 5, 10]),
-		_mainline(2, 10, 0, 1, 0, [120, 11, 6, 10]),
-		_mainline(3, 10, 1, 1, 0, [130, 12, 7, 10]),
-		_mainline(4, 10, 1, 1, 1, [140, 13, 8, 11]),
-		_mainline(5, 10, 1, 1, 0, [150, 14, 9, 11]),
-		_mainline(6, 10, 1, 0, 1, [160, 15, 9, 12]),
-		_mainline(7, 10, 0, 1, 1, [170, 15, 10, 13]),
-		_mainline(8, 10, 1, 1, 0, [180, 16, 11, 13]),
-		_mainline(9, 0, 0, 0, 1, [180, 16, 11, 14]),
+		RewardRow.new(&"progression.reward.main.chapter.01.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.01.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.02.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.02.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.03.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.03.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.03.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.04.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.04.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.04.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.04.speed", 4, 1),
+		RewardRow.new(&"progression.reward.main.chapter.05.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.05.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.05.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.06.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.06.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.06.speed", 4, 1),
+		RewardRow.new(&"progression.reward.main.chapter.07.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.07.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.07.speed", 4, 1),
+		RewardRow.new(&"progression.reward.main.chapter.08.attack", 2, 1),
+		RewardRow.new(&"progression.reward.main.chapter.08.defense", 3, 1),
+		RewardRow.new(&"progression.reward.main.chapter.08.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.main.chapter.09.speed", 4, 1),
+		RewardRow.new(&"progression.reward.optional.m01.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.optional.m02.attack", 2, 1),
+		RewardRow.new(&"progression.reward.optional.m03.defense", 3, 1),
+		RewardRow.new(&"progression.reward.optional.m03.maximum_health", 1, 10),
+		RewardRow.new(&"progression.reward.optional.m04.attack", 2, 1),
+		RewardRow.new(&"progression.reward.optional.m04.defense", 3, 1),
 	]
 
 
-static func optional_rows() -> Array[OptionalRow]:
+static func group_rows() -> Array[GroupRow]:
 	return [
-		_optional(1, 2, 10, 0, 0, 0),
-		_optional(2, 4, 0, 1, 0, 0),
-		_optional(3, 6, 10, 0, 1, 0),
-		_optional(4, 8, 0, 1, 1, 0),
+		GroupRow.new(
+			&"progression.main.chapter.01", 1, 1, &"", 0,
+			[
+				&"progression.reward.main.chapter.01.attack",
+				&"progression.reward.main.chapter.01.maximum_health",
+			],
+			[110, 11, 5, 10],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.02", 1, 2, &"", 0,
+			[
+				&"progression.reward.main.chapter.02.defense",
+				&"progression.reward.main.chapter.02.maximum_health",
+			],
+			[120, 11, 6, 10],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.03", 1, 3, &"", 0,
+			[
+				&"progression.reward.main.chapter.03.attack",
+				&"progression.reward.main.chapter.03.defense",
+				&"progression.reward.main.chapter.03.maximum_health",
+			],
+			[130, 12, 7, 10],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.04", 1, 4, &"", 0,
+			[
+				&"progression.reward.main.chapter.04.attack",
+				&"progression.reward.main.chapter.04.defense",
+				&"progression.reward.main.chapter.04.maximum_health",
+				&"progression.reward.main.chapter.04.speed",
+			],
+			[140, 13, 8, 11],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.05", 1, 5, &"", 0,
+			[
+				&"progression.reward.main.chapter.05.attack",
+				&"progression.reward.main.chapter.05.defense",
+				&"progression.reward.main.chapter.05.maximum_health",
+			],
+			[150, 14, 9, 11],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.06", 1, 6, &"", 0,
+			[
+				&"progression.reward.main.chapter.06.attack",
+				&"progression.reward.main.chapter.06.maximum_health",
+				&"progression.reward.main.chapter.06.speed",
+			],
+			[160, 15, 9, 12],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.07", 1, 7, &"", 0,
+			[
+				&"progression.reward.main.chapter.07.defense",
+				&"progression.reward.main.chapter.07.maximum_health",
+				&"progression.reward.main.chapter.07.speed",
+			],
+			[170, 15, 10, 13],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.08", 1, 8, &"", 0,
+			[
+				&"progression.reward.main.chapter.08.attack",
+				&"progression.reward.main.chapter.08.defense",
+				&"progression.reward.main.chapter.08.maximum_health",
+			],
+			[180, 16, 11, 13],
+		),
+		GroupRow.new(
+			&"progression.main.chapter.09", 1, 9, &"", 0,
+			[&"progression.reward.main.chapter.09.speed"],
+			[180, 16, 11, 14],
+		),
+		GroupRow.new(
+			&"progression.optional.m01", 2, 0, &"M01", 2,
+			[&"progression.reward.optional.m01.maximum_health"],
+			[],
+		),
+		GroupRow.new(
+			&"progression.optional.m02", 2, 0, &"M02", 4,
+			[&"progression.reward.optional.m02.attack"],
+			[],
+		),
+		GroupRow.new(
+			&"progression.optional.m03", 2, 0, &"M03", 6,
+			[
+				&"progression.reward.optional.m03.defense",
+				&"progression.reward.optional.m03.maximum_health",
+			],
+			[],
+		),
+		GroupRow.new(
+			&"progression.optional.m04", 2, 0, &"M04", 8,
+			[
+				&"progression.reward.optional.m04.attack",
+				&"progression.reward.optional.m04.defense",
+			],
+			[],
+		),
 	]
+
+
+static func mainline_group_rows() -> Array[GroupRow]:
+	var rows: Array[GroupRow] = []
+	for row: GroupRow in group_rows():
+		if row.group_kind == 1:
+			rows.append(row)
+	return rows
+
+
+static func optional_group_rows() -> Array[GroupRow]:
+	var rows: Array[GroupRow] = []
+	for row: GroupRow in group_rows():
+		if row.group_kind == 2:
+			rows.append(row)
+	return rows
 
 
 static func full_completion_stats() -> Array[int]:
 	return [200, 18, 13, 14]
-
-
-static func _mainline(
-	chapter: int,
-	maximum_health_increase: int,
-	attack_increase: int,
-	defense_increase: int,
-	speed_increase: int,
-	chapter_end_stats: Array[int],
-) -> MainlineRow:
-	return MainlineRow.new(
-		StringName("progression.main.chapter.%02d" % chapter),
-		chapter,
-		maximum_health_increase,
-		attack_increase,
-		defense_increase,
-		speed_increase,
-		chapter_end_stats,
-	)
-
-
-static func _optional(
-	ordinal: int,
-	available_after_chapter: int,
-	maximum_health_increase: int,
-	attack_increase: int,
-	defense_increase: int,
-	speed_increase: int,
-) -> OptionalRow:
-	return OptionalRow.new(
-		StringName("progression.optional.m%02d" % ordinal),
-		StringName("M%02d" % ordinal),
-		available_after_chapter,
-		maximum_health_increase,
-		attack_increase,
-		defense_increase,
-		speed_increase,
-	)

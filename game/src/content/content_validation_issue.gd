@@ -25,6 +25,9 @@ const PROGRESSION_MAINLINE_COUNT_INVALID: StringName = (
 const PROGRESSION_OPTIONAL_COUNT_INVALID: StringName = (
 	&"progression.optional_count.invalid"
 )
+const PROGRESSION_REWARD_COUNT_INVALID: StringName = (
+	&"progression.reward_count.invalid"
+)
 const PROGRESSION_INITIAL_STATS_NULL: StringName = &"progression.initial_stats.null"
 const PROGRESSION_INITIAL_STATS_INVALID_SCRIPT: StringName = (
 	&"progression.initial_stats.invalid_script"
@@ -57,12 +60,6 @@ const PROGRESSION_MAINLINE_CHAPTER_DUPLICATE: StringName = (
 const PROGRESSION_MAINLINE_CHAPTER_MISMATCH: StringName = (
 	&"progression.mainline.chapter.mismatch"
 )
-const PROGRESSION_MAINLINE_DELTA_INVALID: StringName = (
-	&"progression.mainline.delta.invalid"
-)
-const PROGRESSION_MAINLINE_DELTA_MISMATCH: StringName = (
-	&"progression.mainline.delta.mismatch"
-)
 const PROGRESSION_OPTIONAL_ENTRY_NULL: StringName = (
 	&"progression.optional.entry.null"
 )
@@ -90,14 +87,50 @@ const PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID: StringName = (
 const PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_MISMATCH: StringName = (
 	&"progression.optional.available_after_chapter.mismatch"
 )
-const PROGRESSION_OPTIONAL_DELTA_INVALID: StringName = (
-	&"progression.optional.delta.invalid"
-)
-const PROGRESSION_OPTIONAL_DELTA_MISMATCH: StringName = (
-	&"progression.optional.delta.mismatch"
-)
 const PROGRESSION_OPTIONAL_SPEED_FORBIDDEN: StringName = (
 	&"progression.optional.speed.forbidden"
+)
+const PROGRESSION_GROUP_REWARD_ID_EMPTY: StringName = (
+	&"progression.group.reward_id.empty"
+)
+const PROGRESSION_GROUP_REWARD_ID_DUPLICATE: StringName = (
+	&"progression.group.reward_id.duplicate"
+)
+const PROGRESSION_GROUP_REWARD_ID_UNKNOWN: StringName = (
+	&"progression.group.reward_id.unknown"
+)
+const PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH: StringName = (
+	&"progression.group.reward_membership.mismatch"
+)
+const PROGRESSION_REWARD_ENTRY_NULL: StringName = (
+	&"progression.reward.entry.null"
+)
+const PROGRESSION_REWARD_ENTRY_INVALID_SCRIPT: StringName = (
+	&"progression.reward.entry.invalid_script"
+)
+const PROGRESSION_REWARD_ID_EMPTY: StringName = &"progression.reward_id.empty"
+const PROGRESSION_REWARD_ID_INVALID: StringName = &"progression.reward_id.invalid"
+const PROGRESSION_REWARD_ID_DUPLICATE: StringName = (
+	&"progression.reward_id.duplicate"
+)
+const PROGRESSION_REWARD_ID_MISSING: StringName = &"progression.reward_id.missing"
+const PROGRESSION_REWARD_STAT_KIND_INVALID: StringName = (
+	&"progression.reward.stat_kind.invalid"
+)
+const PROGRESSION_REWARD_STAT_KIND_MISMATCH: StringName = (
+	&"progression.reward.stat_kind.mismatch"
+)
+const PROGRESSION_REWARD_INCREASE_INVALID: StringName = (
+	&"progression.reward.increase.invalid"
+)
+const PROGRESSION_REWARD_INCREASE_MISMATCH: StringName = (
+	&"progression.reward.increase.mismatch"
+)
+const PROGRESSION_REWARD_UNREFERENCED: StringName = (
+	&"progression.reward.unreferenced"
+)
+const PROGRESSION_REWARD_REFERENCED_MULTIPLE: StringName = (
+	&"progression.reward.referenced_multiple"
 )
 const PROGRESSION_MAINLINE_ATOMIC_COUNT_MISMATCH: StringName = (
 	&"progression.mainline.atomic_count.mismatch"
@@ -226,6 +259,9 @@ const LOOKUP_UNKNOWN_MAINLINE_PROGRESSION_ID: StringName = (
 )
 const LOOKUP_UNKNOWN_OPTIONAL_PROGRESSION_ID: StringName = (
 	&"lookup.progression.optional_id.unknown"
+)
+const LOOKUP_UNKNOWN_PERMANENT_GROWTH_REWARD_ID: StringName = (
+	&"lookup.progression.permanent_growth_reward_id.unknown"
 )
 const LOOKUP_PROGRESSION_CHAPTER_INVALID: StringName = (
 	&"lookup.progression.chapter.invalid"
