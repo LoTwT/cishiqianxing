@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="GlobalProgressionCatalogResource" load_steps=19 format=3]
+[gd_resource type="Resource" script_class="GlobalProgressionCatalogResource" load_steps=50 format=3]
 
 [ext_resource type="Script" path="res://src/content/definitions/global_progression_catalog_resource.gd" id="1_catalog"]
 [ext_resource type="Script" path="res://src/content/definitions/player_stat_profile_resource.gd" id="2_profile"]
 [ext_resource type="Script" path="res://src/content/definitions/mainline_progression_definition_resource.gd" id="3_mainline"]
 [ext_resource type="Script" path="res://src/content/definitions/optional_progression_definition_resource.gd" id="4_optional"]
+[ext_resource type="Script" path="res://src/content/definitions/permanent_growth_reward_definition_resource.gd" id="5_reward"]
 
 [sub_resource type="Resource" id="PlayerStatProfile_initial"]
 script = ExtResource("2_profile")
@@ -13,126 +14,267 @@ attack = 10
 defense = 5
 speed = 10
 
+[sub_resource type="Resource" id="Reward_main_01_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.01.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_01_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.01.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_02_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.02.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_02_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.02.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_03_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.03.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_03_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.03.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_03_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.03.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_04_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.04.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_04_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.04.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_04_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.04.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_04_speed"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.04.speed"
+stat_kind = 4
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_05_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.05.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_05_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.05.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_05_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.05.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_06_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.06.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_06_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.06.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_06_speed"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.06.speed"
+stat_kind = 4
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_07_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.07.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_07_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.07.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_07_speed"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.07.speed"
+stat_kind = 4
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_08_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.08.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_main_08_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.08.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_08_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.08.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_main_09_speed"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.main.chapter.09.speed"
+stat_kind = 4
+increase = 1
+
+[sub_resource type="Resource" id="Reward_optional_m01_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m01.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_optional_m02_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m02.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_optional_m03_maximum_health"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m03.maximum_health"
+stat_kind = 1
+increase = 10
+
+[sub_resource type="Resource" id="Reward_optional_m03_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m03.defense"
+stat_kind = 3
+increase = 1
+
+[sub_resource type="Resource" id="Reward_optional_m04_attack"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m04.attack"
+stat_kind = 2
+increase = 1
+
+[sub_resource type="Resource" id="Reward_optional_m04_defense"]
+script = ExtResource("5_reward")
+reward_id = &"progression.reward.optional.m04.defense"
+stat_kind = 3
+increase = 1
+
 [sub_resource type="Resource" id="MainlineProgression_chapter_01"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.01"
 chapter = 1
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 0
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.01.maximum_health", &"progression.reward.main.chapter.01.attack"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_02"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.02"
 chapter = 2
-maximum_health_increase = 10
-attack_increase = 0
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.02.maximum_health", &"progression.reward.main.chapter.02.defense"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_03"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.03"
 chapter = 3
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.03.maximum_health", &"progression.reward.main.chapter.03.attack", &"progression.reward.main.chapter.03.defense"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_04"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.04"
 chapter = 4
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 1
-speed_increase = 1
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.04.maximum_health", &"progression.reward.main.chapter.04.attack", &"progression.reward.main.chapter.04.defense", &"progression.reward.main.chapter.04.speed"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_05"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.05"
 chapter = 5
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.05.maximum_health", &"progression.reward.main.chapter.05.attack", &"progression.reward.main.chapter.05.defense"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_06"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.06"
 chapter = 6
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 0
-speed_increase = 1
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.06.maximum_health", &"progression.reward.main.chapter.06.attack", &"progression.reward.main.chapter.06.speed"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_07"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.07"
 chapter = 7
-maximum_health_increase = 10
-attack_increase = 0
-defense_increase = 1
-speed_increase = 1
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.07.maximum_health", &"progression.reward.main.chapter.07.defense", &"progression.reward.main.chapter.07.speed"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_08"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.08"
 chapter = 8
-maximum_health_increase = 10
-attack_increase = 1
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.08.maximum_health", &"progression.reward.main.chapter.08.attack", &"progression.reward.main.chapter.08.defense"])
 
 [sub_resource type="Resource" id="MainlineProgression_chapter_09"]
 script = ExtResource("3_mainline")
 content_id = &"progression.main.chapter.09"
 chapter = 9
-maximum_health_increase = 0
-attack_increase = 0
-defense_increase = 0
-speed_increase = 1
+reward_ids = Array[StringName]([&"progression.reward.main.chapter.09.speed"])
 
 [sub_resource type="Resource" id="OptionalProgression_m01"]
 script = ExtResource("4_optional")
 content_id = &"progression.optional.m01"
 optional_map_id = &"M01"
 available_after_chapter = 2
-maximum_health_increase = 10
-attack_increase = 0
-defense_increase = 0
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.optional.m01.maximum_health"])
 
 [sub_resource type="Resource" id="OptionalProgression_m02"]
 script = ExtResource("4_optional")
 content_id = &"progression.optional.m02"
 optional_map_id = &"M02"
 available_after_chapter = 4
-maximum_health_increase = 0
-attack_increase = 1
-defense_increase = 0
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.optional.m02.attack"])
 
 [sub_resource type="Resource" id="OptionalProgression_m03"]
 script = ExtResource("4_optional")
 content_id = &"progression.optional.m03"
 optional_map_id = &"M03"
 available_after_chapter = 6
-maximum_health_increase = 10
-attack_increase = 0
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.optional.m03.maximum_health", &"progression.reward.optional.m03.defense"])
 
 [sub_resource type="Resource" id="OptionalProgression_m04"]
 script = ExtResource("4_optional")
 content_id = &"progression.optional.m04"
 optional_map_id = &"M04"
 available_after_chapter = 8
-maximum_health_increase = 0
-attack_increase = 1
-defense_increase = 1
-speed_increase = 0
+reward_ids = Array[StringName]([&"progression.reward.optional.m04.attack", &"progression.reward.optional.m04.defense"])
 
 [resource]
 script = ExtResource("1_catalog")
@@ -140,3 +282,4 @@ catalog_id = &"progression.global"
 initial_stats = SubResource("PlayerStatProfile_initial")
 mainline_progression = Array[MainlineProgressionDefinitionResource]([SubResource("MainlineProgression_chapter_01"), SubResource("MainlineProgression_chapter_02"), SubResource("MainlineProgression_chapter_03"), SubResource("MainlineProgression_chapter_04"), SubResource("MainlineProgression_chapter_05"), SubResource("MainlineProgression_chapter_06"), SubResource("MainlineProgression_chapter_07"), SubResource("MainlineProgression_chapter_08"), SubResource("MainlineProgression_chapter_09")])
 optional_progression = Array[OptionalProgressionDefinitionResource]([SubResource("OptionalProgression_m01"), SubResource("OptionalProgression_m02"), SubResource("OptionalProgression_m03"), SubResource("OptionalProgression_m04")])
+permanent_growth_rewards = Array[PermanentGrowthRewardDefinitionResource]([SubResource("Reward_main_01_maximum_health"), SubResource("Reward_main_01_attack"), SubResource("Reward_main_02_maximum_health"), SubResource("Reward_main_02_defense"), SubResource("Reward_main_03_maximum_health"), SubResource("Reward_main_03_attack"), SubResource("Reward_main_03_defense"), SubResource("Reward_main_04_maximum_health"), SubResource("Reward_main_04_attack"), SubResource("Reward_main_04_defense"), SubResource("Reward_main_04_speed"), SubResource("Reward_main_05_maximum_health"), SubResource("Reward_main_05_attack"), SubResource("Reward_main_05_defense"), SubResource("Reward_main_06_maximum_health"), SubResource("Reward_main_06_attack"), SubResource("Reward_main_06_speed"), SubResource("Reward_main_07_maximum_health"), SubResource("Reward_main_07_defense"), SubResource("Reward_main_07_speed"), SubResource("Reward_main_08_maximum_health"), SubResource("Reward_main_08_attack"), SubResource("Reward_main_08_defense"), SubResource("Reward_main_09_speed"), SubResource("Reward_optional_m01_maximum_health"), SubResource("Reward_optional_m02_attack"), SubResource("Reward_optional_m03_maximum_health"), SubResource("Reward_optional_m03_defense"), SubResource("Reward_optional_m04_attack"), SubResource("Reward_optional_m04_defense")])

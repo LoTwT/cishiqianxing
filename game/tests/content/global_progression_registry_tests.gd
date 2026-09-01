@@ -1,11 +1,5 @@
 extends RefCounted
 
-const BlueprintDefinitionScript := preload(
-	"res://src/content/definitions/blueprint_definition_resource.gd"
-)
-const RecipeDefinitionScript := preload(
-	"res://src/content/definitions/recipe_definition_resource.gd"
-)
 const PlayerStatProfileScript := preload(
 	"res://src/content/definitions/player_stat_profile_resource.gd"
 )
@@ -14,6 +8,9 @@ const MainlineProgressionDefinitionScript := preload(
 )
 const OptionalProgressionDefinitionScript := preload(
 	"res://src/content/definitions/optional_progression_definition_resource.gd"
+)
+const PermanentGrowthRewardDefinitionScript := preload(
+	"res://src/content/definitions/permanent_growth_reward_definition_resource.gd"
 )
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
@@ -30,6 +27,9 @@ const ContentRegistryBuildResultScript := preload(
 )
 const GlobalProgressionQueryResultScript := preload(
 	"res://src/content/global_progression_query_result.gd"
+)
+const ContentContractFingerprintScript := preload(
+	"res://src/content/content_contract_fingerprint.gd"
 )
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
@@ -49,6 +49,9 @@ const DerivedMainlineProgressionDefinitionScript := preload(
 const DerivedOptionalProgressionDefinitionScript := preload(
 	"res://tests/content/support/derived_optional_progression_definition_resource.gd"
 )
+const DerivedPermanentGrowthRewardDefinitionScript := preload(
+	"res://tests/content/support/derived_permanent_growth_reward_definition_resource.gd"
+)
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
@@ -64,20 +67,28 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_matches_independent_oracle,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.rejects_malformed_catalog_atomically",
-			_rejects_malformed_catalog_atomically,
+			"global_progression.rejects_baseline_field_regressions",
+			_rejects_baseline_field_regressions,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.rejects_identity_and_position_collisions",
-			_rejects_identity_and_position_collisions,
+			"global_progression.rejects_baseline_resource_regressions",
+			_rejects_baseline_resource_regressions,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.rejects_same_total_field_swaps",
-			_rejects_same_total_field_swaps,
+			"global_progression.rejects_malformed_rewards_atomically",
+			_rejects_malformed_rewards_atomically,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.rejects_null_and_polymorphic_resources",
-			_rejects_null_and_polymorphic_resources,
+			"global_progression.rejects_reward_membership_violations",
+			_rejects_reward_membership_violations,
+		),
+		HeadlessTestCaseScript.new(
+			"global_progression.rejects_same_total_reward_swaps",
+			_rejects_same_total_reward_swaps,
+		),
+		HeadlessTestCaseScript.new(
+			"global_progression.rejects_null_wrong_and_derived_rewards",
+			_rejects_null_wrong_and_derived_rewards,
 		),
 		HeadlessTestCaseScript.new(
 			"global_progression.rejects_oversized_catalog_at_header",
@@ -92,12 +103,16 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_orders_errors_deterministically,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.reports_structured_queries",
-			_reports_structured_queries,
+			"global_progression.reports_structured_reward_queries",
+			_reports_structured_reward_queries,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.isolates_input_resources",
-			_isolates_input_resources,
+			"global_progression.reports_baseline_structured_queries",
+			_reports_baseline_structured_queries,
+		),
+		HeadlessTestCaseScript.new(
+			"global_progression.isolates_input_and_returned_resources",
+			_isolates_input_and_returned_resources,
 		),
 		HeadlessTestCaseScript.new(
 			"global_progression.isolates_query_results",
@@ -108,471 +123,594 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_isolates_resource_loader_cache,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.invalidates_complete_seal_and_cross_domain",
-			_invalidates_complete_seal_and_cross_domain,
+			"global_progression.invalidates_tampered_registry_state",
+			_invalidates_tampered_registry_state,
 		),
 		HeadlessTestCaseScript.new(
-			"global_progression.rebuilds_deterministically",
-			_rebuilds_deterministically,
+			"global_progression.invalidates_baseline_metadata_tampering",
+			_invalidates_baseline_metadata_tampering,
+		),
+		HeadlessTestCaseScript.new(
+			"global_progression.fingerprints_and_rebuilds_deterministically",
+			_fingerprints_and_rebuilds_deterministically,
 		),
 	]
 
 
 func _builds_canonical_catalog(context: HeadlessTestContextScript) -> void:
-	var result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		result.succeeded(),
-		"The canonical H-3 catalog must build. %s" % _diagnostics(result),
-	)
-	context.expect_true(
-		result.validation_report().is_valid(),
-		"The canonical H-3 report must be empty. %s" % _diagnostics(result),
+	var result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Canonical H-3.1 catalog",
 	)
 	if not result.succeeded():
 		return
 	var registry: ContentRegistryScript = result.registry()
-	context.expect_equal(registry.schema_version(), 2, "H-3 schema version must be two.")
-	context.expect_equal(registry.content_version(), 2, "H-3 content version must be two.")
-	var catalog: GlobalProgressionCatalogScript = registry.global_progression_catalog()
-	context.expect_true(catalog != null, "The registry must expose a progression snapshot.")
-	if catalog == null:
-		return
+	context.expect_true(registry.is_initialized(), "Canonical H-3.1 registry must initialize.")
+	context.expect_equal(registry.schema_version(), 3, "H-3.1 schema version must be three.")
+	context.expect_equal(registry.content_version(), 3, "H-3.1 content version must be three.")
 	context.expect_equal(
-		catalog.catalog_id,
-		&"progression.global",
-		"The canonical progression catalog ID must be stable.",
-	)
-	context.expect_equal(
-		catalog.mainline_progression.size(),
+		registry.mainline_progression_ids().size(),
 		9,
-		"The canonical catalog must contain nine mainline bundles.",
+		"The registry must expose nine mainline groups.",
 	)
 	context.expect_equal(
-		catalog.optional_progression.size(),
+		registry.optional_progression_ids().size(),
 		4,
-		"The canonical catalog must contain four optional bundles.",
+		"The registry must expose four optional groups.",
+	)
+	context.expect_equal(
+		registry.permanent_growth_reward_count(),
+		30,
+		"The registry must expose thirty atomic permanent rewards.",
 	)
 	context.expect_equal(
 		registry.mainline_progression_ids(),
 		_expected_mainline_ids(),
-		"Mainline IDs must use canonical lexical order.",
+		"Mainline group IDs must use frozen lexical order.",
 	)
 	context.expect_equal(
 		registry.optional_progression_ids(),
 		_expected_optional_ids(),
-		"Optional IDs must use canonical lexical order.",
+		"Optional group IDs must use frozen lexical order.",
 	)
+	context.expect_equal(
+		registry.permanent_growth_reward_ids(),
+		_expected_reward_ids(),
+		"All thirty reward IDs must use frozen lexical order.",
+	)
+	var catalog: GlobalProgressionCatalogScript = registry.global_progression_catalog()
+	context.expect_true(catalog != null, "The registry must expose a catalog snapshot.")
+	if catalog == null:
+		return
+	context.expect_equal(catalog.catalog_id, &"progression.global", "Catalog ID must be frozen.")
+	context.expect_equal(catalog.mainline_progression.size(), 9, "Catalog must retain 9 groups.")
+	context.expect_equal(catalog.optional_progression.size(), 4, "Catalog must retain 4 groups.")
+	context.expect_equal(
+		catalog.permanent_growth_rewards.size(),
+		30,
+		"Catalog must retain 30 atomic rewards.",
+	)
+	context.expect_equal(
+		[
+			PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH,
+			PermanentGrowthRewardDefinitionScript.StatKind.ATTACK,
+			PermanentGrowthRewardDefinitionScript.StatKind.DEFENSE,
+			PermanentGrowthRewardDefinitionScript.StatKind.SPEED,
+		],
+		[1, 2, 3, 4],
+		"Permanent reward stat kinds must remain frozen at literal values 1 through 4.",
+	)
+	var old_delta_fields: Array[StringName] = [
+		&"maximum_health_increase",
+		&"attack_increase",
+		&"defense_increase",
+		&"speed_increase",
+	]
+	for field_name: StringName in old_delta_fields:
+		context.expect_true(
+			not _resource_has_property(catalog.mainline_progression[0], field_name),
+			"Mainline groups must not retain legacy delta field '%s'."
+			% String(field_name),
+		)
+		context.expect_true(
+			not _resource_has_property(catalog.optional_progression[0], field_name),
+			"Optional groups must not retain legacy delta field '%s'."
+			% String(field_name),
+		)
+		context.expect_true(
+			not _resource_has_property(catalog.permanent_growth_rewards[0], field_name),
+			"Atomic rewards must not retain legacy delta field '%s'."
+			% String(field_name),
+		)
+	var group_only_fields: Array[StringName] = [
+		&"content_id",
+		&"chapter",
+		&"optional_map_id",
+		&"available_after_chapter",
+		&"reward_ids",
+	]
+	for field_name: StringName in group_only_fields:
+		context.expect_true(
+			not _resource_has_property(catalog.permanent_growth_rewards[0], field_name),
+			"Atomic rewards must not expose group field '%s'." % String(field_name),
+		)
+	var bundle_ids: Array[StringName] = registry.mainline_progression_ids()
+	bundle_ids.append_array(registry.optional_progression_ids())
+	for reward_id: StringName in registry.permanent_growth_reward_ids():
+		context.expect_true(
+			not bundle_ids.has(reward_id),
+			"Reward ID '%s' must not share the bundle namespace." % String(reward_id),
+		)
 	var initial_query: GlobalProgressionQueryResultScript = registry.initial_player_stats()
 	context.expect_true(initial_query.succeeded(), "Initial player stats must be queryable.")
-	context.expect_equal(
-		initial_query.kind(),
-		GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
-		"Initial stats must retain the player-stats query kind.",
-	)
-	context.expect_equal(
-		_profile_values(initial_query.player_stats()),
-		[100, 10, 5, 10],
-		"Initial stats must be 100/10/5/10.",
-	)
+	if initial_query.succeeded():
+		context.expect_equal(
+			_profile_values(initial_query.player_stats()),
+			GlobalProgressionCatalogOracle.initial_stats().values(),
+			"Initial player stats must remain 100/10/5/10.",
+		)
 
 
 func _matches_independent_oracle(context: HeadlessTestContextScript) -> void:
-	var result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		result.succeeded(),
-		"The independent H-3 oracle needs canonical input. %s" % _diagnostics(result),
+	var result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Independent H-3.1 oracle",
 	)
 	if not result.succeeded():
 		return
 	var registry: ContentRegistryScript = result.registry()
-	var initial_row: GlobalProgressionCatalogOracle.PlayerStatsRow = (
-		GlobalProgressionCatalogOracle.initial_stats()
+	var reward_rows: Array[GlobalProgressionCatalogOracle.RewardRow] = (
+		GlobalProgressionCatalogOracle.reward_rows()
 	)
-	var initial_query: GlobalProgressionQueryResultScript = registry.initial_player_stats()
-	context.expect_true(initial_query.succeeded(), "The initial profile must be queryable.")
-	if initial_query.succeeded():
-		var initial_stats: PlayerStatProfileScript = initial_query.player_stats()
-		context.expect_equal(initial_stats.profile_id, initial_row.profile_id, "Profile ID must match.")
-		context.expect_equal(
-			_profile_values(initial_stats),
-			initial_row.values(),
-			"Initial profile fields must match the literal oracle.",
-		)
-
-	var mainline_nonzero_counts: Array[int] = [0, 0, 0, 0]
-	var mainline_rows: Array[GlobalProgressionCatalogOracle.MainlineRow] = (
-		GlobalProgressionCatalogOracle.mainline_rows()
+	var group_rows: Array[GlobalProgressionCatalogOracle.GroupRow] = (
+		GlobalProgressionCatalogOracle.group_rows()
 	)
-	context.expect_equal(mainline_rows.size(), 9, "The literal mainline oracle must have nine rows.")
-	for row: GlobalProgressionCatalogOracle.MainlineRow in mainline_rows:
+	context.expect_equal(reward_rows.size(), 30, "Literal oracle must contain 30 rewards.")
+	context.expect_equal(group_rows.size(), 13, "Literal oracle must contain 13 groups.")
+	for row: GlobalProgressionCatalogOracle.RewardRow in reward_rows:
 		var lookup: GlobalProgressionQueryResultScript = (
-			registry.lookup_mainline_progression(row.content_id)
+			registry.lookup_permanent_growth_reward(row.reward_id)
 		)
 		context.expect_true(
 			lookup.succeeded(),
-			"Mainline progression '%s' must be queryable." % String(row.content_id),
+			"Oracle reward '%s' must be queryable." % String(row.reward_id),
 		)
 		if not lookup.succeeded():
 			continue
-		var definition: MainlineProgressionDefinitionScript = (
-			lookup.mainline_progression()
+		var reward: PermanentGrowthRewardDefinitionScript = (
+			lookup.permanent_growth_reward()
 		)
-		context.expect_equal(definition.content_id, row.content_id, "Mainline ID must match.")
-		context.expect_equal(definition.chapter, row.chapter, "Mainline chapter must match.")
-		context.expect_equal(
-			_mainline_delta(definition),
-			row.delta_values(),
-			"Mainline delta must match its literal row.",
-		)
-		_increment_nonzero_counts(
-			mainline_nonzero_counts,
-			_mainline_delta(definition),
-		)
-		var chapter_query: GlobalProgressionQueryResultScript = (
-			registry.mainline_stats_after_chapter(row.chapter)
-		)
-		context.expect_true(
-			chapter_query.succeeded(),
-			"Chapter %d cumulative stats must be queryable." % row.chapter,
-		)
-		if chapter_query.succeeded():
-			context.expect_equal(
-				_profile_values(chapter_query.player_stats()),
-				row.chapter_end_stats,
-				"Chapter %d end stats must match the literal oracle." % row.chapter,
+		context.expect_equal(reward.reward_id, row.reward_id, "Reward ID must match oracle.")
+		context.expect_equal(reward.stat_kind, row.stat_kind, "Reward stat kind must match oracle.")
+		context.expect_equal(reward.increase, row.increase, "Reward increase must match oracle.")
+
+	var aggregate_values: Array[int] = GlobalProgressionCatalogOracle.initial_stats().values()
+	var mainline_atomic_counts: Array[int] = [0, 0, 0, 0]
+	var optional_atomic_counts: Array[int] = [0, 0, 0, 0]
+	for row: GlobalProgressionCatalogOracle.GroupRow in group_rows:
+		if row.group_kind == 1:
+			var mainline_lookup: GlobalProgressionQueryResultScript = (
+				registry.lookup_mainline_progression(row.content_id)
 			)
+			context.expect_true(
+				mainline_lookup.succeeded(),
+				"Mainline group '%s' must be queryable." % String(row.content_id),
+			)
+			if mainline_lookup.succeeded():
+				var definition: MainlineProgressionDefinitionScript = (
+					mainline_lookup.mainline_progression()
+				)
+				context.expect_equal(definition.chapter, row.chapter, "Chapter must match oracle.")
+				context.expect_equal(
+					definition.reward_ids,
+					row.reward_ids,
+					"Mainline reward membership must match oracle.",
+				)
+		else:
+			var optional_lookup: GlobalProgressionQueryResultScript = (
+				registry.lookup_optional_progression(row.content_id)
+			)
+			context.expect_true(
+				optional_lookup.succeeded(),
+				"Optional group '%s' must be queryable." % String(row.content_id),
+			)
+			if optional_lookup.succeeded():
+				var definition: OptionalProgressionDefinitionScript = (
+					optional_lookup.optional_progression()
+				)
+				context.expect_equal(
+					definition.optional_map_id,
+					row.optional_map_id,
+					"Optional map ID must match oracle.",
+				)
+				context.expect_equal(
+					definition.available_after_chapter,
+					row.available_after_chapter,
+					"Optional availability must match oracle.",
+				)
+				context.expect_equal(
+					definition.reward_ids,
+					row.reward_ids,
+					"Optional reward membership must match oracle.",
+				)
+		for reward_id: StringName in row.reward_ids:
+			var reward_query: GlobalProgressionQueryResultScript = (
+				registry.lookup_permanent_growth_reward(reward_id)
+			)
+			if not reward_query.succeeded():
+				continue
+			var reward: PermanentGrowthRewardDefinitionScript = (
+				reward_query.permanent_growth_reward()
+			)
+			aggregate_values[reward.stat_kind - 1] += reward.increase
+			if row.group_kind == 1:
+				mainline_atomic_counts[reward.stat_kind - 1] += 1
+			else:
+				optional_atomic_counts[reward.stat_kind - 1] += 1
+		if row.group_kind == 1:
+			context.expect_equal(
+				aggregate_values,
+				row.chapter_end_stats,
+				"Chapter %d cumulative stats must match oracle." % row.chapter,
+			)
+			var chapter_query: GlobalProgressionQueryResultScript = (
+				registry.mainline_stats_after_chapter(row.chapter)
+			)
+			context.expect_true(chapter_query.succeeded(), "Chapter stats must be queryable.")
+			if chapter_query.succeeded():
+				context.expect_equal(
+					_profile_values(chapter_query.player_stats()),
+					row.chapter_end_stats,
+					"Registry chapter aggregate must match literal oracle.",
+				)
 	context.expect_equal(
-		mainline_nonzero_counts,
+		mainline_atomic_counts,
 		[8, 6, 6, 4],
-		"Mainline atomic increases must be 8/6/6/4 (24 total).",
+		"Mainline atomic counts must be 8/6/6/4 (24 total).",
 	)
-
-	var optional_nonzero_counts: Array[int] = [0, 0, 0, 0]
-	var optional_rows: Array[GlobalProgressionCatalogOracle.OptionalRow] = (
-		GlobalProgressionCatalogOracle.optional_rows()
-	)
-	context.expect_equal(optional_rows.size(), 4, "The literal optional oracle must have four rows.")
-	for row: GlobalProgressionCatalogOracle.OptionalRow in optional_rows:
-		var lookup: GlobalProgressionQueryResultScript = (
-			registry.lookup_optional_progression(row.content_id)
-		)
-		context.expect_true(
-			lookup.succeeded(),
-			"Optional progression '%s' must be queryable." % String(row.content_id),
-		)
-		if not lookup.succeeded():
-			continue
-		var definition: OptionalProgressionDefinitionScript = (
-			lookup.optional_progression()
-		)
-		context.expect_equal(definition.content_id, row.content_id, "Optional ID must match.")
-		context.expect_equal(
-			definition.optional_map_id,
-			row.optional_map_id,
-			"Optional map ID must match.",
-		)
-		context.expect_equal(
-			definition.available_after_chapter,
-			row.available_after_chapter,
-			"Optional availability chapter must match.",
-		)
-		context.expect_equal(
-			_optional_delta(definition),
-			row.delta_values(),
-			"Optional delta must match its literal row.",
-		)
-		_increment_nonzero_counts(
-			optional_nonzero_counts,
-			_optional_delta(definition),
-		)
 	context.expect_equal(
-		optional_nonzero_counts,
+		optional_atomic_counts,
 		[2, 2, 2, 0],
-		"Optional atomic increases must be 2/2/2/0 (6 total).",
+		"Optional atomic counts must be 2/2/2/0 (6 total).",
 	)
-	var mainline_final: GlobalProgressionQueryResultScript = (
-		registry.mainline_stats_after_chapter(9)
+	context.expect_equal(
+		aggregate_values,
+		GlobalProgressionCatalogOracle.full_completion_stats(),
+		"All 30 atomic rewards must aggregate to 200/18/13/14.",
 	)
-	context.expect_true(mainline_final.succeeded(), "Chapter-nine stats must be queryable.")
-	if mainline_final.succeeded():
-		context.expect_equal(
-			_profile_values(mainline_final.player_stats()),
-			[180, 16, 11, 14],
-			"Mainline final stats must be 180/16/11/14.",
-		)
-	var full_completion: GlobalProgressionQueryResultScript = (
+	var completion_query: GlobalProgressionQueryResultScript = (
 		registry.full_completion_player_stats()
 	)
-	context.expect_true(full_completion.succeeded(), "Full-completion stats must be queryable.")
-	if full_completion.succeeded():
+	context.expect_true(completion_query.succeeded(), "Full-completion stats must be queryable.")
+	if completion_query.succeeded():
 		context.expect_equal(
-			_profile_values(full_completion.player_stats()),
+			_profile_values(completion_query.player_stats()),
 			GlobalProgressionCatalogOracle.full_completion_stats(),
-			"Full-completion stats must be 200/18/13/14.",
+			"Registry full-completion aggregate must match literal oracle.",
 		)
 
 
-func _rejects_malformed_catalog_atomically(
-	context: HeadlessTestContextScript,
-) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"Malformed H-3 fixtures need canonical input. %s" % _diagnostics(canonical),
-	)
-	if not canonical.succeeded():
-		return
-	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
-	var catalog: GlobalProgressionCatalogScript = manifest.global_progression_catalog
-	catalog.catalog_id = &"progression.invalid"
-	catalog.initial_stats.attack = 99
-	catalog.mainline_progression[0].content_id = &"progression.main.unknown"
-	catalog.mainline_progression[0].chapter = 0
-	catalog.mainline_progression[0].maximum_health_increase = 20
-	catalog.optional_progression[0].optional_map_id = &"M99"
-	catalog.optional_progression[0].available_after_chapter = 0
-	catalog.optional_progression[0].speed_increase = 1
-
-	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
-	context.expect_true(not result.succeeded(), "Malformed H-3 content must fail validation.")
-	context.expect_equal(result.registry(), null, "Malformed H-3 content must fail closed.")
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_CATALOG_ID_INVALID,
-		&"progression.invalid",
-		"global_progression_catalog.catalog_id",
-		"Malformed catalog ID",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_PROFILE_FIELD_MISMATCH,
-		&"progression.player.loer",
-		"global_progression_catalog.initial_stats.attack",
-		"Malformed initial attack",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_INVALID,
-		&"progression.main.unknown",
-		"mainline_progression.content_id",
-		"Malformed mainline ID",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_INVALID,
-		&"progression.main.unknown",
-		"mainline_progression.chapter",
-		"Malformed mainline chapter",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_DELTA_INVALID,
-		&"progression.main.unknown",
-		"mainline_progression.maximum_health_increase",
-		"Malformed mainline delta",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_INVALID,
-		&"progression.optional.m01",
-		"optional_progression.optional_map_id",
-		"Malformed optional map ID",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID,
-		&"progression.optional.m01",
-		"optional_progression.available_after_chapter",
-		"Malformed optional availability",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_SPEED_FORBIDDEN,
-		&"progression.optional.m01",
-		"optional_progression.speed_increase",
-		"Malformed optional speed",
-	)
-
-
-func _rejects_identity_and_position_collisions(
+func _rejects_baseline_field_regressions(
 	context: HeadlessTestContextScript,
 ) -> void:
 	var canonical: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Identity-collision fixtures",
+		"Baseline H-3 field regressions",
 	)
 	if not canonical.succeeded():
 		return
 	var registry: ContentRegistryScript = canonical.registry()
 
-	var profile_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	profile_manifest.global_progression_catalog.initial_stats.profile_id = (
+	var identity_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	identity_manifest.global_progression_catalog.catalog_id = &"progression.invalid"
+	identity_manifest.global_progression_catalog.initial_stats.profile_id = (
 		&"progression.player.invalid"
+	)
+	var identity_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(identity_manifest)
 	)
 	_expect_issue(
 		context,
-		ContentRegistryBuilderScript.build(profile_manifest),
+		identity_result,
+		ContentValidationIssueScript.PROGRESSION_CATALOG_ID_INVALID,
+		&"progression.invalid",
+		"global_progression_catalog.catalog_id",
+		"Invalid baseline catalog ID",
+	)
+	_expect_issue_tuple(
+		context,
+		identity_result,
 		ContentValidationIssueScript.PROGRESSION_PROFILE_ID_INVALID,
 		&"progression.player.invalid",
 		"global_progression_catalog.initial_stats.profile_id",
-		"An invalid initial profile ID",
+		"Invalid baseline profile ID",
 	)
 
-	var empty_mainline_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	empty_mainline_manifest.global_progression_catalog.mainline_progression[0].content_id = &""
+	var profile_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var profile: PlayerStatProfileScript = profile_manifest.global_progression_catalog.initial_stats
+	profile.maximum_health = 101
+	profile.attack = 11
+	profile.defense = 6
+	profile.speed = 11
+	var profile_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(profile_manifest)
+	)
+	for field_name: String in ["maximum_health", "attack", "defense", "speed"]:
+		_expect_issue_tuple(
+			context,
+			profile_result,
+			ContentValidationIssueScript.PROGRESSION_PROFILE_FIELD_MISMATCH,
+			&"progression.player.loer",
+			"global_progression_catalog.initial_stats.%s" % field_name,
+			"Invalid baseline profile field '%s'" % field_name,
+		)
+	context.expect_true(not profile_result.succeeded(), "Invalid profile fields must fail.")
+	context.expect_equal(profile_result.registry(), null, "Invalid profile fields must fail closed.")
+
+	var mainline_identity_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var mainline_identity_catalog: GlobalProgressionCatalogScript = (
+		mainline_identity_manifest.global_progression_catalog
+	)
+	_find_mainline(
+		mainline_identity_catalog,
+		&"progression.main.chapter.01",
+	).content_id = &""
+	_find_mainline(
+		mainline_identity_catalog,
+		&"progression.main.chapter.02",
+	).content_id = &"progression.main.unknown"
+	_find_mainline(
+		mainline_identity_catalog,
+		&"progression.main.chapter.03",
+	).content_id = &"progression.main.chapter.04"
+	var mainline_identity_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(mainline_identity_manifest)
+	)
 	_expect_issue(
 		context,
-		ContentRegistryBuilderScript.build(empty_mainline_manifest),
+		mainline_identity_result,
 		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_EMPTY,
 		&"",
 		"mainline_progression.content_id",
-		"An empty mainline ID",
+		"Empty baseline mainline content ID",
 	)
-
-	var duplicate_mainline_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	duplicate_mainline_manifest.global_progression_catalog.mainline_progression[1].content_id = (
-		&"progression.main.chapter.01"
-	)
-	_expect_issue(
+	_expect_issue_tuple(
 		context,
-		ContentRegistryBuilderScript.build(duplicate_mainline_manifest),
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_DUPLICATE,
-		&"progression.main.chapter.01",
+		mainline_identity_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_INVALID,
+		&"progression.main.unknown",
 		"mainline_progression.content_id",
-		"A duplicate mainline ID",
+		"Invalid baseline mainline content ID",
+	)
+	_expect_issue_tuple(
+		context,
+		mainline_identity_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_DUPLICATE,
+		&"progression.main.chapter.04",
+		"mainline_progression.content_id",
+		"Duplicate baseline mainline content ID",
 	)
 
-	var duplicate_chapter_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	duplicate_chapter_manifest.global_progression_catalog.mainline_progression[1].chapter = 1
+	var mainline_chapter_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var mainline_chapter_catalog: GlobalProgressionCatalogScript = (
+		mainline_chapter_manifest.global_progression_catalog
+	)
+	_find_mainline(
+		mainline_chapter_catalog,
+		&"progression.main.chapter.01",
+	).chapter = 0
+	_find_mainline(
+		mainline_chapter_catalog,
+		&"progression.main.chapter.02",
+	).chapter = 10
+	_find_mainline(
+		mainline_chapter_catalog,
+		&"progression.main.chapter.03",
+	).chapter = 4
+	_find_mainline(
+		mainline_chapter_catalog,
+		&"progression.main.chapter.04",
+	).chapter = 3
+	_find_mainline(
+		mainline_chapter_catalog,
+		&"progression.main.chapter.05",
+	).chapter = 6
+	var mainline_chapter_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(mainline_chapter_manifest)
+	)
 	_expect_issue(
 		context,
-		ContentRegistryBuilderScript.build(duplicate_chapter_manifest),
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_DUPLICATE,
-		&"1",
+		mainline_chapter_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_INVALID,
+		&"progression.main.chapter.01",
 		"mainline_progression.chapter",
-		"A duplicate mainline chapter",
+		"Mainline chapter zero",
+	)
+	_expect_issue_tuple(
+		context,
+		mainline_chapter_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_INVALID,
+		&"progression.main.chapter.02",
+		"mainline_progression.chapter",
+		"Mainline chapter ten",
+	)
+	_expect_issue_tuple(
+		context,
+		mainline_chapter_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_DUPLICATE,
+		&"6",
+		"mainline_progression.chapter",
+		"Duplicate baseline mainline chapter",
+	)
+	_expect_issue_tuple(
+		context,
+		mainline_chapter_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_MISMATCH,
+		&"progression.main.chapter.03",
+		"mainline_progression.chapter",
+		"Valid-but-wrong mainline chapter",
 	)
 
-	var empty_optional_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	empty_optional_manifest.global_progression_catalog.optional_progression[0].content_id = &""
+	var optional_identity_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var optional_identity_catalog: GlobalProgressionCatalogScript = (
+		optional_identity_manifest.global_progression_catalog
+	)
+	_find_optional(
+		optional_identity_catalog,
+		&"progression.optional.m01",
+	).content_id = &""
+	_find_optional(
+		optional_identity_catalog,
+		&"progression.optional.m02",
+	).content_id = &"progression.optional.unknown"
+	_find_optional(
+		optional_identity_catalog,
+		&"progression.optional.m03",
+	).content_id = &"progression.optional.m04"
+	var optional_identity_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(optional_identity_manifest)
+	)
 	_expect_issue(
 		context,
-		ContentRegistryBuilderScript.build(empty_optional_manifest),
+		optional_identity_result,
 		ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_EMPTY,
 		&"",
 		"optional_progression.content_id",
-		"An empty optional ID",
+		"Empty baseline optional content ID",
 	)
-
-	var duplicate_optional_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	duplicate_optional_manifest.global_progression_catalog.optional_progression[1].content_id = (
-		&"progression.optional.m01"
-	)
-	_expect_issue(
+	_expect_issue_tuple(
 		context,
-		ContentRegistryBuilderScript.build(duplicate_optional_manifest),
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_DUPLICATE,
-		&"progression.optional.m01",
+		optional_identity_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_INVALID,
+		&"progression.optional.unknown",
 		"optional_progression.content_id",
-		"A duplicate optional ID",
+		"Invalid baseline optional content ID",
+	)
+	_expect_issue_tuple(
+		context,
+		optional_identity_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_DUPLICATE,
+		&"progression.optional.m04",
+		"optional_progression.content_id",
+		"Duplicate baseline optional content ID",
 	)
 
-	var duplicate_map_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	duplicate_map_manifest.global_progression_catalog.optional_progression[1].optional_map_id = (
-		&"M01"
+	var optional_metadata_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var optional_metadata_catalog: GlobalProgressionCatalogScript = (
+		optional_metadata_manifest.global_progression_catalog
+	)
+	var optional_one: OptionalProgressionDefinitionScript = _find_optional(
+		optional_metadata_catalog,
+		&"progression.optional.m01",
+	)
+	var optional_two: OptionalProgressionDefinitionScript = _find_optional(
+		optional_metadata_catalog,
+		&"progression.optional.m02",
+	)
+	var optional_three: OptionalProgressionDefinitionScript = _find_optional(
+		optional_metadata_catalog,
+		&"progression.optional.m03",
+	)
+	optional_one.optional_map_id = &"M99"
+	optional_one.available_after_chapter = 0
+	optional_two.optional_map_id = &"M03"
+	optional_two.available_after_chapter = 10
+	optional_three.available_after_chapter = 8
+	var optional_metadata_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(optional_metadata_manifest)
 	)
 	_expect_issue(
 		context,
-		ContentRegistryBuilderScript.build(duplicate_map_manifest),
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_DUPLICATE,
-		&"M01",
-		"optional_progression.optional_map_id",
-		"A duplicate optional map ID",
-	)
-
-
-func _rejects_same_total_field_swaps(context: HeadlessTestContextScript) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"Same-total H-3 fixtures need canonical input. %s" % _diagnostics(canonical),
-	)
-	if not canonical.succeeded():
-		return
-	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
-	var catalog: GlobalProgressionCatalogScript = manifest.global_progression_catalog
-	var original_mainline_totals: Array[int] = _mainline_totals(
-		catalog.mainline_progression
-	)
-	var original_optional_totals: Array[int] = _optional_totals(
-		catalog.optional_progression
-	)
-	catalog.mainline_progression[0].attack_increase = 0
-	catalog.mainline_progression[1].attack_increase = 1
-	catalog.optional_progression[0].maximum_health_increase = 0
-	catalog.optional_progression[0].attack_increase = 1
-	catalog.optional_progression[1].maximum_health_increase = 10
-	catalog.optional_progression[1].attack_increase = 0
-	context.expect_equal(
-		_mainline_totals(catalog.mainline_progression),
-		original_mainline_totals,
-		"The mainline swap fixture must preserve aggregate totals.",
-	)
-	context.expect_equal(
-		_optional_totals(catalog.optional_progression),
-		original_optional_totals,
-		"The optional swap fixture must preserve aggregate totals.",
-	)
-
-	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
-	context.expect_true(
-		not result.succeeded(),
-		"Per-source H-3 validation must reject same-total field exchanges.",
-	)
-	context.expect_equal(result.registry(), null, "Same-total exchanges must fail closed.")
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_DELTA_MISMATCH,
-		&"progression.main.chapter.01",
-		"mainline_progression.attack_increase",
-		"Same-total mainline exchange",
-	)
-	_expect_issue_tuple(
-		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_DELTA_MISMATCH,
+		optional_metadata_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_INVALID,
 		&"progression.optional.m01",
-		"optional_progression.maximum_health_increase",
-		"Same-total optional exchange",
+		"optional_progression.optional_map_id",
+		"Invalid baseline optional map ID",
+	)
+	_expect_issue_tuple(
+		context,
+		optional_metadata_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_DUPLICATE,
+		&"M03",
+		"optional_progression.optional_map_id",
+		"Duplicate baseline optional map ID",
+	)
+	_expect_issue_tuple(
+		context,
+		optional_metadata_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID,
+		&"progression.optional.m01",
+		"optional_progression.available_after_chapter",
+		"Optional availability chapter zero",
+	)
+	_expect_issue_tuple(
+		context,
+		optional_metadata_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID,
+		&"progression.optional.m02",
+		"optional_progression.available_after_chapter",
+		"Optional availability chapter ten",
+	)
+	_expect_issue_tuple(
+		context,
+		optional_metadata_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_MISMATCH,
+		&"progression.optional.m03",
+		"optional_progression.available_after_chapter",
+		"Valid-but-wrong optional availability chapter",
+	)
+
+	var membership_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var membership_catalog: GlobalProgressionCatalogScript = (
+		membership_manifest.global_progression_catalog
+	)
+	var mainline_one: MainlineProgressionDefinitionScript = _find_mainline(
+		membership_catalog,
+		&"progression.main.chapter.01",
+	)
+	mainline_one.reward_ids[0] = &""
+	var optional_speed_reward := &"progression.reward.main.chapter.04.speed"
+	_find_optional(
+		membership_catalog,
+		&"progression.optional.m01",
+	).reward_ids.append(optional_speed_reward)
+	var attack_reward_id := &"progression.reward.main.chapter.01.attack"
+	_find_reward(membership_catalog, attack_reward_id).stat_kind = 3
+	var membership_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(membership_manifest)
+	)
+	_expect_issue(
+		context,
+		membership_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_EMPTY,
+		&"progression.main.chapter.01",
+		"mainline_progression.reward_ids",
+		"Empty group reward ID",
+	)
+	_expect_issue_tuple(
+		context,
+		membership_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_SPEED_FORBIDDEN,
+		optional_speed_reward,
+		"optional_progression.reward_ids",
+		"Optional speed reward reference",
+	)
+	_expect_issue_tuple(
+		context,
+		membership_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_STAT_KIND_MISMATCH,
+		attack_reward_id,
+		"permanent_growth_rewards.stat_kind",
+		"Valid-but-wrong reward stat kind",
 	)
 
 
-func _rejects_null_and_polymorphic_resources(
+func _rejects_baseline_resource_regressions(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"Exact-script H-3 fixtures need canonical input. %s" % _diagnostics(canonical),
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Baseline H-3 exact-resource regressions",
 	)
 	if not canonical.succeeded():
 		return
@@ -580,16 +718,25 @@ func _rejects_null_and_polymorphic_resources(
 
 	var null_catalog_manifest: ContentManifestScript = _manifest_from_registry(registry)
 	null_catalog_manifest.global_progression_catalog = null
-	var null_catalog_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(null_catalog_manifest)
-	)
 	_expect_issue(
 		context,
-		null_catalog_result,
+		ContentRegistryBuilderScript.build(null_catalog_manifest),
 		ContentValidationIssueScript.MANIFEST_PROGRESSION_CATALOG_NULL,
 		&"",
 		"global_progression_catalog",
-		"A null progression catalog",
+		"Null progression catalog",
+	)
+
+	var wrong_catalog_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var wrong_catalog: Resource = wrong_catalog_manifest.global_progression_catalog as Resource
+	wrong_catalog.set_script(DerivedGlobalProgressionCatalogScript)
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(wrong_catalog_manifest),
+		ContentValidationIssueScript.PROGRESSION_CATALOG_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog",
+		"Wrong progression catalog script",
 	)
 
 	var derived_catalog_manifest: ContentManifestScript = _manifest_from_registry(registry)
@@ -597,241 +744,816 @@ func _rejects_null_and_polymorphic_resources(
 		DerivedGlobalProgressionCatalogScript.new()
 	)
 	derived_catalog_manifest.global_progression_catalog = derived_catalog
-	var derived_catalog_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(derived_catalog_manifest)
-	)
 	_expect_issue(
 		context,
-		derived_catalog_result,
+		ContentRegistryBuilderScript.build(derived_catalog_manifest),
 		ContentValidationIssueScript.PROGRESSION_CATALOG_INVALID_SCRIPT,
 		&"",
 		"global_progression_catalog",
-		"A derived progression catalog",
+		"Derived progression catalog script",
 	)
 
 	var null_profile_manifest: ContentManifestScript = _manifest_from_registry(registry)
 	null_profile_manifest.global_progression_catalog.initial_stats = null
-	var null_profile_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(null_profile_manifest)
-	)
 	_expect_issue(
 		context,
-		null_profile_result,
+		ContentRegistryBuilderScript.build(null_profile_manifest),
 		ContentValidationIssueScript.PROGRESSION_INITIAL_STATS_NULL,
 		&"",
 		"global_progression_catalog.initial_stats",
-		"A null initial profile",
+		"Null initial profile",
+	)
+
+	var wrong_profile_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var wrong_profile: Resource = (
+		wrong_profile_manifest.global_progression_catalog.initial_stats as Resource
+	)
+	wrong_profile.set_script(DerivedPlayerStatProfileScript)
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(wrong_profile_manifest),
+		ContentValidationIssueScript.PROGRESSION_INITIAL_STATS_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.initial_stats",
+		"Wrong initial profile script",
 	)
 
 	var derived_profile_manifest: ContentManifestScript = _manifest_from_registry(registry)
 	var derived_profile: PlayerStatProfileScript = DerivedPlayerStatProfileScript.new()
 	derived_profile_manifest.global_progression_catalog.initial_stats = derived_profile
-	var derived_profile_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(derived_profile_manifest)
-	)
 	_expect_issue(
 		context,
-		derived_profile_result,
+		ContentRegistryBuilderScript.build(derived_profile_manifest),
 		ContentValidationIssueScript.PROGRESSION_INITIAL_STATS_INVALID_SCRIPT,
 		&"",
 		"global_progression_catalog.initial_stats",
-		"A derived initial profile",
+		"Derived initial profile script",
 	)
 
-	var derived_mainline_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	var derived_mainline: MainlineProgressionDefinitionScript = (
-		DerivedMainlineProgressionDefinitionScript.new()
-	)
-	derived_mainline_manifest.global_progression_catalog.mainline_progression[0] = (
-		derived_mainline
-	)
-	var derived_mainline_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(derived_mainline_manifest)
+	var null_group_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	null_group_manifest.global_progression_catalog.mainline_progression[0] = null
+	null_group_manifest.global_progression_catalog.optional_progression[0] = null
+	var null_group_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(null_group_manifest)
 	)
 	_expect_issue(
 		context,
-		derived_mainline_result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_INVALID_SCRIPT,
-		&"",
-		"global_progression_catalog.mainline_progression[0]",
-		"A derived mainline entry",
-	)
-
-	var derived_optional_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	var derived_optional: OptionalProgressionDefinitionScript = (
-		DerivedOptionalProgressionDefinitionScript.new()
-	)
-	derived_optional_manifest.global_progression_catalog.optional_progression[0] = (
-		derived_optional
-	)
-	var derived_optional_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(derived_optional_manifest)
-	)
-	_expect_issue(
-		context,
-		derived_optional_result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_INVALID_SCRIPT,
-		&"",
-		"global_progression_catalog.optional_progression[0]",
-		"A derived optional entry",
-	)
-
-	var null_entries_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	null_entries_manifest.global_progression_catalog.mainline_progression[0] = null
-	null_entries_manifest.global_progression_catalog.optional_progression[0] = null
-	var null_entries_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(null_entries_manifest)
-	)
-	_expect_issue(
-		context,
-		null_entries_result,
+		null_group_result,
 		ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_NULL,
 		&"",
 		"global_progression_catalog.mainline_progression[0]",
-		"A null mainline entry",
+		"Null mainline group",
 	)
-	_expect_issue(
+	_expect_issue_tuple(
 		context,
-		null_entries_result,
+		null_group_result,
 		ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_NULL,
 		&"",
 		"global_progression_catalog.optional_progression[0]",
-		"A null optional entry",
+		"Null optional group",
+	)
+
+	var wrong_group_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var wrong_mainline: Resource = (
+		wrong_group_manifest.global_progression_catalog.mainline_progression[0] as Resource
+	)
+	var wrong_optional: Resource = (
+		wrong_group_manifest.global_progression_catalog.optional_progression[0] as Resource
+	)
+	wrong_mainline.set_script(DerivedMainlineProgressionDefinitionScript)
+	wrong_optional.set_script(DerivedOptionalProgressionDefinitionScript)
+	var wrong_group_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(wrong_group_manifest)
+	)
+	_expect_issue(
+		context,
+		wrong_group_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.mainline_progression[0]",
+		"Wrong mainline group script",
+	)
+	_expect_issue_tuple(
+		context,
+		wrong_group_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.optional_progression[0]",
+		"Wrong optional group script",
+	)
+
+	var derived_group_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var derived_mainline: MainlineProgressionDefinitionScript = (
+		DerivedMainlineProgressionDefinitionScript.new()
+	)
+	var derived_optional: OptionalProgressionDefinitionScript = (
+		DerivedOptionalProgressionDefinitionScript.new()
+	)
+	derived_group_manifest.global_progression_catalog.mainline_progression[0] = (
+		derived_mainline
+	)
+	derived_group_manifest.global_progression_catalog.optional_progression[0] = (
+		derived_optional
+	)
+	var derived_group_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(derived_group_manifest)
+	)
+	_expect_issue(
+		context,
+		derived_group_result,
+		ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.mainline_progression[0]",
+		"Derived mainline group script",
+	)
+	_expect_issue_tuple(
+		context,
+		derived_group_result,
+		ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.optional_progression[0]",
+		"Derived optional group script",
+	)
+
+
+func _rejects_malformed_rewards_atomically(
+	context: HeadlessTestContextScript,
+) -> void:
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Malformed reward fixtures",
+	)
+	if not canonical.succeeded():
+		return
+	var registry: ContentRegistryScript = canonical.registry()
+	var first_id := &"progression.reward.main.chapter.01.attack"
+	var second_id := &"progression.reward.main.chapter.01.maximum_health"
+
+	var empty_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_reward(empty_manifest.global_progression_catalog, first_id).reward_id = &""
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(empty_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_ID_EMPTY,
+		&"",
+		"permanent_growth_rewards.reward_id",
+		"Empty reward ID",
+	)
+
+	var invalid_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_reward(invalid_manifest.global_progression_catalog, first_id).reward_id = (
+		&"progression.reward.invalid"
+	)
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(invalid_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_ID_INVALID,
+		&"progression.reward.invalid",
+		"permanent_growth_rewards.reward_id",
+		"Invalid reward ID",
+	)
+
+	var duplicate_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_reward(duplicate_manifest.global_progression_catalog, first_id).reward_id = second_id
+	var duplicate_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(duplicate_manifest)
+	)
+	_expect_issue(
+		context,
+		duplicate_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_ID_DUPLICATE,
+		second_id,
+		"permanent_growth_rewards.reward_id",
+		"Duplicate reward ID",
+	)
+	_expect_issue_tuple(
+		context,
+		duplicate_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_ID_MISSING,
+		first_id,
+		"permanent_growth_rewards.reward_id",
+		"Missing reward ID",
+	)
+
+	for invalid_kind: int in [0, 5]:
+		var kind_manifest: ContentManifestScript = _manifest_from_registry(registry)
+		_find_reward(kind_manifest.global_progression_catalog, first_id).stat_kind = invalid_kind
+		_expect_issue(
+			context,
+			ContentRegistryBuilderScript.build(kind_manifest),
+			ContentValidationIssueScript.PROGRESSION_REWARD_STAT_KIND_INVALID,
+			first_id,
+			"permanent_growth_rewards.stat_kind",
+			"Reward stat kind %d" % invalid_kind,
+		)
+
+	for invalid_increase: int in [0, -1]:
+		var increase_manifest: ContentManifestScript = _manifest_from_registry(registry)
+		_find_reward(increase_manifest.global_progression_catalog, first_id).increase = (
+			invalid_increase
+		)
+		_expect_issue(
+			context,
+			ContentRegistryBuilderScript.build(increase_manifest),
+			ContentValidationIssueScript.PROGRESSION_REWARD_INCREASE_INVALID,
+			first_id,
+			"permanent_growth_rewards.increase",
+			"Reward increase %d" % invalid_increase,
+		)
+
+	var wrong_positive_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_reward(wrong_positive_manifest.global_progression_catalog, second_id).increase = 20
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(wrong_positive_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_INCREASE_MISMATCH,
+		second_id,
+		"permanent_growth_rewards.increase",
+		"Wrong positive reward increase",
+	)
+
+
+func _rejects_reward_membership_violations(
+	context: HeadlessTestContextScript,
+) -> void:
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Reward membership fixtures",
+	)
+	if not canonical.succeeded():
+		return
+	var registry: ContentRegistryScript = canonical.registry()
+	var group_one_id := &"progression.main.chapter.01"
+	var group_two_id := &"progression.main.chapter.02"
+	var reward_one_id := &"progression.reward.main.chapter.01.attack"
+
+	var missing_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_mainline(missing_manifest.global_progression_catalog, group_one_id).reward_ids.erase(
+		reward_one_id
+	)
+	var missing_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(missing_manifest)
+	)
+	_expect_issue(
+		context,
+		missing_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		group_one_id,
+		"mainline_progression.reward_ids",
+		"Missing group member",
+	)
+	_expect_issue_tuple(
+		context,
+		missing_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_UNREFERENCED,
+		reward_one_id,
+		"progression.reward_ids",
+		"Unreferenced reward after missing membership",
+	)
+
+	var unknown_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var unknown_group: MainlineProgressionDefinitionScript = _find_mainline(
+		unknown_manifest.global_progression_catalog,
+		group_one_id,
+	)
+	unknown_group.reward_ids[unknown_group.reward_ids.find(reward_one_id)] = (
+		&"progression.reward.unknown"
+	)
+	var unknown_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(unknown_manifest)
+	)
+	_expect_issue(
+		context,
+		unknown_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_UNKNOWN,
+		&"progression.reward.unknown",
+		"mainline_progression.reward_ids",
+		"Unknown group reward ID",
+	)
+	_expect_issue_tuple(
+		context,
+		unknown_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_UNREFERENCED,
+		reward_one_id,
+		"progression.reward_ids",
+		"Unreferenced reward after unknown membership",
+	)
+
+	var duplicate_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_mainline(duplicate_manifest.global_progression_catalog, group_one_id).reward_ids.append(
+		reward_one_id
+	)
+	var duplicate_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(duplicate_manifest)
+	)
+	_expect_issue(
+		context,
+		duplicate_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_DUPLICATE,
+		reward_one_id,
+		"mainline_progression.reward_ids",
+		"In-group duplicate reward",
+	)
+	context.expect_true(
+		not _issue_codes(duplicate_result).has(
+			ContentValidationIssueScript.PROGRESSION_REWARD_REFERENCED_MULTIPLE
+		),
+		"An in-group duplicate must remain distinct from cross-group reuse.",
+	)
+
+	var cross_group_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	_find_mainline(
+		cross_group_manifest.global_progression_catalog,
+		group_two_id,
+	).reward_ids.append(reward_one_id)
+	var cross_group_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(cross_group_manifest)
+	)
+	_expect_issue(
+		context,
+		cross_group_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		group_two_id,
+		"mainline_progression.reward_ids",
+		"Cross-group duplicate membership",
+	)
+	_expect_issue_tuple(
+		context,
+		cross_group_result,
+		ContentValidationIssueScript.PROGRESSION_REWARD_REFERENCED_MULTIPLE,
+		reward_one_id,
+		"progression.reward_ids",
+		"Cross-group multiply referenced reward",
+	)
+
+	var unreferenced_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var optional_reward_id := &"progression.reward.optional.m01.maximum_health"
+	_find_optional(
+		unreferenced_manifest.global_progression_catalog,
+		&"progression.optional.m01",
+	).reward_ids.clear()
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(unreferenced_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_UNREFERENCED,
+		optional_reward_id,
+		"progression.reward_ids",
+		"Explicit unreferenced reward",
+	)
+
+
+func _rejects_same_total_reward_swaps(context: HeadlessTestContextScript) -> void:
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Same-value cross-group swap fixture",
+	)
+	if not canonical.succeeded():
+		return
+	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
+	var catalog: GlobalProgressionCatalogScript = manifest.global_progression_catalog
+	var first_group: MainlineProgressionDefinitionScript = _find_mainline(
+		catalog,
+		&"progression.main.chapter.01",
+	)
+	var second_group: MainlineProgressionDefinitionScript = _find_mainline(
+		catalog,
+		&"progression.main.chapter.02",
+	)
+	var first_reward := &"progression.reward.main.chapter.01.maximum_health"
+	var second_reward := &"progression.reward.main.chapter.02.maximum_health"
+	var original_trace: Array[int] = _aggregate_trace(catalog)
+	_replace_reward_id(first_group.reward_ids, first_reward, second_reward)
+	_replace_reward_id(second_group.reward_ids, second_reward, first_reward)
+	context.expect_equal(
+		_aggregate_trace(catalog),
+		original_trace,
+		"Swapping equal-valued rewards across groups must preserve every aggregate total.",
+	)
+	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
+	_expect_issue(
+		context,
+		result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		&"progression.main.chapter.01",
+		"mainline_progression.reward_ids",
+		"First equal-valued cross-group swap",
+	)
+	_expect_issue_tuple(
+		context,
+		result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		&"progression.main.chapter.02",
+		"mainline_progression.reward_ids",
+		"Second equal-valued cross-group swap",
+	)
+
+
+func _rejects_null_wrong_and_derived_rewards(
+	context: HeadlessTestContextScript,
+) -> void:
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Exact reward script fixtures",
+	)
+	if not canonical.succeeded():
+		return
+	var registry: ContentRegistryScript = canonical.registry()
+
+	var null_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	null_manifest.global_progression_catalog.permanent_growth_rewards[0] = null
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(null_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_ENTRY_NULL,
+		&"",
+		"global_progression_catalog.permanent_growth_rewards[0]",
+		"Null reward entry",
+	)
+
+	var wrong_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var wrong_reward: Resource = (
+		wrong_manifest.global_progression_catalog.permanent_growth_rewards[0] as Resource
+	)
+	wrong_reward.set_script(null)
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(wrong_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.permanent_growth_rewards[0]",
+		"Wrong reward script",
+	)
+
+	var derived_manifest: ContentManifestScript = _manifest_from_registry(registry)
+	var original: PermanentGrowthRewardDefinitionScript = (
+		derived_manifest.global_progression_catalog.permanent_growth_rewards[0]
+	)
+	var derived: PermanentGrowthRewardDefinitionScript = (
+		DerivedPermanentGrowthRewardDefinitionScript.new()
+	)
+	derived.reward_id = original.reward_id
+	derived.stat_kind = original.stat_kind
+	derived.increase = original.increase
+	derived_manifest.global_progression_catalog.permanent_growth_rewards[0] = derived
+	_expect_issue(
+		context,
+		ContentRegistryBuilderScript.build(derived_manifest),
+		ContentValidationIssueScript.PROGRESSION_REWARD_ENTRY_INVALID_SCRIPT,
+		&"",
+		"global_progression_catalog.permanent_growth_rewards[0]",
+		"Derived reward entry",
 	)
 
 
 func _rejects_oversized_catalog_at_header(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"Oversized H-3 fixtures need canonical input. %s" % _diagnostics(canonical),
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Oversized H-3.1 catalog",
 	)
 	if not canonical.succeeded():
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
 	manifest.global_progression_catalog.mainline_progression.resize(4096)
 	manifest.global_progression_catalog.optional_progression.resize(4096)
+	manifest.global_progression_catalog.permanent_growth_rewards.resize(4096)
 	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
-	context.expect_true(not result.succeeded(), "An oversized H-3 catalog must fail.")
-	context.expect_equal(result.registry(), null, "Oversized H-3 content must fail closed.")
+	context.expect_true(not result.succeeded(), "An oversized H-3.1 catalog must fail.")
+	context.expect_equal(result.registry(), null, "Oversized content must fail closed.")
 	context.expect_equal(
 		_issue_codes(result),
 		[
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_COUNT_INVALID,
 			ContentValidationIssueScript.PROGRESSION_OPTIONAL_COUNT_INVALID,
+			ContentValidationIssueScript.PROGRESSION_REWARD_COUNT_INVALID,
 		],
-		"Oversized H-3 input must stop at bounded count validation.",
+		"4096-entry top-level arrays must stop at bounded count validation.",
+	)
+
+	var mainline_nested_manifest: ContentManifestScript = _manifest_from_registry(
+		canonical.registry()
+	)
+	_find_mainline(
+		mainline_nested_manifest.global_progression_catalog,
+		&"progression.main.chapter.04",
+	).reward_ids.resize(4096)
+	var mainline_nested_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(mainline_nested_manifest)
+	)
+	context.expect_true(
+		not mainline_nested_result.succeeded(),
+		"A 4096-entry mainline reward_ids array must fail validation.",
+	)
+	context.expect_equal(
+		mainline_nested_result.registry(),
+		null,
+		"Oversized mainline membership must fail closed.",
+	)
+	context.expect_equal(
+		mainline_nested_result.validation_report().issue_count(),
+		5,
+		"Oversized mainline membership must emit one bounded-membership issue plus "
+		+ "four fixed unreferenced-reward issues, never 4096 diagnostics.",
 	)
 	_expect_issue_tuple(
 		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_MAINLINE_COUNT_INVALID,
-		&"progression.global",
-		"global_progression_catalog.mainline_progression",
-		"Oversized mainline header",
+		mainline_nested_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		&"progression.main.chapter.04",
+		"mainline_progression.reward_ids",
+		"Oversized nested mainline membership",
+	)
+
+	var optional_nested_manifest: ContentManifestScript = _manifest_from_registry(
+		canonical.registry()
+	)
+	_find_optional(
+		optional_nested_manifest.global_progression_catalog,
+		&"progression.optional.m04",
+	).reward_ids.resize(4096)
+	var optional_nested_result: ContentRegistryBuildResultScript = (
+		ContentRegistryBuilderScript.build(optional_nested_manifest)
+	)
+	context.expect_true(
+		not optional_nested_result.succeeded(),
+		"A 4096-entry optional reward_ids array must fail validation.",
+	)
+	context.expect_equal(
+		optional_nested_result.registry(),
+		null,
+		"Oversized optional membership must fail closed.",
+	)
+	context.expect_equal(
+		optional_nested_result.validation_report().issue_count(),
+		3,
+		"Oversized optional membership must emit one bounded-membership issue plus "
+		+ "two fixed unreferenced-reward issues, never 4096 diagnostics.",
 	)
 	_expect_issue_tuple(
 		context,
-		result,
-		ContentValidationIssueScript.PROGRESSION_OPTIONAL_COUNT_INVALID,
-		&"progression.global",
-		"global_progression_catalog.optional_progression",
-		"Oversized optional header",
+		optional_nested_result,
+		ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
+		&"progression.optional.m04",
+		"optional_progression.reward_ids",
+		"Oversized nested optional membership",
 	)
 
 
 func _orders_success_deterministically(context: HeadlessTestContextScript) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"H-3 ordering needs canonical input. %s" % _diagnostics(canonical),
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Successful declaration reordering",
 	)
 	if not canonical.succeeded():
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
-	manifest.global_progression_catalog.mainline_progression.reverse()
-	manifest.global_progression_catalog.optional_progression.reverse()
-	var reversed_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(manifest)
-	)
+	_reverse_all_declarations(manifest)
+	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
 	context.expect_true(
-		reversed_result.succeeded(),
-		"Reversed H-3 declarations must remain valid. %s" % _diagnostics(reversed_result),
+		result.succeeded(),
+		"Top-level and per-group declaration order must be irrelevant. %s"
+		% _diagnostics(result),
 	)
-	if not reversed_result.succeeded():
+	if not result.succeeded():
 		return
 	context.expect_equal(
-		reversed_result.registry().mainline_progression_ids(),
-		canonical.registry().mainline_progression_ids(),
-		"Mainline query order must not depend on declaration order.",
+		result.registry().mainline_progression_ids(),
+		_expected_mainline_ids(),
+		"Reordered mainline groups must normalize lexically.",
 	)
 	context.expect_equal(
-		reversed_result.registry().optional_progression_ids(),
-		canonical.registry().optional_progression_ids(),
-		"Optional query order must not depend on declaration order.",
+		result.registry().optional_progression_ids(),
+		_expected_optional_ids(),
+		"Reordered optional groups must normalize lexically.",
+	)
+	context.expect_equal(
+		result.registry().permanent_growth_reward_ids(),
+		_expected_reward_ids(),
+		"Reordered rewards must normalize lexically.",
 	)
 	context.expect_true(
-		reversed_result.registry().global_progression_catalog().is_equal_to(
+		result.registry().global_progression_catalog().is_equal_to(
 			canonical.registry().global_progression_catalog()
 		),
-		"Canonicalized catalog snapshots must be value-equal.",
+		"Reordered top arrays and reward_ids must publish an identical snapshot.",
 	)
+	var canonical_registry: ContentRegistryScript = canonical.registry()
+	var reordered_registry: ContentRegistryScript = result.registry()
+	var reward_id := &"progression.reward.main.chapter.04.speed"
+	var canonical_reward: GlobalProgressionQueryResultScript = (
+		canonical_registry.lookup_permanent_growth_reward(reward_id)
+	)
+	var reordered_reward: GlobalProgressionQueryResultScript = (
+		reordered_registry.lookup_permanent_growth_reward(reward_id)
+	)
+	context.expect_true(
+		canonical_reward.succeeded() and reordered_reward.succeeded(),
+		"Known reward lookup must succeed before and after declaration reordering.",
+	)
+	if canonical_reward.succeeded() and reordered_reward.succeeded():
+		context.expect_true(
+			reordered_reward.permanent_growth_reward().is_equal_to(
+				canonical_reward.permanent_growth_reward()
+			),
+			"Known reward lookup must be value-identical after reordering.",
+		)
+	var mainline_id := &"progression.main.chapter.04"
+	var canonical_mainline: GlobalProgressionQueryResultScript = (
+		canonical_registry.lookup_mainline_progression(mainline_id)
+	)
+	var reordered_mainline: GlobalProgressionQueryResultScript = (
+		reordered_registry.lookup_mainline_progression(mainline_id)
+	)
+	context.expect_true(
+		canonical_mainline.succeeded() and reordered_mainline.succeeded(),
+		"Known mainline lookup must succeed before and after declaration reordering.",
+	)
+	if canonical_mainline.succeeded() and reordered_mainline.succeeded():
+		context.expect_true(
+			reordered_mainline.mainline_progression().is_equal_to(
+				canonical_mainline.mainline_progression()
+			),
+			"Known mainline lookup must be value-identical after reordering.",
+		)
+	var optional_id := &"progression.optional.m04"
+	var canonical_optional: GlobalProgressionQueryResultScript = (
+		canonical_registry.lookup_optional_progression(optional_id)
+	)
+	var reordered_optional: GlobalProgressionQueryResultScript = (
+		reordered_registry.lookup_optional_progression(optional_id)
+	)
+	context.expect_true(
+		canonical_optional.succeeded() and reordered_optional.succeeded(),
+		"Known optional lookup must succeed before and after declaration reordering.",
+	)
+	if canonical_optional.succeeded() and reordered_optional.succeeded():
+		context.expect_true(
+			reordered_optional.optional_progression().is_equal_to(
+				canonical_optional.optional_progression()
+			),
+			"Known optional lookup must be value-identical after reordering.",
+		)
+	for chapter: int in range(1, 10):
+		var canonical_chapter: GlobalProgressionQueryResultScript = (
+			canonical_registry.mainline_stats_after_chapter(chapter)
+		)
+		var reordered_chapter: GlobalProgressionQueryResultScript = (
+			reordered_registry.mainline_stats_after_chapter(chapter)
+		)
+		context.expect_true(
+			canonical_chapter.succeeded() and reordered_chapter.succeeded(),
+			"Chapter %d stats must remain queryable after reordering." % chapter,
+		)
+		if canonical_chapter.succeeded() and reordered_chapter.succeeded():
+			context.expect_equal(
+				_profile_values(reordered_chapter.player_stats()),
+				_profile_values(canonical_chapter.player_stats()),
+				"Chapter %d stats must be identical after reordering." % chapter,
+			)
+	var canonical_completion: GlobalProgressionQueryResultScript = (
+		canonical_registry.full_completion_player_stats()
+	)
+	var reordered_completion: GlobalProgressionQueryResultScript = (
+		reordered_registry.full_completion_player_stats()
+	)
+	context.expect_true(
+		canonical_completion.succeeded() and reordered_completion.succeeded(),
+		"Full-completion stats must remain queryable after reordering.",
+	)
+	if canonical_completion.succeeded() and reordered_completion.succeeded():
+		context.expect_equal(
+			_profile_values(reordered_completion.player_stats()),
+			_profile_values(canonical_completion.player_stats()),
+			"Full-completion stats must be identical after reordering.",
+		)
 
 
 func _orders_errors_deterministically(context: HeadlessTestContextScript) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"H-3 error ordering needs canonical input. %s" % _diagnostics(canonical),
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Invalid declaration reordering",
 	)
 	if not canonical.succeeded():
 		return
-	var forward_manifest: ContentManifestScript = _manifest_from_registry(
-		canonical.registry()
+	var forward: ContentManifestScript = _manifest_from_registry(canonical.registry())
+	var reverse: ContentManifestScript = _manifest_from_registry(canonical.registry())
+	_corrupt_for_ordering(forward.global_progression_catalog)
+	_corrupt_for_ordering(reverse.global_progression_catalog)
+	_reverse_all_declarations(reverse)
+	var forward_result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(
+		forward
 	)
-	var reverse_manifest: ContentManifestScript = _manifest_from_registry(
-		canonical.registry()
+	var reverse_result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(
+		reverse
 	)
-	_corrupt_for_ordering(forward_manifest.global_progression_catalog)
-	_corrupt_for_ordering(reverse_manifest.global_progression_catalog)
-	reverse_manifest.global_progression_catalog.mainline_progression.reverse()
-	reverse_manifest.global_progression_catalog.optional_progression.reverse()
-	var forward_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(forward_manifest)
-	)
-	var reverse_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build(reverse_manifest)
-	)
-	context.expect_true(not forward_result.succeeded(), "Forward corrupt H-3 input must fail.")
-	context.expect_true(not reverse_result.succeeded(), "Reverse corrupt H-3 input must fail.")
-	context.expect_equal(forward_result.registry(), null, "Forward H-3 failure must be atomic.")
-	context.expect_equal(reverse_result.registry(), null, "Reverse H-3 failure must be atomic.")
-	context.expect_true(
-		not forward_result.validation_report().signatures().is_empty(),
-		"The H-3 ordering fixture must emit structured issues.",
-	)
+	context.expect_true(not forward_result.succeeded(), "Forward invalid catalog must fail.")
+	context.expect_true(not reverse_result.succeeded(), "Reverse invalid catalog must fail.")
 	context.expect_equal(
 		forward_result.validation_report().signatures(),
 		reverse_result.validation_report().signatures(),
-		"H-3 issue order must not depend on declaration order.",
+		"Issue order must not depend on top-level or reward membership declaration order.",
 	)
 
 
-func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
-	var result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
+func _reports_structured_reward_queries(
+	context: HeadlessTestContextScript,
+) -> void:
+	var result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Structured permanent reward queries",
+	)
+	if not result.succeeded():
+		return
+	var registry: ContentRegistryScript = result.registry()
+	var reward_id := &"progression.reward.main.chapter.01.attack"
+	var known: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(reward_id)
+	)
+	context.expect_true(known.succeeded(), "Known permanent reward lookup must succeed.")
+	context.expect_equal(
+		known.kind(),
+		GlobalProgressionQueryResultScript.Kind.PERMANENT_GROWTH_REWARD,
+		"Known reward lookup must retain reward result kind.",
+	)
+	context.expect_equal(known.player_stats(), null, "Reward result must not expose stats.")
+	context.expect_equal(known.mainline_progression(), null, "Reward result must not expose mainline.")
+	context.expect_equal(known.optional_progression(), null, "Reward result must not expose optional.")
+	context.expect_true(
+		known.permanent_growth_reward() != null,
+		"Known reward result must expose its reward payload.",
+	)
+
+	var unknown_id := &"progression.reward.unknown"
+	var unknown: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(unknown_id)
+	)
+	context.expect_true(not unknown.succeeded(), "Unknown reward lookup must fail.")
+	context.expect_equal(
+		unknown.kind(),
+		GlobalProgressionQueryResultScript.Kind.PERMANENT_GROWTH_REWARD,
+		"Unknown reward lookup must retain reward result kind.",
+	)
+	_expect_failed_query_payloads_null(context, unknown, "Unknown reward lookup")
+	context.expect_equal(
+		unknown.issue().code(),
+		ContentValidationIssueScript.LOOKUP_UNKNOWN_PERMANENT_GROWTH_REWARD_ID,
+		"Unknown reward lookup must expose a stable code.",
+	)
+	context.expect_equal(unknown.issue().content_id(), unknown_id, "Unknown ID must be retained.")
+	context.expect_equal(unknown.issue().field_path(), "reward_id", "Reward field must be named.")
+
+	var bundle_as_reward: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(&"progression.main.chapter.01")
 	)
 	context.expect_true(
-		result.succeeded(),
-		"Structured H-3 queries need canonical input. %s" % _diagnostics(result),
+		not bundle_as_reward.succeeded(),
+		"A bundle ID must not resolve in the reward namespace.",
+	)
+	context.expect_equal(
+		bundle_as_reward.issue().code(),
+		ContentValidationIssueScript.LOOKUP_UNKNOWN_PERMANENT_GROWTH_REWARD_ID,
+		"Bundle-as-reward failure must retain reward lookup semantics.",
+	)
+	var reward_as_bundle: GlobalProgressionQueryResultScript = (
+		registry.lookup_mainline_progression(reward_id)
+	)
+	context.expect_true(
+		not reward_as_bundle.succeeded(),
+		"A reward ID must not resolve in the bundle namespace.",
+	)
+	context.expect_equal(
+		reward_as_bundle.issue().code(),
+		ContentValidationIssueScript.LOOKUP_UNKNOWN_MAINLINE_PROGRESSION_ID,
+		"Reward-as-bundle failure must retain bundle lookup semantics.",
+	)
+	_expect_failed_query_payloads_null(context, reward_as_bundle, "Reward-as-bundle lookup")
+
+	var known_mainline: GlobalProgressionQueryResultScript = (
+		registry.lookup_mainline_progression(&"progression.main.chapter.01")
+	)
+	context.expect_equal(
+		known_mainline.permanent_growth_reward(),
+		null,
+		"Successful bundle queries must not expose a reward payload.",
+	)
+
+	var raw_registry := ContentRegistryScript.new()
+	_expect_uninitialized_progression_query(
+		context,
+		raw_registry.lookup_permanent_growth_reward(reward_id),
+		GlobalProgressionQueryResultScript.Kind.PERMANENT_GROWTH_REWARD,
+		reward_id,
+		"Uninitialized permanent reward lookup",
+	)
+
+
+func _reports_baseline_structured_queries(
+	context: HeadlessTestContextScript,
+) -> void:
+	var result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Baseline H-3 structured queries",
 	)
 	if not result.succeeded():
 		return
@@ -844,6 +1566,10 @@ func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
 		GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
 		"Initial stats query must retain its kind.",
 	)
+	context.expect_true(
+		initial_query.player_stats() != null,
+		"Initial stats query must expose player stats.",
+	)
 	context.expect_equal(
 		initial_query.mainline_progression(),
 		null,
@@ -854,6 +1580,12 @@ func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
 		null,
 		"A player-stats result must not expose optional content.",
 	)
+	context.expect_equal(
+		initial_query.permanent_growth_reward(),
+		null,
+		"A player-stats result must not expose permanent rewards.",
+	)
+	context.expect_equal(initial_query.issue(), null, "A successful initial query has no issue.")
 
 	var mainline_query: GlobalProgressionQueryResultScript = (
 		registry.lookup_mainline_progression(&"progression.main.chapter.01")
@@ -864,11 +1596,26 @@ func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
 		GlobalProgressionQueryResultScript.Kind.MAINLINE_PROGRESSION,
 		"Known mainline lookup must retain its kind.",
 	)
+	context.expect_true(
+		mainline_query.mainline_progression() != null,
+		"Known mainline lookup must expose mainline content.",
+	)
 	context.expect_equal(
 		mainline_query.player_stats(),
 		null,
 		"A mainline result must not expose player stats.",
 	)
+	context.expect_equal(
+		mainline_query.optional_progression(),
+		null,
+		"A mainline result must not expose optional content.",
+	)
+	context.expect_equal(
+		mainline_query.permanent_growth_reward(),
+		null,
+		"A mainline result must not expose permanent rewards.",
+	)
+	context.expect_equal(mainline_query.issue(), null, "A successful mainline query has no issue.")
 
 	var optional_query: GlobalProgressionQueryResultScript = (
 		registry.lookup_optional_progression(&"progression.optional.m01")
@@ -879,89 +1626,114 @@ func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
 		GlobalProgressionQueryResultScript.Kind.OPTIONAL_PROGRESSION,
 		"Known optional lookup must retain its kind.",
 	)
+	context.expect_true(
+		optional_query.optional_progression() != null,
+		"Known optional lookup must expose optional content.",
+	)
+	context.expect_equal(
+		optional_query.player_stats(),
+		null,
+		"An optional result must not expose player stats.",
+	)
 	context.expect_equal(
 		optional_query.mainline_progression(),
 		null,
 		"An optional result must not expose mainline content.",
 	)
+	context.expect_equal(
+		optional_query.permanent_growth_reward(),
+		null,
+		"An optional result must not expose permanent rewards.",
+	)
+	context.expect_equal(optional_query.issue(), null, "A successful optional query has no issue.")
 
+	var unknown_mainline_id := &"progression.main.unknown"
 	var unknown_mainline: GlobalProgressionQueryResultScript = (
-		registry.lookup_mainline_progression(&"progression.main.unknown")
+		registry.lookup_mainline_progression(unknown_mainline_id)
 	)
 	context.expect_true(not unknown_mainline.succeeded(), "Unknown mainline lookup must fail.")
-	_expect_failed_query_payloads_null(context, unknown_mainline, "Unknown mainline lookup")
 	context.expect_equal(
 		unknown_mainline.kind(),
 		GlobalProgressionQueryResultScript.Kind.MAINLINE_PROGRESSION,
 		"Unknown mainline lookup must retain its kind.",
 	)
+	_expect_failed_query_payloads_null(context, unknown_mainline, "Unknown mainline lookup")
 	context.expect_equal(
 		unknown_mainline.issue().code(),
 		ContentValidationIssueScript.LOOKUP_UNKNOWN_MAINLINE_PROGRESSION_ID,
-		"Unknown mainline lookup must expose a stable code.",
+		"Unknown mainline lookup must expose the frozen code.",
 	)
 	context.expect_equal(
 		unknown_mainline.issue().content_id(),
-		&"progression.main.unknown",
-		"Unknown mainline lookup must retain the requested ID.",
+		unknown_mainline_id,
+		"Unknown mainline lookup must retain its requested ID.",
 	)
 	context.expect_equal(
 		unknown_mainline.issue().field_path(),
 		"content_id",
-		"Unknown mainline lookup must identify its field.",
+		"Unknown mainline lookup must identify content_id.",
 	)
 
+	var unknown_optional_id := &"progression.optional.unknown"
 	var unknown_optional: GlobalProgressionQueryResultScript = (
-		registry.lookup_optional_progression(&"progression.optional.unknown")
+		registry.lookup_optional_progression(unknown_optional_id)
 	)
 	context.expect_true(not unknown_optional.succeeded(), "Unknown optional lookup must fail.")
-	_expect_failed_query_payloads_null(context, unknown_optional, "Unknown optional lookup")
 	context.expect_equal(
 		unknown_optional.kind(),
 		GlobalProgressionQueryResultScript.Kind.OPTIONAL_PROGRESSION,
 		"Unknown optional lookup must retain its kind.",
 	)
+	_expect_failed_query_payloads_null(context, unknown_optional, "Unknown optional lookup")
 	context.expect_equal(
 		unknown_optional.issue().code(),
 		ContentValidationIssueScript.LOOKUP_UNKNOWN_OPTIONAL_PROGRESSION_ID,
-		"Unknown optional lookup must expose a stable code.",
+		"Unknown optional lookup must expose the frozen code.",
 	)
 	context.expect_equal(
 		unknown_optional.issue().content_id(),
-		&"progression.optional.unknown",
-		"Unknown optional lookup must retain the requested ID.",
+		unknown_optional_id,
+		"Unknown optional lookup must retain its requested ID.",
 	)
 	context.expect_equal(
 		unknown_optional.issue().field_path(),
 		"content_id",
-		"Unknown optional lookup must identify its field.",
+		"Unknown optional lookup must identify content_id.",
 	)
 
-	var invalid_chapter: GlobalProgressionQueryResultScript = (
-		registry.mainline_stats_after_chapter(0)
-	)
-	context.expect_true(not invalid_chapter.succeeded(), "Chapter zero query must fail.")
-	_expect_failed_query_payloads_null(context, invalid_chapter, "Invalid chapter lookup")
-	context.expect_equal(
-		invalid_chapter.kind(),
-		GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
-		"Invalid chapter lookup must retain its kind.",
-	)
-	context.expect_equal(
-		invalid_chapter.issue().code(),
-		ContentValidationIssueScript.LOOKUP_PROGRESSION_CHAPTER_INVALID,
-		"Invalid chapter query must expose a stable code.",
-	)
-	context.expect_equal(
-		invalid_chapter.issue().content_id(),
-		&"0",
-		"Invalid chapter query must retain the requested chapter.",
-	)
-	context.expect_equal(
-		invalid_chapter.issue().field_path(),
-		"chapter",
-		"Invalid chapter query must identify its field.",
-	)
+	for invalid_chapter: int in [0, 10]:
+		var invalid_chapter_query: GlobalProgressionQueryResultScript = (
+			registry.mainline_stats_after_chapter(invalid_chapter)
+		)
+		context.expect_true(
+			not invalid_chapter_query.succeeded(),
+			"Out-of-range chapter %d query must fail." % invalid_chapter,
+		)
+		_expect_failed_query_payloads_null(
+			context,
+			invalid_chapter_query,
+			"Out-of-range chapter %d query" % invalid_chapter,
+		)
+		context.expect_equal(
+			invalid_chapter_query.kind(),
+			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
+			"Invalid chapter query must retain player-stats kind.",
+		)
+		context.expect_equal(
+			invalid_chapter_query.issue().code(),
+			ContentValidationIssueScript.LOOKUP_PROGRESSION_CHAPTER_INVALID,
+			"Invalid chapter query must expose the frozen code.",
+		)
+		context.expect_equal(
+			invalid_chapter_query.issue().content_id(),
+			StringName(str(invalid_chapter)),
+			"Invalid chapter query must retain its requested chapter.",
+		)
+		context.expect_equal(
+			invalid_chapter_query.issue().field_path(),
+			"chapter",
+			"Invalid chapter query must identify chapter.",
+		)
 
 	var raw_registry := ContentRegistryScript.new()
 	_expect_uninitialized_progression_query(
@@ -990,161 +1762,342 @@ func _reports_structured_queries(context: HeadlessTestContextScript) -> void:
 		raw_registry.lookup_mainline_progression(&"progression.main.chapter.01"),
 		GlobalProgressionQueryResultScript.Kind.MAINLINE_PROGRESSION,
 		&"progression.main.chapter.01",
-		"Uninitialized mainline lookup",
+		"Uninitialized mainline bundle query",
 	)
 	_expect_uninitialized_progression_query(
 		context,
 		raw_registry.lookup_optional_progression(&"progression.optional.m01"),
 		GlobalProgressionQueryResultScript.Kind.OPTIONAL_PROGRESSION,
 		&"progression.optional.m01",
-		"Uninitialized optional lookup",
+		"Uninitialized optional bundle query",
 	)
 
 
-func _isolates_input_resources(context: HeadlessTestContextScript) -> void:
-	var canonical: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		canonical.succeeded(),
-		"H-3 input isolation needs canonical input. %s" % _diagnostics(canonical),
+func _isolates_input_and_returned_resources(
+	context: HeadlessTestContextScript,
+) -> void:
+	var canonical: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"H-3.1 input isolation",
 	)
 	if not canonical.succeeded():
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
 	var source_catalog: GlobalProgressionCatalogScript = manifest.global_progression_catalog
 	var source_profile: PlayerStatProfileScript = source_catalog.initial_stats
-	var source_mainline: MainlineProgressionDefinitionScript = (
-		source_catalog.mainline_progression[0]
+	var reward_id := &"progression.reward.main.chapter.01.attack"
+	var mainline_group_id := &"progression.main.chapter.01"
+	var optional_group_id := &"progression.optional.m04"
+	var source_reward: PermanentGrowthRewardDefinitionScript = _find_reward(
+		source_catalog,
+		reward_id,
 	)
-	var source_optional: OptionalProgressionDefinitionScript = (
-		source_catalog.optional_progression[0]
+	var source_mainline: MainlineProgressionDefinitionScript = _find_mainline(
+		source_catalog,
+		mainline_group_id,
+	)
+	var source_optional: OptionalProgressionDefinitionScript = _find_optional(
+		source_catalog,
+		optional_group_id,
 	)
 	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
 	context.expect_true(
 		result.succeeded(),
-		"A copied H-3 manifest must build before mutation. %s" % _diagnostics(result),
+		"Copied H-3.1 input must build before mutation. %s" % _diagnostics(result),
 	)
 	if not result.succeeded():
 		return
 
 	source_catalog.catalog_id = &"progression.tampered"
+	source_profile.profile_id = &"progression.player.tampered"
 	source_profile.attack = 999
-	source_mainline.attack_increase = 999
-	source_optional.maximum_health_increase = 999
+	source_reward.increase = 999
+	source_mainline.reward_ids.clear()
+	source_optional.reward_ids.clear()
+	source_catalog.permanent_growth_rewards.clear()
 	source_catalog.mainline_progression.clear()
 	source_catalog.optional_progression.clear()
 	manifest.global_progression_catalog = null
-
-	context.expect_true(
-		result.succeeded(),
-		"Mutating H-3 source Resources must not invalidate the stored snapshot.",
-	)
+	context.expect_true(result.succeeded(), "Mutating input Resources must not alter stored state.")
 	var stored_catalog: GlobalProgressionCatalogScript = (
 		result.registry().global_progression_catalog()
 	)
 	context.expect_equal(
 		stored_catalog.catalog_id,
 		&"progression.global",
-		"Mutating the source catalog ID must not alter the registry.",
+		"Mutating the input catalog ID must not alter the registry.",
+	)
+	context.expect_equal(
+		result.registry().initial_player_stats().player_stats().profile_id,
+		&"progression.player.loer",
+		"Mutating the input profile ID must not alter the registry.",
 	)
 	context.expect_equal(
 		_profile_values(result.registry().initial_player_stats().player_stats()),
 		[100, 10, 5, 10],
-		"Mutating the source profile must not alter the registry.",
+		"Mutating the input profile must not alter the registry.",
 	)
 	context.expect_equal(
-		result.registry()
-		.lookup_mainline_progression(&"progression.main.chapter.01")
-		.mainline_progression()
-		.attack_increase,
+		result.registry().lookup_permanent_growth_reward(reward_id).permanent_growth_reward().increase,
 		1,
-		"Mutating a source mainline entry must not alter the registry.",
+		"Mutating an input reward must not alter the registry.",
 	)
 	context.expect_equal(
 		result.registry()
-		.lookup_optional_progression(&"progression.optional.m01")
-		.optional_progression()
-		.maximum_health_increase,
-		10,
-		"Mutating a source optional entry must not alter the registry.",
+		.lookup_mainline_progression(mainline_group_id)
+		.mainline_progression()
+		.reward_ids,
+		[
+			&"progression.reward.main.chapter.01.attack",
+			&"progression.reward.main.chapter.01.maximum_health",
+		],
+		"Mutating input mainline membership must not alter the registry.",
 	)
 	context.expect_equal(
-		result.registry().mainline_progression_ids().size(),
+		result.registry()
+		.lookup_optional_progression(optional_group_id)
+		.optional_progression()
+		.reward_ids,
+		[
+			&"progression.reward.optional.m04.attack",
+			&"progression.reward.optional.m04.defense",
+		],
+		"Mutating input optional membership must not alter the registry.",
+	)
+	context.expect_equal(
+		result.registry().mainline_progression_ids(),
+		_expected_mainline_ids(),
+		"Clearing the input mainline array must not alter the registry index.",
+	)
+	context.expect_equal(
+		result.registry().optional_progression_ids(),
+		_expected_optional_ids(),
+		"Clearing the input optional array must not alter the registry index.",
+	)
+	context.expect_equal(
+		stored_catalog.permanent_growth_rewards.size(),
+		30,
+		"Clearing the input reward array must not shrink the stored catalog.",
+	)
+	context.expect_equal(
+		stored_catalog.mainline_progression.size(),
 		9,
-		"Clearing the source mainline array must not shrink the registry.",
+		"Clearing the input mainline array must not shrink the stored catalog.",
 	)
 	context.expect_equal(
-		result.registry().optional_progression_ids().size(),
+		stored_catalog.optional_progression.size(),
 		4,
-		"Clearing the source optional array must not shrink the registry.",
+		"Clearing the input optional array must not shrink the stored catalog.",
 	)
 
-
-func _isolates_query_results(context: HeadlessTestContextScript) -> void:
-	var result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
+	var returned_catalog: GlobalProgressionCatalogScript = (
+		result.registry().global_progression_catalog()
 	)
-	context.expect_true(
-		result.succeeded(),
-		"H-3 query isolation needs canonical input. %s" % _diagnostics(result),
+	returned_catalog.catalog_id = &"progression.tampered"
+	returned_catalog.initial_stats.attack = 777
+	_find_reward(returned_catalog, reward_id).increase = 777
+	_find_mainline(returned_catalog, mainline_group_id).reward_ids.clear()
+	_find_optional(returned_catalog, optional_group_id).reward_ids.clear()
+	returned_catalog.permanent_growth_rewards.clear()
+	returned_catalog.mainline_progression.clear()
+	returned_catalog.optional_progression.clear()
+	var fresh_catalog: GlobalProgressionCatalogScript = (
+		result.registry().global_progression_catalog()
 	)
-	if not result.succeeded():
-		return
-	var registry: ContentRegistryScript = result.registry()
-
-	var mainline_ids: Array[StringName] = registry.mainline_progression_ids()
-	var optional_ids: Array[StringName] = registry.optional_progression_ids()
-	mainline_ids.append(&"progression.main.tampered")
-	optional_ids.clear()
-	context.expect_equal(registry.mainline_progression_ids().size(), 9, "Mainline IDs must be copied.")
-	context.expect_equal(registry.optional_progression_ids().size(), 4, "Optional IDs must be copied.")
-
-	var mainline_definitions: Array[MainlineProgressionDefinitionScript] = (
-		registry.mainline_progression_definitions()
-	)
-	var optional_definitions: Array[OptionalProgressionDefinitionScript] = (
-		registry.optional_progression_definitions()
-	)
-	mainline_definitions[0].attack_increase = 999
-	optional_definitions[0].maximum_health_increase = 999
-	mainline_definitions.clear()
-	optional_definitions.clear()
-	context.expect_equal(
-		registry.lookup_mainline_progression(&"progression.main.chapter.01")
-		.mainline_progression()
-		.attack_increase,
-		1,
-		"Mutating a mainline collection snapshot must not alter the registry.",
-	)
-	context.expect_equal(
-		registry.lookup_optional_progression(&"progression.optional.m01")
-		.optional_progression()
-		.maximum_health_increase,
-		10,
-		"Mutating an optional collection snapshot must not alter the registry.",
-	)
-
-	var catalog: GlobalProgressionCatalogScript = registry.global_progression_catalog()
-	catalog.catalog_id = &"progression.tampered"
-	catalog.initial_stats.attack = 999
-	catalog.mainline_progression[0].chapter = 9
-	catalog.optional_progression[0].speed_increase = 1
-	catalog.mainline_progression.clear()
-	catalog.optional_progression.clear()
-	var fresh_catalog: GlobalProgressionCatalogScript = registry.global_progression_catalog()
 	context.expect_equal(
 		fresh_catalog.catalog_id,
 		&"progression.global",
-		"Catalog getters must return a fresh snapshot.",
+		"Mutating a returned catalog ID must not alter stored state.",
 	)
 	context.expect_equal(
 		_profile_values(fresh_catalog.initial_stats),
 		[100, 10, 5, 10],
-		"Catalog profile snapshots must be isolated.",
+		"Mutating a returned catalog profile must not alter stored state.",
 	)
-	context.expect_equal(fresh_catalog.mainline_progression.size(), 9, "Catalog mainline data must be isolated.")
-	context.expect_equal(fresh_catalog.optional_progression.size(), 4, "Catalog optional data must be isolated.")
+	context.expect_equal(
+		result.registry().lookup_permanent_growth_reward(reward_id).permanent_growth_reward().increase,
+		1,
+		"Mutating a returned catalog reward must not alter stored state.",
+	)
+	context.expect_equal(
+		result.registry()
+		.lookup_mainline_progression(mainline_group_id)
+		.mainline_progression()
+		.reward_ids,
+		[
+			&"progression.reward.main.chapter.01.attack",
+			&"progression.reward.main.chapter.01.maximum_health",
+		],
+		"Mutating returned mainline membership must not alter stored state.",
+	)
+	context.expect_equal(
+		result.registry()
+		.lookup_optional_progression(optional_group_id)
+		.optional_progression()
+		.reward_ids,
+		[
+			&"progression.reward.optional.m04.attack",
+			&"progression.reward.optional.m04.defense",
+		],
+		"Mutating returned optional membership must not alter stored state.",
+	)
+	context.expect_equal(
+		fresh_catalog.permanent_growth_rewards.size(),
+		30,
+		"Clearing a returned reward array must not alter stored state.",
+	)
+	context.expect_equal(
+		fresh_catalog.mainline_progression.size(),
+		9,
+		"Clearing a returned mainline array must not alter stored state.",
+	)
+	context.expect_equal(
+		fresh_catalog.optional_progression.size(),
+		4,
+		"Clearing a returned optional array must not alter stored state.",
+	)
+
+	var expected_reward_ids: Array[StringName] = _expected_reward_ids()
+	var returned_reward_ids: Array[StringName] = result.registry().permanent_growth_reward_ids()
+	returned_reward_ids[0] = &"progression.reward.tampered"
+	returned_reward_ids.clear()
+	context.expect_equal(
+		result.registry().permanent_growth_reward_ids(),
+		expected_reward_ids,
+		"Mutating a returned reward ID array must not alter the registry index.",
+	)
+	var expected_mainline_ids: Array[StringName] = _expected_mainline_ids()
+	var returned_mainline_ids: Array[StringName] = result.registry().mainline_progression_ids()
+	returned_mainline_ids[0] = &"progression.main.tampered"
+	returned_mainline_ids.clear()
+	context.expect_equal(
+		result.registry().mainline_progression_ids(),
+		expected_mainline_ids,
+		"Mutating a returned mainline ID array must not alter the registry index.",
+	)
+	var expected_optional_ids: Array[StringName] = _expected_optional_ids()
+	var returned_optional_ids: Array[StringName] = result.registry().optional_progression_ids()
+	returned_optional_ids[0] = &"progression.optional.tampered"
+	returned_optional_ids.clear()
+	context.expect_equal(
+		result.registry().optional_progression_ids(),
+		expected_optional_ids,
+		"Mutating a returned optional ID array must not alter the registry index.",
+	)
+
+	var returned_rewards: Array[PermanentGrowthRewardDefinitionScript] = (
+		result.registry().permanent_growth_reward_definitions()
+	)
+	var returned_reward_definition: PermanentGrowthRewardDefinitionScript
+	for returned_reward: PermanentGrowthRewardDefinitionScript in returned_rewards:
+		if returned_reward.reward_id == reward_id:
+			returned_reward_definition = returned_reward
+			break
+	context.expect_true(
+		returned_reward_definition != null,
+		"Returned reward definitions must contain the mutation target.",
+	)
+	if returned_reward_definition != null:
+		returned_reward_definition.increase = 555
+	returned_rewards.clear()
+	context.expect_equal(
+		result.registry().permanent_growth_reward_count(),
+		30,
+		"Mutating a reward collection result must not alter stored state.",
+	)
+	context.expect_equal(
+		result.registry().lookup_permanent_growth_reward(reward_id).permanent_growth_reward().increase,
+		1,
+		"Nested returned reward definitions must be deep snapshots.",
+	)
+	var returned_mainline_definitions: Array[MainlineProgressionDefinitionScript] = (
+		result.registry().mainline_progression_definitions()
+	)
+	var returned_mainline_definition: MainlineProgressionDefinitionScript
+	for returned_mainline: MainlineProgressionDefinitionScript in returned_mainline_definitions:
+		if returned_mainline.content_id == mainline_group_id:
+			returned_mainline_definition = returned_mainline
+			break
+	context.expect_true(
+		returned_mainline_definition != null,
+		"Returned mainline definitions must contain the mutation target.",
+	)
+	if returned_mainline_definition != null:
+		returned_mainline_definition.content_id = &"progression.main.tampered"
+		returned_mainline_definition.reward_ids.clear()
+	returned_mainline_definitions.clear()
+	context.expect_equal(
+		result.registry().mainline_progression_definitions().size(),
+		9,
+		"Mutating a returned mainline definition array must not alter stored state.",
+	)
+	context.expect_equal(
+		result.registry()
+		.lookup_mainline_progression(mainline_group_id)
+		.mainline_progression()
+		.reward_ids.size(),
+		2,
+		"Nested returned mainline definitions must be deep snapshots.",
+	)
+	var returned_optional_definitions: Array[OptionalProgressionDefinitionScript] = (
+		result.registry().optional_progression_definitions()
+	)
+	var returned_optional_definition: OptionalProgressionDefinitionScript
+	for returned_optional: OptionalProgressionDefinitionScript in returned_optional_definitions:
+		if returned_optional.content_id == optional_group_id:
+			returned_optional_definition = returned_optional
+			break
+	context.expect_true(
+		returned_optional_definition != null,
+		"Returned optional definitions must contain the mutation target.",
+	)
+	if returned_optional_definition != null:
+		returned_optional_definition.content_id = &"progression.optional.tampered"
+		returned_optional_definition.reward_ids.clear()
+	returned_optional_definitions.clear()
+	context.expect_equal(
+		result.registry().optional_progression_definitions().size(),
+		4,
+		"Mutating a returned optional definition array must not alter stored state.",
+	)
+	context.expect_equal(
+		result.registry()
+		.lookup_optional_progression(optional_group_id)
+		.optional_progression()
+		.reward_ids.size(),
+		2,
+		"Nested returned optional definitions must be deep snapshots.",
+	)
+
+
+func _isolates_query_results(context: HeadlessTestContextScript) -> void:
+	var result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"H-3.1 query isolation",
+	)
+	if not result.succeeded():
+		return
+	var registry: ContentRegistryScript = result.registry()
+	var reward_id := &"progression.reward.main.chapter.01.attack"
+	var reward_query: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(reward_id)
+	)
+	var returned_reward: PermanentGrowthRewardDefinitionScript = (
+		reward_query.permanent_growth_reward()
+	)
+	returned_reward.reward_id = &"progression.reward.tampered"
+	returned_reward.stat_kind = 4
+	returned_reward.increase = 999
+	context.expect_equal(
+		reward_query.permanent_growth_reward().reward_id,
+		reward_id,
+		"Reward QueryResult getter must return a new snapshot every time.",
+	)
+	context.expect_equal(
+		registry.lookup_permanent_growth_reward(reward_id).permanent_growth_reward().increase,
+		1,
+		"Mutating a lookup payload must not alter later lookups.",
+	)
 
 	var mainline_query: GlobalProgressionQueryResultScript = (
 		registry.lookup_mainline_progression(&"progression.main.chapter.01")
@@ -1152,128 +2105,268 @@ func _isolates_query_results(context: HeadlessTestContextScript) -> void:
 	var returned_mainline: MainlineProgressionDefinitionScript = (
 		mainline_query.mainline_progression()
 	)
-	returned_mainline.attack_increase = 999
+	returned_mainline.content_id = &"progression.main.tampered"
+	returned_mainline.reward_ids.clear()
 	context.expect_equal(
-		mainline_query.mainline_progression().attack_increase,
-		1,
-		"A mainline QueryResult must snapshot every getter call.",
+		mainline_query.mainline_progression().reward_ids,
+		[
+			&"progression.reward.main.chapter.01.attack",
+			&"progression.reward.main.chapter.01.maximum_health",
+		],
+		"Mainline QueryResult membership must be deep-snapshotted.",
 	)
+	context.expect_equal(
+		mainline_query.mainline_progression().content_id,
+		&"progression.main.chapter.01",
+		"Mainline QueryResult definitions must be deep-snapshotted.",
+	)
+
 	var optional_query: GlobalProgressionQueryResultScript = (
-		registry.lookup_optional_progression(&"progression.optional.m01")
+		registry.lookup_optional_progression(&"progression.optional.m04")
 	)
 	var returned_optional: OptionalProgressionDefinitionScript = (
 		optional_query.optional_progression()
 	)
-	returned_optional.maximum_health_increase = 999
+	returned_optional.content_id = &"progression.optional.tampered"
+	returned_optional.reward_ids.clear()
 	context.expect_equal(
-		optional_query.optional_progression().maximum_health_increase,
-		10,
-		"An optional QueryResult must snapshot every getter call.",
+		optional_query.optional_progression().reward_ids,
+		[
+			&"progression.reward.optional.m04.attack",
+			&"progression.reward.optional.m04.defense",
+		],
+		"Optional QueryResult membership must be deep-snapshotted.",
 	)
-	var stats_query: GlobalProgressionQueryResultScript = registry.initial_player_stats()
-	var returned_stats: PlayerStatProfileScript = stats_query.player_stats()
-	returned_stats.attack = 999
 	context.expect_equal(
-		stats_query.player_stats().attack,
-		10,
-		"A player-stats QueryResult must snapshot every getter call.",
-	)
-	var full_stats_query: GlobalProgressionQueryResultScript = (
-		registry.full_completion_player_stats()
-	)
-	var returned_full_stats: PlayerStatProfileScript = full_stats_query.player_stats()
-	returned_full_stats.maximum_health = 999
-	context.expect_equal(
-		full_stats_query.player_stats().maximum_health,
-		200,
-		"Derived full-completion stats must be isolated snapshots.",
+		optional_query.optional_progression().content_id,
+		&"progression.optional.m04",
+		"Optional QueryResult definitions must be deep-snapshotted.",
 	)
 
-	var unknown_query: GlobalProgressionQueryResultScript = (
-		registry.lookup_optional_progression(&"progression.optional.unknown")
+	var initial_query: GlobalProgressionQueryResultScript = registry.initial_player_stats()
+	var returned_initial_profile: PlayerStatProfileScript = initial_query.player_stats()
+	returned_initial_profile.profile_id = &"progression.player.tampered"
+	returned_initial_profile.attack = 999
+	context.expect_equal(
+		initial_query.player_stats().profile_id,
+		&"progression.player.loer",
+		"Initial-stats QueryResult profile IDs must be deep-snapshotted.",
 	)
-	context.expect_true(
-		not unknown_query.succeeded(),
-		"Unknown optional issue-isolation lookup must fail.",
+	context.expect_equal(
+		initial_query.player_stats().attack,
+		10,
+		"Initial-stats QueryResult values must be deep-snapshotted.",
 	)
-	_expect_failed_query_payloads_null(
-		context,
-		unknown_query,
-		"Unknown optional issue-isolation lookup",
+
+	var completion_query: GlobalProgressionQueryResultScript = (
+		registry.full_completion_player_stats()
 	)
-	var returned_issue: ContentValidationIssueScript = unknown_query.issue()
+	var returned_profile: PlayerStatProfileScript = completion_query.player_stats()
+	returned_profile.maximum_health = 1
+	context.expect_equal(
+		completion_query.player_stats().maximum_health,
+		200,
+		"Aggregate stats QueryResult must return a new snapshot every time.",
+	)
+
+	var unknown: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(&"progression.reward.unknown")
+	)
+	var returned_issue: ContentValidationIssueScript = unknown.issue()
 	returned_issue._message = "tampered"
 	context.expect_true(
-		unknown_query.issue().message() != "tampered",
-		"A progression QueryResult must snapshot issues on every getter call.",
+		unknown.issue().message() != "tampered",
+		"Failed reward QueryResult must snapshot its issue on every getter call.",
 	)
+	_expect_failed_query_payloads_null(context, unknown, "Isolated failed reward query")
 
 
 func _isolates_resource_loader_cache(context: HeadlessTestContextScript) -> void:
-	var loaded_resource: Resource = ResourceLoader.load(
+	var loaded: Resource = ResourceLoader.load(
 		ContentRegistryBuilderScript.CANONICAL_MANIFEST_PATH,
 		"Resource",
 		ResourceLoader.CACHE_MODE_REUSE,
 	)
-	context.expect_true(loaded_resource != null, "The H-3 cache fixture must load the manifest.")
-	if loaded_resource == null:
+	context.expect_true(loaded != null, "Cache isolation fixture must load the manifest.")
+	if loaded == null or loaded.get_script() != ContentManifestScript:
 		return
-	context.expect_true(
-		loaded_resource.get_script() == ContentManifestScript,
-		"The H-3 cache fixture must load the exact manifest script.",
+	var cached_manifest: ContentManifestScript = loaded as ContentManifestScript
+	var cached_catalog: GlobalProgressionCatalogScript = cached_manifest.global_progression_catalog
+	var reward_id := &"progression.reward.main.chapter.01.attack"
+	var group_id := &"progression.main.chapter.01"
+	var cached_reward: PermanentGrowthRewardDefinitionScript = _find_reward(
+		cached_catalog,
+		reward_id,
 	)
-	if loaded_resource.get_script() != ContentManifestScript:
-		return
-	var cached_manifest: ContentManifestScript = loaded_resource as ContentManifestScript
-	var cached_catalog: GlobalProgressionCatalogScript = (
-		cached_manifest.global_progression_catalog
+	var cached_group: MainlineProgressionDefinitionScript = _find_mainline(
+		cached_catalog,
+		group_id,
 	)
-	context.expect_true(cached_catalog != null, "The cache fixture must contain H-3 content.")
-	if cached_catalog == null:
-		return
-	var original_attack: int = cached_catalog.initial_stats.attack
-	var original_mainline_attack: int = cached_catalog.mainline_progression[0].attack_increase
-	var original_optional_speed: int = cached_catalog.optional_progression[3].speed_increase
-	cached_catalog.initial_stats.attack = 999
-	cached_catalog.mainline_progression[0].attack_increase = 999
-	cached_catalog.optional_progression[3].speed_increase = 1
+	var original_increase: int = cached_reward.increase
+	var original_membership: Array[StringName] = _copy_ids(cached_group.reward_ids)
+	cached_reward.increase = 999
+	cached_group.reward_ids.clear()
 	var isolated_result: ContentRegistryBuildResultScript = (
 		ContentRegistryBuilderScript.build_canonical()
 	)
-	cached_catalog.initial_stats.attack = original_attack
-	cached_catalog.mainline_progression[0].attack_increase = original_mainline_attack
-	cached_catalog.optional_progression[3].speed_increase = original_optional_speed
+	cached_reward.increase = original_increase
+	cached_group.reward_ids = original_membership
 	context.expect_true(
 		isolated_result.succeeded(),
-		"Canonical H-3 loading must ignore a mutated deep Resource cache. %s"
+		"Canonical load must ignore the mutated deep Resource cache. %s"
 		% _diagnostics(isolated_result),
 	)
 	if not isolated_result.succeeded():
 		return
 	context.expect_equal(
-		_profile_values(isolated_result.registry().initial_player_stats().player_stats()),
-		[100, 10, 5, 10],
-		"Deep-ignore loading must preserve on-disk initial stats.",
-	)
-	context.expect_equal(
 		isolated_result.registry()
-		.lookup_mainline_progression(&"progression.main.chapter.01")
-		.mainline_progression()
-		.attack_increase,
+		.lookup_permanent_growth_reward(reward_id)
+		.permanent_growth_reward()
+		.increase,
 		1,
-		"Deep-ignore loading must preserve on-disk mainline data.",
+		"Deep-ignore loading must restore the on-disk reward value.",
 	)
 	context.expect_equal(
 		isolated_result.registry()
-		.lookup_optional_progression(&"progression.optional.m04")
-		.optional_progression()
-		.speed_increase,
-		0,
-		"Deep-ignore loading must preserve on-disk optional data.",
+		.lookup_mainline_progression(group_id)
+		.mainline_progression()
+		.reward_ids.size(),
+		2,
+		"Deep-ignore loading must restore on-disk reward membership.",
 	)
 
 
-func _invalidates_complete_seal_and_cross_domain(
+func _invalidates_tampered_registry_state(
+	context: HeadlessTestContextScript,
+) -> void:
+	var reward_id := &"progression.reward.main.chapter.01.attack"
+
+	var reward_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build reward tampering",
+	)
+	if reward_result.succeeded():
+		var reward_registry: ContentRegistryScript = reward_result.registry()
+		reward_registry._permanent_growth_rewards_by_id[reward_id].increase = 999
+		_expect_tampering_rejected(
+			context,
+			reward_registry,
+			reward_result,
+			"reward definition",
+		)
+
+	var reward_id_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build reward ID tampering",
+	)
+	if reward_id_result.succeeded():
+		var reward_id_registry: ContentRegistryScript = reward_id_result.registry()
+		reward_id_registry._permanent_growth_rewards_by_id[reward_id].reward_id = (
+			&"progression.reward.tampered"
+		)
+		_expect_tampering_rejected(
+			context,
+			reward_id_registry,
+			reward_id_result,
+			"reward ID",
+		)
+
+	var stat_kind_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build reward stat-kind tampering",
+	)
+	if stat_kind_result.succeeded():
+		var stat_kind_registry: ContentRegistryScript = stat_kind_result.registry()
+		stat_kind_registry._permanent_growth_rewards_by_id[reward_id].stat_kind = 3
+		_expect_tampering_rejected(
+			context,
+			stat_kind_registry,
+			stat_kind_result,
+			"valid-but-wrong reward stat kind",
+		)
+
+	var membership_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build membership tampering",
+	)
+	if membership_result.succeeded():
+		var membership_registry: ContentRegistryScript = membership_result.registry()
+		membership_registry._mainline_progression_by_id[
+			&"progression.main.chapter.01"
+		].reward_ids.clear()
+		_expect_tampering_rejected(
+			context,
+			membership_registry,
+			membership_result,
+			"mainline reward membership",
+		)
+
+	var optional_membership_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build optional membership tampering",
+	)
+	if optional_membership_result.succeeded():
+		var optional_membership_registry: ContentRegistryScript = (
+			optional_membership_result.registry()
+		)
+		optional_membership_registry._optional_progression_by_id[
+			&"progression.optional.m04"
+		].reward_ids.clear()
+		_expect_tampering_rejected(
+			context,
+			optional_membership_registry,
+			optional_membership_result,
+			"optional reward membership",
+		)
+
+	var index_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build reward index tampering",
+	)
+	if index_result.succeeded():
+		var index_registry: ContentRegistryScript = index_result.registry()
+		var empty_index: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
+		index_registry._permanent_growth_rewards_by_id = empty_index
+		_expect_tampering_rejected(
+			context,
+			index_registry,
+			index_result,
+			"reward dictionary index",
+		)
+
+	var order_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build reward order tampering",
+	)
+	if order_result.succeeded():
+		var order_registry: ContentRegistryScript = order_result.registry()
+		var reversed_ids: Array[StringName] = order_registry.permanent_growth_reward_ids()
+		reversed_ids.reverse()
+		order_registry._permanent_growth_reward_ids = reversed_ids
+		_expect_tampering_rejected(
+			context,
+			order_registry,
+			order_result,
+			"reward ID order",
+		)
+
+	var version_result: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Post-build version tampering",
+	)
+	if version_result.succeeded():
+		var version_registry: ContentRegistryScript = version_result.registry()
+		version_registry._schema_version = 2
+		version_registry._content_version = 2
+		_expect_tampering_rejected(
+			context,
+			version_registry,
+			version_result,
+			"schema/content version",
+		)
+
+
+func _invalidates_baseline_metadata_tampering(
 	context: HeadlessTestContextScript,
 ) -> void:
 	var scalar_fields: Array[StringName] = [
@@ -1285,36 +2378,29 @@ func _invalidates_complete_seal_and_cross_domain(
 		&"profile.speed",
 		&"mainline.content_id",
 		&"mainline.chapter",
-		&"mainline.maximum_health_increase",
-		&"mainline.attack_increase",
-		&"mainline.defense_increase",
-		&"mainline.speed_increase",
 		&"optional.content_id",
 		&"optional.optional_map_id",
 		&"optional.available_after_chapter",
-		&"optional.maximum_health_increase",
-		&"optional.attack_increase",
-		&"optional.defense_increase",
-		&"optional.speed_increase",
 	]
 	for scalar_field: StringName in scalar_fields:
 		var scalar_result: ContentRegistryBuildResultScript = _canonical_result(
 			context,
-			"Scalar tampering '%s'" % String(scalar_field),
+			"Post-build baseline scalar tampering '%s'" % String(scalar_field),
 		)
 		if not scalar_result.succeeded():
 			continue
 		var scalar_registry: ContentRegistryScript = scalar_result.registry()
-		_tamper_progression_scalar(scalar_registry, scalar_field)
+		_tamper_baseline_progression_scalar(scalar_registry, scalar_field)
 		_expect_tampering_rejected(
 			context,
 			scalar_registry,
 			scalar_result,
-			"progression scalar '%s'" % String(scalar_field),
+			"baseline progression scalar '%s'" % String(scalar_field),
 		)
 
 	var mainline_order_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Mainline-order tampering"
+		context,
+		"Post-build mainline ID-order tampering",
 	)
 	if mainline_order_result.succeeded():
 		var mainline_order_registry: ContentRegistryScript = mainline_order_result.registry()
@@ -1331,7 +2417,8 @@ func _invalidates_complete_seal_and_cross_domain(
 		)
 
 	var optional_order_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Optional-order tampering"
+		context,
+		"Post-build optional ID-order tampering",
 	)
 	if optional_order_result.succeeded():
 		var optional_order_registry: ContentRegistryScript = optional_order_result.registry()
@@ -1348,7 +2435,8 @@ func _invalidates_complete_seal_and_cross_domain(
 		)
 
 	var mainline_dictionary_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Mainline-dictionary tampering"
+		context,
+		"Post-build mainline dictionary tampering",
 	)
 	if mainline_dictionary_result.succeeded():
 		var mainline_dictionary_registry: ContentRegistryScript = (
@@ -1364,7 +2452,8 @@ func _invalidates_complete_seal_and_cross_domain(
 		)
 
 	var optional_dictionary_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Optional-dictionary tampering"
+		context,
+		"Post-build optional dictionary tampering",
 	)
 	if optional_dictionary_result.succeeded():
 		var optional_dictionary_registry: ContentRegistryScript = (
@@ -1380,7 +2469,8 @@ func _invalidates_complete_seal_and_cross_domain(
 		)
 
 	var mainline_script_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Mainline-script tampering"
+		context,
+		"Post-build mainline exact-script tampering",
 	)
 	if mainline_script_result.succeeded():
 		var mainline_script_registry: ContentRegistryScript = mainline_script_result.registry()
@@ -1394,11 +2484,12 @@ func _invalidates_complete_seal_and_cross_domain(
 			context,
 			mainline_script_registry,
 			mainline_script_result,
-			"mainline script",
+			"mainline exact script",
 		)
 
 	var optional_script_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Optional-script tampering"
+		context,
+		"Post-build optional exact-script tampering",
 	)
 	if optional_script_result.succeeded():
 		var optional_script_registry: ContentRegistryScript = optional_script_result.registry()
@@ -1412,14 +2503,17 @@ func _invalidates_complete_seal_and_cross_domain(
 			context,
 			optional_script_registry,
 			optional_script_result,
-			"optional script",
+			"optional exact script",
 		)
 
 	var blueprint_cross_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Blueprint-to-progression cross-domain tampering"
+		context,
+		"Post-build blueprint-to-progression cross-domain tampering",
 	)
 	if blueprint_cross_result.succeeded():
-		var blueprint_cross_registry: ContentRegistryScript = blueprint_cross_result.registry()
+		var blueprint_cross_registry: ContentRegistryScript = (
+			blueprint_cross_result.registry()
+		)
 		blueprint_cross_registry._blueprints_by_id[&"blueprint.01"].unlock_chapter = 9
 		var progression_query: GlobalProgressionQueryResultScript = (
 			blueprint_cross_registry.initial_player_stats()
@@ -1436,7 +2530,7 @@ func _invalidates_complete_seal_and_cross_domain(
 		context.expect_equal(
 			progression_query.issue().code(),
 			ContentValidationIssueScript.LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED,
-			"Cross-domain progression failure must be structured.",
+			"Blueprint-to-progression failure must be structured.",
 		)
 		_expect_tampering_rejected(
 			context,
@@ -1445,87 +2539,149 @@ func _invalidates_complete_seal_and_cross_domain(
 			"blueprint-to-progression cross-domain state",
 		)
 
-	var progression_cross_result: ContentRegistryBuildResultScript = _canonical_result(
-		context, "Progression-to-blueprint cross-domain tampering"
-	)
-	if progression_cross_result.succeeded():
-		var progression_cross_registry: ContentRegistryScript = (
-			progression_cross_result.registry()
-		)
-		progression_cross_registry._mainline_progression_by_id[
-			&"progression.main.chapter.01"
-		].attack_increase = 999
-		var blueprint_query = progression_cross_registry.lookup_blueprint(&"blueprint.01")
-		context.expect_true(
-			not blueprint_query.succeeded(),
-			"Progression tampering must disable blueprint queries through the shared seal.",
-		)
-		context.expect_equal(
-			blueprint_query.issue().code(),
-			ContentValidationIssueScript.LOOKUP_REGISTRY_UNINITIALIZED,
-			"Cross-domain blueprint failure must be structured.",
-		)
-		_expect_tampering_rejected(
-			context,
-			progression_cross_registry,
-			progression_cross_result,
-			"progression-to-blueprint cross-domain state",
-		)
 
-
-func _rebuilds_deterministically(context: HeadlessTestContextScript) -> void:
-	var first: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build_canonical()
-	var second: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		first.succeeded(),
-		"The first canonical H-3 build must succeed. %s" % _diagnostics(first),
+func _fingerprints_and_rebuilds_deterministically(
+	context: HeadlessTestContextScript,
+) -> void:
+	var first: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"First deterministic H-3.1 rebuild",
 	)
-	context.expect_true(
-		second.succeeded(),
-		"The second canonical H-3 build must succeed. %s" % _diagnostics(second),
+	var second: ContentRegistryBuildResultScript = _canonical_result(
+		context,
+		"Second deterministic H-3.1 rebuild",
 	)
 	if not first.succeeded() or not second.succeeded():
 		return
+	context.expect_true(first.registry() != second.registry(), "Rebuilds must isolate registries.")
 	context.expect_true(
-		first.registry() != second.registry(),
-		"Repeated H-3 builds must create isolated registry instances.",
-	)
-	var first_catalog: GlobalProgressionCatalogScript = (
-		first.registry().global_progression_catalog()
-	)
-	var second_catalog: GlobalProgressionCatalogScript = (
-		second.registry().global_progression_catalog()
+		first.registry().global_progression_catalog().is_equal_to(
+			second.registry().global_progression_catalog()
+		),
+		"Rebuilds must expose value-equal catalogs.",
 	)
 	context.expect_true(
-		first_catalog != second_catalog,
-		"Repeated H-3 builds must expose distinct catalog snapshots.",
+		first.registry().permanent_growth_reward_definitions()[0]
+		!= second.registry().permanent_growth_reward_definitions()[0],
+		"Rebuilds must isolate nested reward Resources.",
 	)
 	context.expect_true(
-		first_catalog.is_equal_to(second_catalog),
-		"Repeated H-3 builds must expose value-equal catalog snapshots.",
+		first.registry().mainline_progression_definitions()[0]
+		!= second.registry().mainline_progression_definitions()[0],
+		"Rebuilds must isolate nested membership Resources.",
 	)
-	context.expect_true(
-		first_catalog.mainline_progression[0] != second_catalog.mainline_progression[0],
-		"Repeated H-3 builds must isolate nested mainline Resources.",
-	)
-	context.expect_true(
-		first_catalog.optional_progression[0] != second_catalog.optional_progression[0],
-		"Repeated H-3 builds must isolate nested optional Resources.",
+
+	var canonical_manifest: ContentManifestScript = _manifest_from_registry(first.registry())
+	var canonical_fingerprint: String = _fingerprint(canonical_manifest)
+	context.expect_equal(
+		canonical_fingerprint,
+		GlobalProgressionCatalogOracle.FROZEN_V3_FINGERPRINT,
+		"Calculated schema/content v3 fingerprint must match the independent oracle.",
 	)
 	context.expect_equal(
-		first.registry().mainline_progression_ids(),
-		second.registry().mainline_progression_ids(),
-		"Repeated H-3 builds must preserve mainline order.",
+		ContentContractFingerprintScript.EXPECTED_FINGERPRINT,
+		GlobalProgressionCatalogOracle.FROZEN_V3_FINGERPRINT,
+		"Production frozen fingerprint must independently match the oracle digest.",
 	)
 	context.expect_equal(
-		first.registry().optional_progression_ids(),
-		second.registry().optional_progression_ids(),
-		"Repeated H-3 builds must preserve optional order.",
+		canonical_fingerprint.length(),
+		64,
+		"Frozen v3 fingerprint must be a SHA-256 hex digest.",
+	)
+	context.expect_true(
+		ContentContractFingerprintScript.matches(
+			canonical_manifest.schema_version,
+			canonical_manifest.content_version,
+			canonical_manifest.blueprints,
+			canonical_manifest.recipes,
+			canonical_manifest.global_progression_catalog,
+		),
+		"Canonical schema/content v3 must match the frozen fingerprint.",
+	)
+
+	var reordered_manifest: ContentManifestScript = _manifest_from_registry(first.registry())
+	_reverse_all_declarations(reordered_manifest)
+	context.expect_equal(
+		_fingerprint(reordered_manifest),
+		canonical_fingerprint,
+		"Fingerprint v3 must ignore top-level and per-group declaration order.",
+	)
+
+	var reward_id_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
+	_find_reward(
+		reward_id_tamper.global_progression_catalog,
+		&"progression.reward.main.chapter.01.attack",
+	).reward_id = &"progression.reward.tampered"
+	context.expect_true(
+		_fingerprint(reward_id_tamper) != canonical_fingerprint,
+		"Fingerprint v3 must cover reward identity.",
+	)
+
+	var stat_kind_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
+	_find_reward(
+		stat_kind_tamper.global_progression_catalog,
+		&"progression.reward.main.chapter.01.attack",
+	).stat_kind = 3
+	context.expect_true(
+		_fingerprint(stat_kind_tamper) != canonical_fingerprint,
+		"Fingerprint v3 must detect a valid-but-wrong reward stat kind.",
+	)
+
+	var reward_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
+	_find_reward(
+		reward_tamper.global_progression_catalog,
+		&"progression.reward.main.chapter.01.attack",
+	).increase = 2
+	context.expect_true(
+		_fingerprint(reward_tamper) != canonical_fingerprint,
+		"Fingerprint v3 must cover reward stat semantics.",
+	)
+
+	var membership_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
+	var first_group: MainlineProgressionDefinitionScript = _find_mainline(
+		membership_tamper.global_progression_catalog,
+		&"progression.main.chapter.01",
+	)
+	var second_group: MainlineProgressionDefinitionScript = _find_mainline(
+		membership_tamper.global_progression_catalog,
+		&"progression.main.chapter.02",
+	)
+	_replace_reward_id(
+		first_group.reward_ids,
+		&"progression.reward.main.chapter.01.maximum_health",
+		&"progression.reward.main.chapter.02.maximum_health",
+	)
+	_replace_reward_id(
+		second_group.reward_ids,
+		&"progression.reward.main.chapter.02.maximum_health",
+		&"progression.reward.main.chapter.01.maximum_health",
 	)
 	context.expect_equal(
-		first.validation_report().signatures(),
-		second.validation_report().signatures(),
-		"Repeated H-3 validation must return identical reports.",
+		_aggregate_trace(membership_tamper.global_progression_catalog),
+		_aggregate_trace(canonical_manifest.global_progression_catalog),
+		"Fingerprint membership fixture must preserve aggregate totals.",
+	)
+	context.expect_true(
+		_fingerprint(membership_tamper) != canonical_fingerprint,
+		"Fingerprint v3 must detect equal-valued rewards exchanged across groups.",
+	)
+
+	var old_version_manifest: ContentManifestScript = _manifest_from_registry(first.registry())
+	old_version_manifest.schema_version = 2
+	old_version_manifest.content_version = 2
+	context.expect_true(
+		_fingerprint(old_version_manifest) != canonical_fingerprint,
+		"The old v2 header must not share the schema/content v3 fingerprint.",
+	)
+	context.expect_true(
+		not ContentContractFingerprintScript.matches(
+			old_version_manifest.schema_version,
+			old_version_manifest.content_version,
+			old_version_manifest.blueprints,
+			old_version_manifest.recipes,
+			old_version_manifest.global_progression_catalog,
+		),
+		"The old v2 header must not match the frozen v3 contract.",
 	)
 
 
@@ -1548,9 +2704,117 @@ func _canonical_result(
 	)
 	context.expect_true(
 		result.succeeded(),
-		"%s needs canonical H-3 input. %s" % [fixture_name, _diagnostics(result)],
+		"%s needs canonical input. %s" % [fixture_name, _diagnostics(result)],
 	)
 	return result
+
+
+func _find_reward(
+	catalog: GlobalProgressionCatalogScript,
+	reward_id: StringName,
+) -> PermanentGrowthRewardDefinitionScript:
+	for reward: PermanentGrowthRewardDefinitionScript in catalog.permanent_growth_rewards:
+		if reward != null and reward.reward_id == reward_id:
+			return reward
+	return null
+
+
+func _find_mainline(
+	catalog: GlobalProgressionCatalogScript,
+	content_id: StringName,
+) -> MainlineProgressionDefinitionScript:
+	for definition: MainlineProgressionDefinitionScript in catalog.mainline_progression:
+		if definition != null and definition.content_id == content_id:
+			return definition
+	return null
+
+
+func _find_optional(
+	catalog: GlobalProgressionCatalogScript,
+	content_id: StringName,
+) -> OptionalProgressionDefinitionScript:
+	for definition: OptionalProgressionDefinitionScript in catalog.optional_progression:
+		if definition != null and definition.content_id == content_id:
+			return definition
+	return null
+
+
+func _replace_reward_id(
+	reward_ids: Array[StringName],
+	old_id: StringName,
+	new_id: StringName,
+) -> void:
+	var index: int = reward_ids.find(old_id)
+	if index >= 0:
+		reward_ids[index] = new_id
+
+
+func _aggregate_trace(catalog: GlobalProgressionCatalogScript) -> Array[int]:
+	var rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
+	for reward: PermanentGrowthRewardDefinitionScript in catalog.permanent_growth_rewards:
+		if reward != null:
+			rewards_by_id[reward.reward_id] = reward
+	var values: Array[int] = _profile_values(catalog.initial_stats)
+	var trace: Array[int] = []
+	var mainline: Array[MainlineProgressionDefinitionScript] = []
+	for definition: MainlineProgressionDefinitionScript in catalog.mainline_progression:
+		mainline.append(definition)
+	mainline.sort_custom(_mainline_less_than)
+	for definition: MainlineProgressionDefinitionScript in mainline:
+		for reward_id: StringName in definition.reward_ids:
+			var reward: PermanentGrowthRewardDefinitionScript = rewards_by_id[reward_id]
+			values[reward.stat_kind - 1] += reward.increase
+		trace.append_array(values)
+	var optional: Array[OptionalProgressionDefinitionScript] = []
+	for definition: OptionalProgressionDefinitionScript in catalog.optional_progression:
+		optional.append(definition)
+	optional.sort_custom(_optional_less_than)
+	for definition: OptionalProgressionDefinitionScript in optional:
+		for reward_id: StringName in definition.reward_ids:
+			var reward: PermanentGrowthRewardDefinitionScript = rewards_by_id[reward_id]
+			values[reward.stat_kind - 1] += reward.increase
+	trace.append_array(values)
+	return trace
+
+
+func _reverse_all_declarations(manifest: ContentManifestScript) -> void:
+	manifest.blueprints.reverse()
+	manifest.recipes.reverse()
+	var catalog: GlobalProgressionCatalogScript = manifest.global_progression_catalog
+	catalog.mainline_progression.reverse()
+	catalog.optional_progression.reverse()
+	catalog.permanent_growth_rewards.reverse()
+	for definition: MainlineProgressionDefinitionScript in catalog.mainline_progression:
+		definition.reward_ids.reverse()
+	for definition: OptionalProgressionDefinitionScript in catalog.optional_progression:
+		definition.reward_ids.reverse()
+
+
+func _corrupt_for_ordering(catalog: GlobalProgressionCatalogScript) -> void:
+	catalog.catalog_id = &"progression.invalid"
+	catalog.initial_stats.attack = 99
+	_find_reward(
+		catalog,
+		&"progression.reward.main.chapter.01.attack",
+	).increase = 2
+	_find_mainline(
+		catalog,
+		&"progression.main.chapter.01",
+	).reward_ids.append(&"progression.reward.main.chapter.01.attack")
+	_find_optional(
+		catalog,
+		&"progression.optional.m01",
+	).optional_map_id = &"M99"
+
+
+func _fingerprint(manifest: ContentManifestScript) -> String:
+	return ContentContractFingerprintScript.calculate(
+		manifest.schema_version,
+		manifest.content_version,
+		manifest.blueprints,
+		manifest.recipes,
+		manifest.global_progression_catalog,
+	)
 
 
 func _expect_uninitialized_progression_query(
@@ -1564,28 +2828,24 @@ func _expect_uninitialized_progression_query(
 	context.expect_equal(
 		query.kind(),
 		expected_kind,
-		"%s must retain its requested result kind." % fixture_name,
+		"%s must retain its result kind." % fixture_name,
 	)
 	_expect_failed_query_payloads_null(context, query, fixture_name)
 	var issue: ContentValidationIssueScript = query.issue()
-	context.expect_true(issue != null, "%s must expose a structured issue." % fixture_name)
+	context.expect_true(issue != null, "%s must expose an issue." % fixture_name)
 	if issue == null:
 		return
 	context.expect_equal(
 		issue.code(),
 		ContentValidationIssueScript.LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED,
-		"%s must expose the uninitialized-registry code." % fixture_name,
+		"%s must use the progression uninitialized code." % fixture_name,
 	)
 	context.expect_equal(
 		issue.content_id(),
 		expected_subject,
-		"%s must retain its requested subject." % fixture_name,
+		"%s must retain the requested subject." % fixture_name,
 	)
-	context.expect_equal(
-		issue.field_path(),
-		"registry",
-		"%s must identify the registry path." % fixture_name,
-	)
+	context.expect_equal(issue.field_path(), "registry", "%s must name registry." % fixture_name)
 
 
 func _expect_failed_query_payloads_null(
@@ -1596,21 +2856,26 @@ func _expect_failed_query_payloads_null(
 	context.expect_equal(
 		query.player_stats(),
 		null,
-		"%s must not expose a player-stats payload." % fixture_name,
+		"%s must not expose player stats." % fixture_name,
 	)
 	context.expect_equal(
 		query.mainline_progression(),
 		null,
-		"%s must not expose a mainline payload." % fixture_name,
+		"%s must not expose mainline payload." % fixture_name,
 	)
 	context.expect_equal(
 		query.optional_progression(),
 		null,
-		"%s must not expose an optional payload." % fixture_name,
+		"%s must not expose optional payload." % fixture_name,
+	)
+	context.expect_equal(
+		query.permanent_growth_reward(),
+		null,
+		"%s must not expose reward payload." % fixture_name,
 	)
 
 
-func _tamper_progression_scalar(
+func _tamper_baseline_progression_scalar(
 	registry: ContentRegistryScript,
 	field_name: StringName,
 ) -> void:
@@ -1637,28 +2902,12 @@ func _tamper_progression_scalar(
 			mainline.content_id = &"progression.main.tampered"
 		&"mainline.chapter":
 			mainline.chapter = 99
-		&"mainline.maximum_health_increase":
-			mainline.maximum_health_increase = 999
-		&"mainline.attack_increase":
-			mainline.attack_increase = 999
-		&"mainline.defense_increase":
-			mainline.defense_increase = 999
-		&"mainline.speed_increase":
-			mainline.speed_increase = 999
 		&"optional.content_id":
 			optional.content_id = &"progression.optional.tampered"
 		&"optional.optional_map_id":
 			optional.optional_map_id = &"M99"
 		&"optional.available_after_chapter":
 			optional.available_after_chapter = 99
-		&"optional.maximum_health_increase":
-			optional.maximum_health_increase = 999
-		&"optional.attack_increase":
-			optional.attack_increase = 999
-		&"optional.defense_increase":
-			optional.defense_increase = 999
-		&"optional.speed_increase":
-			optional.speed_increase = 999
 
 
 func _expect_tampering_rejected(
@@ -1669,7 +2918,7 @@ func _expect_tampering_rejected(
 ) -> void:
 	context.expect_true(
 		not registry.is_initialized(),
-		"Tampered %s must invalidate the complete registry seal." % tampered_surface,
+		"Tampered %s must invalidate the registry seal." % tampered_surface,
 	)
 	context.expect_true(
 		not result.succeeded(),
@@ -1680,81 +2929,36 @@ func _expect_tampering_rejected(
 		null,
 		"Tampered %s must not remain publishable." % tampered_surface,
 	)
-	var progression_query: GlobalProgressionQueryResultScript = (
-		registry.initial_player_stats()
+	var reward_query: GlobalProgressionQueryResultScript = (
+		registry.lookup_permanent_growth_reward(
+			&"progression.reward.main.chapter.01.attack"
+		)
 	)
 	context.expect_true(
-		not progression_query.succeeded(),
-		"Tampered %s must fail closed for progression queries." % tampered_surface,
+		not reward_query.succeeded(),
+		"Tampered %s must fail closed for reward lookup." % tampered_surface,
 	)
 	_expect_failed_query_payloads_null(
 		context,
-		progression_query,
-		"Tampered %s progression query" % tampered_surface,
+		reward_query,
+		"Tampered %s reward lookup" % tampered_surface,
 	)
-	var progression_issue: ContentValidationIssueScript = progression_query.issue()
-	context.expect_true(
-		progression_issue != null,
-		"Tampered %s progression query must expose an issue." % tampered_surface,
+	context.expect_equal(
+		reward_query.issue().code(),
+		ContentValidationIssueScript.LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED,
+		"Tampered %s must report an uninitialized progression registry."
+		% tampered_surface,
 	)
-	if progression_issue != null:
-		context.expect_equal(
-			progression_issue.code(),
-			ContentValidationIssueScript.LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED,
-			"Tampered %s progression query must use the uninitialized code."
-			% tampered_surface,
-		)
-		context.expect_equal(
-			progression_issue.content_id(),
-			&"progression.player.loer",
-			"Tampered %s progression query must retain its subject."
-			% tampered_surface,
-		)
-		context.expect_equal(
-			progression_issue.field_path(),
-			"registry",
-			"Tampered %s progression query must identify the registry path."
-			% tampered_surface,
-		)
-
 	var blueprint_query = registry.lookup_blueprint(&"blueprint.01")
 	context.expect_true(
 		not blueprint_query.succeeded(),
-		"Tampered %s must fail closed for blueprint queries." % tampered_surface,
+		"Tampered %s must fail closed across registry domains." % tampered_surface,
 	)
 	context.expect_equal(
-		blueprint_query.blueprint(),
-		null,
-		"Tampered %s must not expose a blueprint payload." % tampered_surface,
+		blueprint_query.issue().code(),
+		ContentValidationIssueScript.LOOKUP_REGISTRY_UNINITIALIZED,
+		"Tampered %s must invalidate non-progression lookups too." % tampered_surface,
 	)
-	context.expect_equal(
-		blueprint_query.recipe(),
-		null,
-		"Tampered %s must not expose a recipe payload." % tampered_surface,
-	)
-	var blueprint_issue: ContentValidationIssueScript = blueprint_query.issue()
-	context.expect_true(
-		blueprint_issue != null,
-		"Tampered %s blueprint query must expose an issue." % tampered_surface,
-	)
-	if blueprint_issue != null:
-		context.expect_equal(
-			blueprint_issue.code(),
-			ContentValidationIssueScript.LOOKUP_REGISTRY_UNINITIALIZED,
-			"Tampered %s blueprint query must use the uninitialized code."
-			% tampered_surface,
-		)
-		context.expect_equal(
-			blueprint_issue.content_id(),
-			&"blueprint.01",
-			"Tampered %s blueprint query must retain its subject." % tampered_surface,
-		)
-		context.expect_equal(
-			blueprint_issue.field_path(),
-			"registry",
-			"Tampered %s blueprint query must identify the registry path."
-			% tampered_surface,
-		)
 
 
 func _expect_issue(
@@ -1767,14 +2971,7 @@ func _expect_issue(
 ) -> void:
 	context.expect_true(not result.succeeded(), "%s must fail validation." % fixture_name)
 	context.expect_equal(result.registry(), null, "%s must fail closed." % fixture_name)
-	_expect_issue_tuple(
-		context,
-		result,
-		code,
-		content_id,
-		field_path,
-		fixture_name,
-	)
+	_expect_issue_tuple(context, result, code, content_id, field_path, fixture_name)
 
 
 func _expect_issue_tuple(
@@ -1821,25 +3018,19 @@ func _issue_codes(result: ContentRegistryBuildResultScript) -> Array[StringName]
 	return codes
 
 
-func _issue_field_paths(
-	result: ContentRegistryBuildResultScript,
-	code: StringName,
-) -> Array[String]:
-	var paths: Array[String] = []
-	for issue: ContentValidationIssueScript in result.validation_report().issues():
-		if issue.code() == code:
-			paths.append(issue.field_path())
-	return paths
-
-
-func _diagnostics(result: ContentRegistryBuildResultScript) -> String:
-	return "validation_signatures=%s" % str(result.validation_report().signatures())
+func _expected_reward_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for row: GlobalProgressionCatalogOracle.RewardRow in (
+		GlobalProgressionCatalogOracle.reward_rows()
+	):
+		ids.append(row.reward_id)
+	return ids
 
 
 func _expected_mainline_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for row: GlobalProgressionCatalogOracle.MainlineRow in (
-		GlobalProgressionCatalogOracle.mainline_rows()
+	for row: GlobalProgressionCatalogOracle.GroupRow in (
+		GlobalProgressionCatalogOracle.mainline_group_rows()
 	):
 		ids.append(row.content_id)
 	return ids
@@ -1847,8 +3038,8 @@ func _expected_mainline_ids() -> Array[StringName]:
 
 func _expected_optional_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for row: GlobalProgressionCatalogOracle.OptionalRow in (
-		GlobalProgressionCatalogOracle.optional_rows()
+	for row: GlobalProgressionCatalogOracle.GroupRow in (
+		GlobalProgressionCatalogOracle.optional_group_rows()
 	):
 		ids.append(row.content_id)
 	return ids
@@ -1860,59 +3051,33 @@ func _profile_values(profile: PlayerStatProfileScript) -> Array[int]:
 	return [profile.maximum_health, profile.attack, profile.defense, profile.speed]
 
 
-func _mainline_delta(
-	definition: MainlineProgressionDefinitionScript,
-) -> Array[int]:
-	return [
-		definition.maximum_health_increase,
-		definition.attack_increase,
-		definition.defense_increase,
-		definition.speed_increase,
-	]
+func _resource_has_property(resource: Resource, property_name: StringName) -> bool:
+	for property: Dictionary in resource.get_property_list():
+		if StringName(property.get("name", &"")) == property_name:
+			return true
+	return false
 
 
-func _optional_delta(
-	definition: OptionalProgressionDefinitionScript,
-) -> Array[int]:
-	return [
-		definition.maximum_health_increase,
-		definition.attack_increase,
-		definition.defense_increase,
-		definition.speed_increase,
-	]
+func _copy_ids(source: Array[StringName]) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for value: StringName in source:
+		result.append(value)
+	return result
 
 
-func _increment_nonzero_counts(counts: Array[int], delta: Array[int]) -> void:
-	for index: int in range(delta.size()):
-		if delta[index] != 0:
-			counts[index] += 1
+func _diagnostics(result: ContentRegistryBuildResultScript) -> String:
+	return "validation_signatures=%s" % str(result.validation_report().signatures())
 
 
-func _mainline_totals(
-	definitions: Array[MainlineProgressionDefinitionScript],
-) -> Array[int]:
-	var totals: Array[int] = [0, 0, 0, 0]
-	for definition: MainlineProgressionDefinitionScript in definitions:
-		var delta: Array[int] = _mainline_delta(definition)
-		for index: int in range(delta.size()):
-			totals[index] += delta[index]
-	return totals
+func _mainline_less_than(
+	left: MainlineProgressionDefinitionScript,
+	right: MainlineProgressionDefinitionScript,
+) -> bool:
+	return String(left.content_id) < String(right.content_id)
 
 
-func _optional_totals(
-	definitions: Array[OptionalProgressionDefinitionScript],
-) -> Array[int]:
-	var totals: Array[int] = [0, 0, 0, 0]
-	for definition: OptionalProgressionDefinitionScript in definitions:
-		var delta: Array[int] = _optional_delta(definition)
-		for index: int in range(delta.size()):
-			totals[index] += delta[index]
-	return totals
-
-
-func _corrupt_for_ordering(catalog: GlobalProgressionCatalogScript) -> void:
-	catalog.catalog_id = &"progression.invalid"
-	catalog.initial_stats.attack = 99
-	catalog.mainline_progression[0].chapter = 9
-	catalog.optional_progression[0].optional_map_id = &"M04"
-	catalog.optional_progression[0].speed_increase = 1
+func _optional_less_than(
+	left: OptionalProgressionDefinitionScript,
+	right: OptionalProgressionDefinitionScript,
+) -> bool:
+	return String(left.content_id) < String(right.content_id)

@@ -11,8 +11,8 @@ const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
 
-@export var schema_version: int = 2
-@export var content_version: int = 2
+@export var schema_version: int = 3
+@export var content_version: int = 3
 @export var blueprints: Array[BlueprintDefinitionScript] = []
 @export var recipes: Array[RecipeDefinitionScript] = []
 @export var global_progression_catalog: GlobalProgressionCatalogScript

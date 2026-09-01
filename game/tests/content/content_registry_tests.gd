@@ -130,8 +130,8 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 		registry.is_initialized(),
 		"A successful build must publish an initialized registry.",
 	)
-	context.expect_equal(registry.schema_version(), 2, "Schema version must be frozen at two.")
-	context.expect_equal(registry.content_version(), 2, "Content version must be frozen at two.")
+	context.expect_equal(registry.schema_version(), 3, "Schema version must be frozen at three.")
+	context.expect_equal(registry.content_version(), 3, "Content version must be frozen at three.")
 	context.expect_equal(registry.blueprint_count(), 24, "The registry must contain 24 blueprints.")
 	context.expect_equal(registry.recipe_count(), 24, "The registry must contain 24 recipes.")
 	context.expect_equal(registry.material_count(), 3, "The registry must expose three materials.")
@@ -609,8 +609,8 @@ func _rejects_malformed_manifest_atomically(
 	if not canonical.succeeded():
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
-	manifest.schema_version = 3
-	manifest.content_version = 3
+	manifest.schema_version = 2
+	manifest.content_version = 2
 	manifest.blueprints[0].content_id = manifest.blueprints[1].content_id
 	manifest.blueprints[0].category = 99
 	manifest.blueprints[0].unlock_chapter = 0
@@ -1252,7 +1252,7 @@ func _isolates_query_results(context: HeadlessTestContextScript) -> void:
 	)
 
 	var invalid_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	invalid_manifest.schema_version = 3
+	invalid_manifest.schema_version = 2
 	var invalid_result: ContentRegistryBuildResultScript = (
 		ContentRegistryBuilderScript.build(invalid_manifest)
 	)

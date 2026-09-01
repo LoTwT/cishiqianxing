@@ -10,6 +10,9 @@ const MainlineProgressionDefinitionScript := preload(
 const OptionalProgressionDefinitionScript := preload(
 	"res://src/content/definitions/optional_progression_definition_resource.gd"
 )
+const PermanentGrowthRewardDefinitionScript := preload(
+	"res://src/content/definitions/permanent_growth_reward_definition_resource.gd"
+)
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
@@ -18,12 +21,14 @@ enum Kind {
 	PLAYER_STATS = 1,
 	MAINLINE_PROGRESSION = 2,
 	OPTIONAL_PROGRESSION = 3,
+	PERMANENT_GROWTH_REWARD = 4,
 }
 
 var _kind: int
 var _player_stats: PlayerStatProfileScript
 var _mainline_progression: MainlineProgressionDefinitionScript
 var _optional_progression: OptionalProgressionDefinitionScript
+var _permanent_growth_reward: PermanentGrowthRewardDefinitionScript
 var _issue: ContentValidationIssueScript
 
 
@@ -32,6 +37,7 @@ func _init(
 	player_stats: PlayerStatProfileScript,
 	mainline_progression: MainlineProgressionDefinitionScript,
 	optional_progression: OptionalProgressionDefinitionScript,
+	permanent_growth_reward: PermanentGrowthRewardDefinitionScript,
 	issue: ContentValidationIssueScript,
 ) -> void:
 	_kind = kind
@@ -45,6 +51,10 @@ func _init(
 		_optional_progression = OptionalProgressionDefinitionScript.snapshot(
 			optional_progression
 		)
+	if permanent_growth_reward != null:
+		_permanent_growth_reward = PermanentGrowthRewardDefinitionScript.snapshot(
+			permanent_growth_reward
+		)
 	if issue != null:
 		_issue = issue.snapshot()
 
@@ -55,6 +65,7 @@ static func found_player_stats(
 	return GlobalProgressionQueryResult.new(
 		Kind.PLAYER_STATS,
 		profile,
+		null,
 		null,
 		null,
 		null,
@@ -70,6 +81,7 @@ static func found_mainline_progression(
 		definition,
 		null,
 		null,
+		null,
 	)
 
 
@@ -82,6 +94,20 @@ static func found_optional_progression(
 		null,
 		definition,
 		null,
+		null,
+	)
+
+
+static func found_permanent_growth_reward(
+	definition: PermanentGrowthRewardDefinitionScript,
+) -> GlobalProgressionQueryResult:
+	return GlobalProgressionQueryResult.new(
+		Kind.PERMANENT_GROWTH_REWARD,
+		null,
+		null,
+		null,
+		definition,
+		null,
 	)
 
 
@@ -89,7 +115,7 @@ static func failed(
 	kind: int,
 	issue: ContentValidationIssueScript,
 ) -> GlobalProgressionQueryResult:
-	return GlobalProgressionQueryResult.new(kind, null, null, null, issue)
+	return GlobalProgressionQueryResult.new(kind, null, null, null, null, issue)
 
 
 func succeeded() -> bool:
@@ -116,6 +142,12 @@ func optional_progression() -> OptionalProgressionDefinitionScript:
 	if _optional_progression == null:
 		return null
 	return OptionalProgressionDefinitionScript.snapshot(_optional_progression)
+
+
+func permanent_growth_reward() -> PermanentGrowthRewardDefinitionScript:
+	if _permanent_growth_reward == null:
+		return null
+	return PermanentGrowthRewardDefinitionScript.snapshot(_permanent_growth_reward)
 
 
 func issue() -> ContentValidationIssueScript:

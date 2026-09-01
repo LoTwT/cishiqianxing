@@ -16,12 +16,15 @@ const MainlineProgressionDefinitionScript := preload(
 const OptionalProgressionDefinitionScript := preload(
 	"res://src/content/definitions/optional_progression_definition_resource.gd"
 )
+const PermanentGrowthRewardDefinitionScript := preload(
+	"res://src/content/definitions/permanent_growth_reward_definition_resource.gd"
+)
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
 
 const EXPECTED_FINGERPRINT: String = (
-	"7fd9ffc1a99216dce18b21a4f756d2627feef84792291d62ff3e3e5558c61b56"
+	"e213f5a2f75fb3744c68c3046422df2ead4891dfd1b470f452f0c9facd210adc"
 )
 
 
@@ -96,17 +99,30 @@ static func calculate(
 		):
 			return ""
 		ordered_optional.append(definition)
+	var ordered_rewards: Array[PermanentGrowthRewardDefinitionScript] = []
+	for reward: PermanentGrowthRewardDefinitionScript in (
+		progression_catalog.permanent_growth_rewards
+	):
+		var reward_resource: Resource = reward as Resource
+		if (
+			reward_resource == null
+			or reward_resource.get_script() != PermanentGrowthRewardDefinitionScript
+		):
+			return ""
+		ordered_rewards.append(reward)
 	ordered_blueprints.sort_custom(_blueprint_less_than)
 	ordered_recipes.sort_custom(_recipe_less_than)
 	ordered_mainline.sort_custom(_mainline_less_than)
 	ordered_optional.sort_custom(_optional_less_than)
+	ordered_rewards.sort_custom(_reward_less_than)
 
-	var payload: String = "contract:v2;s%d;c%d;b%d;r%d;g%s;m%d;o%d;" % [
+	var payload: String = "contract:v3;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;" % [
 		schema_version,
 		content_version,
 		ordered_blueprints.size(),
 		ordered_recipes.size(),
 		_encode_string(String(progression_catalog.catalog_id)),
+		ordered_rewards.size(),
 		ordered_mainline.size(),
 		ordered_optional.size(),
 	]
@@ -140,30 +156,48 @@ static func calculate(
 		initial_stats.defense,
 		initial_stats.speed,
 	]
+	for reward: PermanentGrowthRewardDefinitionScript in ordered_rewards:
+		payload += "A%s;i%d;i%d;" % [
+			_encode_string(String(reward.reward_id)),
+			reward.stat_kind,
+			reward.increase,
+		]
 	for definition: MainlineProgressionDefinitionScript in ordered_mainline:
-		payload += "M%s;i%d;i%d;i%d;i%d;i%d;" % [
+		var ordered_reward_ids: Array[StringName] = _ordered_reward_ids(
+			definition.reward_ids
+		)
+		payload += "M%s;i%d;a%d;" % [
 			_encode_string(String(definition.content_id)),
 			definition.chapter,
-			definition.maximum_health_increase,
-			definition.attack_increase,
-			definition.defense_increase,
-			definition.speed_increase,
+			ordered_reward_ids.size(),
 		]
+		for reward_id: StringName in ordered_reward_ids:
+			payload += "a%s;" % _encode_string(String(reward_id))
 	for definition: OptionalProgressionDefinitionScript in ordered_optional:
-		payload += "O%s;%s;i%d;i%d;i%d;i%d;i%d;" % [
+		var ordered_reward_ids: Array[StringName] = _ordered_reward_ids(
+			definition.reward_ids
+		)
+		payload += "O%s;%s;i%d;a%d;" % [
 			_encode_string(String(definition.content_id)),
 			_encode_string(String(definition.optional_map_id)),
 			definition.available_after_chapter,
-			definition.maximum_health_increase,
-			definition.attack_increase,
-			definition.defense_increase,
-			definition.speed_increase,
+			ordered_reward_ids.size(),
 		]
+		for reward_id: StringName in ordered_reward_ids:
+			payload += "a%s;" % _encode_string(String(reward_id))
 	return payload.sha256_text()
 
 
 static func _encode_string(value: String) -> String:
 	return "%d:%s" % [value.to_utf8_buffer().size(), value]
+
+
+static func _ordered_reward_ids(reward_ids: Array[StringName]) -> Array[StringName]:
+	var ordered_reward_ids: Array[StringName] = []
+	for reward_id: StringName in reward_ids:
+		ordered_reward_ids.append(reward_id)
+	ordered_reward_ids.sort_custom(_string_name_less_than)
+	return ordered_reward_ids
 
 
 static func _blueprint_less_than(
@@ -192,3 +226,20 @@ static func _optional_less_than(
 	right: OptionalProgressionDefinitionScript,
 ) -> bool:
 	return String(left.content_id) < String(right.content_id)
+
+
+static func _reward_less_than(
+	left: PermanentGrowthRewardDefinitionScript,
+	right: PermanentGrowthRewardDefinitionScript,
+) -> bool:
+	var left_id := String(left.reward_id)
+	var right_id := String(right.reward_id)
+	if left_id != right_id:
+		return left_id < right_id
+	if left.stat_kind != right.stat_kind:
+		return left.stat_kind < right.stat_kind
+	return left.increase < right.increase
+
+
+static func _string_name_less_than(left: StringName, right: StringName) -> bool:
+	return String(left) < String(right)
