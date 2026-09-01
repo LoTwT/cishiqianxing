@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BlueprintDefinitionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/blueprint_definition_resource.gd" id="1_blueprint_definition"]
+
+[resource]
+script = ExtResource("1_blueprint_definition")
+content_id = &"blueprint.10"
+ordinal = 10
+category = 2
+tier = 1
+unlock_chapter = 2
+default_lifecycle = 1
+standard_recipe_id = &"recipe.standard.10"
+mechanic_id = &"mechanic.blueprint.signal_conduit"
+display_name_text_id = &"blueprint.10.display_name"
+function_text_id = &"blueprint.10.function"

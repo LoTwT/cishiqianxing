@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BlueprintDefinitionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/blueprint_definition_resource.gd" id="1_blueprint_definition"]
+
+[resource]
+script = ExtResource("1_blueprint_definition")
+content_id = &"blueprint.18"
+ordinal = 18
+category = 3
+tier = 2
+unlock_chapter = 7
+default_lifecycle = 2
+standard_recipe_id = &"recipe.standard.18"
+mechanic_id = &"mechanic.blueprint.restore_health_and_repair"
+display_name_text_id = &"blueprint.18.display_name"
+function_text_id = &"blueprint.18.function"
