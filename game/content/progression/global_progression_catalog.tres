@@ -1,0 +1,142 @@
+[gd_resource type="Resource" script_class="GlobalProgressionCatalogResource" load_steps=19 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/global_progression_catalog_resource.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://src/content/definitions/player_stat_profile_resource.gd" id="2_profile"]
+[ext_resource type="Script" path="res://src/content/definitions/mainline_progression_definition_resource.gd" id="3_mainline"]
+[ext_resource type="Script" path="res://src/content/definitions/optional_progression_definition_resource.gd" id="4_optional"]
+
+[sub_resource type="Resource" id="PlayerStatProfile_initial"]
+script = ExtResource("2_profile")
+profile_id = &"progression.player.loer"
+maximum_health = 100
+attack = 10
+defense = 5
+speed = 10
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_01"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.01"
+chapter = 1
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 0
+speed_increase = 0
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_02"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.02"
+chapter = 2
+maximum_health_increase = 10
+attack_increase = 0
+defense_increase = 1
+speed_increase = 0
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_03"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.03"
+chapter = 3
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 1
+speed_increase = 0
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_04"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.04"
+chapter = 4
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 1
+speed_increase = 1
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_05"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.05"
+chapter = 5
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 1
+speed_increase = 0
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_06"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.06"
+chapter = 6
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 0
+speed_increase = 1
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_07"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.07"
+chapter = 7
+maximum_health_increase = 10
+attack_increase = 0
+defense_increase = 1
+speed_increase = 1
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_08"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.08"
+chapter = 8
+maximum_health_increase = 10
+attack_increase = 1
+defense_increase = 1
+speed_increase = 0
+
+[sub_resource type="Resource" id="MainlineProgression_chapter_09"]
+script = ExtResource("3_mainline")
+content_id = &"progression.main.chapter.09"
+chapter = 9
+maximum_health_increase = 0
+attack_increase = 0
+defense_increase = 0
+speed_increase = 1
+
+[sub_resource type="Resource" id="OptionalProgression_m01"]
+script = ExtResource("4_optional")
+content_id = &"progression.optional.m01"
+optional_map_id = &"M01"
+available_after_chapter = 2
+maximum_health_increase = 10
+attack_increase = 0
+defense_increase = 0
+speed_increase = 0
+
+[sub_resource type="Resource" id="OptionalProgression_m02"]
+script = ExtResource("4_optional")
+content_id = &"progression.optional.m02"
+optional_map_id = &"M02"
+available_after_chapter = 4
+maximum_health_increase = 0
+attack_increase = 1
+defense_increase = 0
+speed_increase = 0
+
+[sub_resource type="Resource" id="OptionalProgression_m03"]
+script = ExtResource("4_optional")
+content_id = &"progression.optional.m03"
+optional_map_id = &"M03"
+available_after_chapter = 6
+maximum_health_increase = 10
+attack_increase = 0
+defense_increase = 1
+speed_increase = 0
+
+[sub_resource type="Resource" id="OptionalProgression_m04"]
+script = ExtResource("4_optional")
+content_id = &"progression.optional.m04"
+optional_map_id = &"M04"
+available_after_chapter = 8
+maximum_health_increase = 0
+attack_increase = 1
+defense_increase = 1
+speed_increase = 0
+
+[resource]
+script = ExtResource("1_catalog")
+catalog_id = &"progression.global"
+initial_stats = SubResource("PlayerStatProfile_initial")
+mainline_progression = Array[MainlineProgressionDefinitionResource]([SubResource("MainlineProgression_chapter_01"), SubResource("MainlineProgression_chapter_02"), SubResource("MainlineProgression_chapter_03"), SubResource("MainlineProgression_chapter_04"), SubResource("MainlineProgression_chapter_05"), SubResource("MainlineProgression_chapter_06"), SubResource("MainlineProgression_chapter_07"), SubResource("MainlineProgression_chapter_08"), SubResource("MainlineProgression_chapter_09")])
+optional_progression = Array[OptionalProgressionDefinitionResource]([SubResource("OptionalProgression_m01"), SubResource("OptionalProgression_m02"), SubResource("OptionalProgression_m03"), SubResource("OptionalProgression_m04")])

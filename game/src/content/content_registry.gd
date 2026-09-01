@@ -7,7 +7,22 @@ const BlueprintDefinitionScript := preload(
 const RecipeDefinitionScript := preload(
 	"res://src/content/definitions/recipe_definition_resource.gd"
 )
+const PlayerStatProfileScript := preload(
+	"res://src/content/definitions/player_stat_profile_resource.gd"
+)
+const MainlineProgressionDefinitionScript := preload(
+	"res://src/content/definitions/mainline_progression_definition_resource.gd"
+)
+const OptionalProgressionDefinitionScript := preload(
+	"res://src/content/definitions/optional_progression_definition_resource.gd"
+)
+const GlobalProgressionCatalogScript := preload(
+	"res://src/content/definitions/global_progression_catalog_resource.gd"
+)
 const ContentLookupResultScript := preload("res://src/content/content_lookup_result.gd")
+const GlobalProgressionQueryResultScript := preload(
+	"res://src/content/global_progression_query_result.gd"
+)
 const ContentContractFingerprintScript := preload(
 	"res://src/content/content_contract_fingerprint.gd"
 )
@@ -22,6 +37,12 @@ var _blueprint_ids: Array[StringName] = []
 var _recipe_ids: Array[StringName] = []
 var _blueprints_by_id: Dictionary[StringName, BlueprintDefinitionScript] = {}
 var _recipes_by_id: Dictionary[StringName, RecipeDefinitionScript] = {}
+var _progression_catalog_id: StringName = &""
+var _initial_player_stats: PlayerStatProfileScript
+var _mainline_progression_ids: Array[StringName] = []
+var _optional_progression_ids: Array[StringName] = []
+var _mainline_progression_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
+var _optional_progression_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
 
 
 func _init() -> void:
@@ -33,6 +54,7 @@ func _initialize_validated(
 	content_version: int,
 	blueprints: Array[BlueprintDefinitionScript],
 	recipes: Array[RecipeDefinitionScript],
+	progression_catalog: GlobalProgressionCatalogScript,
 ) -> void:
 	if is_initialized():
 		return
@@ -41,6 +63,7 @@ func _initialize_validated(
 		content_version,
 		blueprints,
 		recipes,
+		progression_catalog,
 	):
 		return
 	var stored_material_ids: Array[StringName] = (
@@ -50,6 +73,10 @@ func _initialize_validated(
 	var stored_recipe_ids: Array[StringName] = []
 	var stored_blueprints_by_id: Dictionary[StringName, BlueprintDefinitionScript] = {}
 	var stored_recipes_by_id: Dictionary[StringName, RecipeDefinitionScript] = {}
+	var stored_mainline_ids: Array[StringName] = []
+	var stored_optional_ids: Array[StringName] = []
+	var stored_mainline_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
+	var stored_optional_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		var stored_blueprint: BlueprintDefinitionScript = (
 			BlueprintDefinitionScript.snapshot(blueprint)
@@ -60,14 +87,36 @@ func _initialize_validated(
 		var stored_recipe: RecipeDefinitionScript = RecipeDefinitionScript.snapshot(recipe)
 		stored_recipe_ids.append(stored_recipe.recipe_id)
 		stored_recipes_by_id[stored_recipe.recipe_id] = stored_recipe
+	for definition: MainlineProgressionDefinitionScript in (
+		progression_catalog.mainline_progression
+	):
+		var stored_definition: MainlineProgressionDefinitionScript = (
+			MainlineProgressionDefinitionScript.snapshot(definition)
+		)
+		stored_mainline_ids.append(stored_definition.content_id)
+		stored_mainline_by_id[stored_definition.content_id] = stored_definition
+	for definition: OptionalProgressionDefinitionScript in (
+		progression_catalog.optional_progression
+	):
+		var stored_definition: OptionalProgressionDefinitionScript = (
+			OptionalProgressionDefinitionScript.snapshot(definition)
+		)
+		stored_optional_ids.append(stored_definition.content_id)
+		stored_optional_by_id[stored_definition.content_id] = stored_definition
 	stored_blueprint_ids.sort_custom(_content_id_less_than)
 	stored_recipe_ids.sort_custom(_content_id_less_than)
+	stored_mainline_ids.sort_custom(_content_id_less_than)
+	stored_optional_ids.sort_custom(_content_id_less_than)
 	stored_material_ids.sort_custom(_content_id_less_than)
 	stored_material_ids.make_read_only()
 	stored_blueprint_ids.make_read_only()
 	stored_recipe_ids.make_read_only()
+	stored_mainline_ids.make_read_only()
+	stored_optional_ids.make_read_only()
 	stored_blueprints_by_id.make_read_only()
 	stored_recipes_by_id.make_read_only()
+	stored_mainline_by_id.make_read_only()
+	stored_optional_by_id.make_read_only()
 	_schema_version = schema_version
 	_content_version = content_version
 	_material_ids = stored_material_ids
@@ -75,6 +124,14 @@ func _initialize_validated(
 	_recipe_ids = stored_recipe_ids
 	_blueprints_by_id = stored_blueprints_by_id
 	_recipes_by_id = stored_recipes_by_id
+	_progression_catalog_id = progression_catalog.catalog_id
+	_initial_player_stats = PlayerStatProfileScript.snapshot(
+		progression_catalog.initial_stats
+	)
+	_mainline_progression_ids = stored_mainline_ids
+	_optional_progression_ids = stored_optional_ids
+	_mainline_progression_by_id = stored_mainline_by_id
+	_optional_progression_by_id = stored_optional_by_id
 
 
 func is_initialized() -> bool:
@@ -141,6 +198,178 @@ func recipes() -> Array[RecipeDefinitionScript]:
 	return result
 
 
+func global_progression_catalog() -> GlobalProgressionCatalogScript:
+	if not is_initialized():
+		return null
+	var result := GlobalProgressionCatalogScript.new()
+	result.catalog_id = _progression_catalog_id
+	result.initial_stats = PlayerStatProfileScript.snapshot(_initial_player_stats)
+	for content_id: StringName in _mainline_progression_ids:
+		result.mainline_progression.append(
+			MainlineProgressionDefinitionScript.snapshot(
+				_mainline_progression_by_id[content_id]
+			)
+		)
+	for content_id: StringName in _optional_progression_ids:
+		result.optional_progression.append(
+			OptionalProgressionDefinitionScript.snapshot(
+				_optional_progression_by_id[content_id]
+			)
+		)
+	return result
+
+
+func initial_player_stats() -> GlobalProgressionQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
+			&"progression.player.loer",
+		)
+	return GlobalProgressionQueryResultScript.found_player_stats(
+		_initial_player_stats
+	)
+
+
+func mainline_progression_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_mainline_progression_ids)
+
+
+func optional_progression_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_optional_progression_ids)
+
+
+func mainline_progression_definitions() -> Array[MainlineProgressionDefinitionScript]:
+	var result: Array[MainlineProgressionDefinitionScript] = []
+	if not is_initialized():
+		return result
+	for content_id: StringName in _mainline_progression_ids:
+		result.append(
+			MainlineProgressionDefinitionScript.snapshot(
+				_mainline_progression_by_id[content_id]
+			)
+		)
+	return result
+
+
+func optional_progression_definitions() -> Array[OptionalProgressionDefinitionScript]:
+	var result: Array[OptionalProgressionDefinitionScript] = []
+	if not is_initialized():
+		return result
+	for content_id: StringName in _optional_progression_ids:
+		result.append(
+			OptionalProgressionDefinitionScript.snapshot(
+				_optional_progression_by_id[content_id]
+			)
+		)
+	return result
+
+
+func lookup_mainline_progression(
+	content_id: StringName,
+) -> GlobalProgressionQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.MAINLINE_PROGRESSION,
+			content_id,
+		)
+	if not _mainline_progression_by_id.has(content_id):
+		return GlobalProgressionQueryResultScript.failed(
+			GlobalProgressionQueryResultScript.Kind.MAINLINE_PROGRESSION,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_MAINLINE_PROGRESSION_ID,
+				content_id,
+				"content_id",
+				"No mainline progression is registered for ID '%s'."
+				% String(content_id),
+			),
+		)
+	return GlobalProgressionQueryResultScript.found_mainline_progression(
+		_mainline_progression_by_id[content_id]
+	)
+
+
+func lookup_optional_progression(
+	content_id: StringName,
+) -> GlobalProgressionQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.OPTIONAL_PROGRESSION,
+			content_id,
+		)
+	if not _optional_progression_by_id.has(content_id):
+		return GlobalProgressionQueryResultScript.failed(
+			GlobalProgressionQueryResultScript.Kind.OPTIONAL_PROGRESSION,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_OPTIONAL_PROGRESSION_ID,
+				content_id,
+				"content_id",
+				"No optional progression is registered for ID '%s'."
+				% String(content_id),
+			),
+		)
+	return GlobalProgressionQueryResultScript.found_optional_progression(
+		_optional_progression_by_id[content_id]
+	)
+
+
+func mainline_stats_after_chapter(
+	chapter: int,
+) -> GlobalProgressionQueryResultScript:
+	var requested_chapter_id := StringName(str(chapter))
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
+			requested_chapter_id,
+		)
+	if chapter < 1 or chapter > 9:
+		return GlobalProgressionQueryResultScript.failed(
+			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_PROGRESSION_CHAPTER_INVALID,
+				requested_chapter_id,
+				"chapter",
+				"Mainline chapter query must be between 1 and 9; got %d."
+				% chapter,
+			),
+		)
+	var result_stats: PlayerStatProfileScript = (
+		PlayerStatProfileScript.snapshot(_initial_player_stats)
+	)
+	for content_id: StringName in _mainline_progression_ids:
+		var definition: MainlineProgressionDefinitionScript = (
+			_mainline_progression_by_id[content_id]
+		)
+		if definition.chapter <= chapter:
+			_apply_mainline_delta(result_stats, definition)
+	return GlobalProgressionQueryResultScript.found_player_stats(result_stats)
+
+
+func full_completion_player_stats() -> GlobalProgressionQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_progression_query(
+			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
+			&"progression.player.loer",
+		)
+	var result_stats: PlayerStatProfileScript = (
+		PlayerStatProfileScript.snapshot(_initial_player_stats)
+	)
+	for content_id: StringName in _mainline_progression_ids:
+		_apply_mainline_delta(
+			result_stats,
+			_mainline_progression_by_id[content_id],
+		)
+	for content_id: StringName in _optional_progression_ids:
+		_apply_optional_delta(
+			result_stats,
+			_optional_progression_by_id[content_id],
+		)
+	return GlobalProgressionQueryResultScript.found_player_stats(result_stats)
+
+
 func lookup_blueprint(content_id: StringName) -> ContentLookupResultScript:
 	if not is_initialized():
 		return _uninitialized_lookup(ContentLookupResultScript.Kind.BLUEPRINT, content_id)
@@ -185,6 +414,21 @@ func _uninitialized_lookup(kind: int, requested_id: StringName) -> ContentLookup
 	)
 
 
+func _uninitialized_progression_query(
+	kind: int,
+	requested_id: StringName,
+) -> GlobalProgressionQueryResultScript:
+	return GlobalProgressionQueryResultScript.failed(
+		kind,
+		ContentValidationIssueScript.new(
+			ContentValidationIssueScript.LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED,
+			requested_id,
+			"registry",
+			"Content registry has not passed complete progression validation.",
+		),
+	)
+
+
 func _has_valid_contract() -> bool:
 	var expected_material_ids: Array[StringName] = (
 		RecipeDefinitionScript.allowed_material_ids()
@@ -195,13 +439,28 @@ func _has_valid_contract() -> bool:
 	if (
 		_blueprint_ids.size() != _blueprints_by_id.size()
 		or _recipe_ids.size() != _recipes_by_id.size()
+		or _mainline_progression_ids.size() != _mainline_progression_by_id.size()
+		or _optional_progression_ids.size() != _optional_progression_by_id.size()
 	):
 		return false
 	var ordered_blueprint_ids: Array[StringName] = _copy_ids(_blueprint_ids)
 	var ordered_recipe_ids: Array[StringName] = _copy_ids(_recipe_ids)
+	var ordered_mainline_ids: Array[StringName] = _copy_ids(
+		_mainline_progression_ids
+	)
+	var ordered_optional_ids: Array[StringName] = _copy_ids(
+		_optional_progression_ids
+	)
 	ordered_blueprint_ids.sort_custom(_content_id_less_than)
 	ordered_recipe_ids.sort_custom(_content_id_less_than)
-	if _blueprint_ids != ordered_blueprint_ids or _recipe_ids != ordered_recipe_ids:
+	ordered_mainline_ids.sort_custom(_content_id_less_than)
+	ordered_optional_ids.sort_custom(_content_id_less_than)
+	if (
+		_blueprint_ids != ordered_blueprint_ids
+		or _recipe_ids != ordered_recipe_ids
+		or _mainline_progression_ids != ordered_mainline_ids
+		or _optional_progression_ids != ordered_optional_ids
+	):
 		return false
 	var blueprints: Array[BlueprintDefinitionScript] = []
 	for content_id: StringName in _blueprint_ids:
@@ -233,12 +492,82 @@ func _has_valid_contract() -> bool:
 		if recipe.recipe_id != recipe_id:
 			return false
 		recipes.append(recipe)
+	var profile_resource: Resource = _initial_player_stats as Resource
+	if (
+		profile_resource == null
+		or profile_resource.get_script() != PlayerStatProfileScript
+	):
+		return false
+	var mainline_progression: Array[MainlineProgressionDefinitionScript] = []
+	for content_id: StringName in _mainline_progression_ids:
+		if not _mainline_progression_by_id.has(content_id):
+			return false
+		var definition_resource: Resource = (
+			_mainline_progression_by_id[content_id] as Resource
+		)
+		if (
+			definition_resource == null
+			or definition_resource.get_script() != MainlineProgressionDefinitionScript
+		):
+			return false
+		var definition: MainlineProgressionDefinitionScript = (
+			definition_resource as MainlineProgressionDefinitionScript
+		)
+		if definition.content_id != content_id:
+			return false
+		mainline_progression.append(definition)
+	var optional_progression: Array[OptionalProgressionDefinitionScript] = []
+	for content_id: StringName in _optional_progression_ids:
+		if not _optional_progression_by_id.has(content_id):
+			return false
+		var definition_resource: Resource = (
+			_optional_progression_by_id[content_id] as Resource
+		)
+		if (
+			definition_resource == null
+			or definition_resource.get_script() != OptionalProgressionDefinitionScript
+		):
+			return false
+		var definition: OptionalProgressionDefinitionScript = (
+			definition_resource as OptionalProgressionDefinitionScript
+		)
+		if definition.content_id != content_id:
+			return false
+		optional_progression.append(definition)
+	var progression_catalog := GlobalProgressionCatalogScript.new()
+	progression_catalog.catalog_id = _progression_catalog_id
+	progression_catalog.initial_stats = _initial_player_stats
+	for definition: MainlineProgressionDefinitionScript in mainline_progression:
+		progression_catalog.mainline_progression.append(definition)
+	for definition: OptionalProgressionDefinitionScript in optional_progression:
+		progression_catalog.optional_progression.append(definition)
 	return ContentContractFingerprintScript.matches(
 		_schema_version,
 		_content_version,
 		blueprints,
 		recipes,
+		progression_catalog,
 	)
+
+
+static func _apply_mainline_delta(
+	stats: PlayerStatProfileScript,
+	definition: MainlineProgressionDefinitionScript,
+) -> void:
+	stats.maximum_health += definition.maximum_health_increase
+	stats.attack += definition.attack_increase
+	stats.defense += definition.defense_increase
+	stats.speed += definition.speed_increase
+
+
+static func _apply_optional_delta(
+	stats: PlayerStatProfileScript,
+	definition: OptionalProgressionDefinitionScript,
+) -> void:
+	stats.maximum_health += definition.maximum_health_increase
+	stats.attack += definition.attack_increase
+	stats.defense += definition.defense_increase
+	stats.speed += definition.speed_increase
 
 
 static func _copy_ids(source: Array[StringName]) -> Array[StringName]:

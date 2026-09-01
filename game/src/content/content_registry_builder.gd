@@ -20,10 +20,16 @@ const ContentValidationIssueScript := preload(
 const ContentValidationReportScript := preload(
 	"res://src/content/content_validation_report.gd"
 )
+const GlobalProgressionCatalogScript := preload(
+	"res://src/content/definitions/global_progression_catalog_resource.gd"
+)
+const GlobalProgressionValidatorScript := preload(
+	"res://src/content/global_progression_validator.gd"
+)
 
 const CANONICAL_MANIFEST_PATH: String = "res://content/content_manifest.tres"
-const SUPPORTED_SCHEMA_VERSION: int = 1
-const SUPPORTED_CONTENT_VERSION: int = 1
+const SUPPORTED_SCHEMA_VERSION: int = 2
+const SUPPORTED_CONTENT_VERSION: int = 2
 const EXPECTED_DEFINITION_COUNT: int = 24
 const ADVANCED_ORDINALS: Array[int] = [6, 7, 13, 14, 18, 19, 23, 24]
 const EXPECTED_CATEGORIES: Array[int] = [
@@ -170,6 +176,12 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		raw_recipes,
 		issues,
 	)
+	var progression_catalog: GlobalProgressionCatalogScript = (
+		GlobalProgressionValidatorScript.snapshot_and_validate(
+			exact_manifest.global_progression_catalog as Resource,
+			issues,
+		)
+	)
 	_validate_blueprints(blueprints, issues)
 	_validate_recipes(recipes, blueprints, issues)
 	if not issues.is_empty():
@@ -182,6 +194,7 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		content_version,
 		blueprints,
 		recipes,
+		progression_catalog,
 	)
 	return ContentRegistryBuildResultScript.success(registry, report)
 

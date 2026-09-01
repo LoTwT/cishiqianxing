@@ -2,6 +2,9 @@ extends SceneTree
 
 const GridRuleKernelTests := preload("res://tests/rules/grid_rule_kernel_tests.gd")
 const ContentRegistryTests := preload("res://tests/content/content_registry_tests.gd")
+const GlobalProgressionRegistryTests := preload(
+	"res://tests/content/global_progression_registry_tests.gd"
+)
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
@@ -33,9 +36,20 @@ func _initialize() -> void:
 		_fail_empty_suite("content_registry")
 		return
 
+	var global_progression_test_suite: GlobalProgressionRegistryTests = (
+		GlobalProgressionRegistryTests.new()
+	)
+	var global_progression_test_cases: Array[HeadlessTestCaseScript] = (
+		global_progression_test_suite.cases()
+	)
+	if global_progression_test_cases.is_empty():
+		_fail_empty_suite("global_progression")
+		return
+
 	var test_cases: Array[HeadlessTestCaseScript] = []
 	test_cases.append_array(grid_rule_kernel_test_cases)
 	test_cases.append_array(content_registry_test_cases)
+	test_cases.append_array(global_progression_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
 		print("[TEST][SUMMARY] total=0 passed=0 failed=1 assertions=0")

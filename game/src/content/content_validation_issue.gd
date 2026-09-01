@@ -11,6 +11,109 @@ const MANIFEST_CONTENT_VERSION_UNSUPPORTED: StringName = (
 )
 const MANIFEST_BLUEPRINT_COUNT_INVALID: StringName = &"manifest.blueprint_count.invalid"
 const MANIFEST_RECIPE_COUNT_INVALID: StringName = &"manifest.recipe_count.invalid"
+const MANIFEST_PROGRESSION_CATALOG_NULL: StringName = (
+	&"manifest.global_progression_catalog.null"
+)
+
+const PROGRESSION_CATALOG_INVALID_SCRIPT: StringName = (
+	&"progression.catalog.invalid_script"
+)
+const PROGRESSION_CATALOG_ID_INVALID: StringName = &"progression.catalog_id.invalid"
+const PROGRESSION_MAINLINE_COUNT_INVALID: StringName = (
+	&"progression.mainline_count.invalid"
+)
+const PROGRESSION_OPTIONAL_COUNT_INVALID: StringName = (
+	&"progression.optional_count.invalid"
+)
+const PROGRESSION_INITIAL_STATS_NULL: StringName = &"progression.initial_stats.null"
+const PROGRESSION_INITIAL_STATS_INVALID_SCRIPT: StringName = (
+	&"progression.initial_stats.invalid_script"
+)
+const PROGRESSION_PROFILE_ID_INVALID: StringName = &"progression.profile_id.invalid"
+const PROGRESSION_PROFILE_FIELD_MISMATCH: StringName = (
+	&"progression.profile.field_mismatch"
+)
+const PROGRESSION_MAINLINE_ENTRY_NULL: StringName = (
+	&"progression.mainline.entry.null"
+)
+const PROGRESSION_MAINLINE_ENTRY_INVALID_SCRIPT: StringName = (
+	&"progression.mainline.entry.invalid_script"
+)
+const PROGRESSION_MAINLINE_CONTENT_ID_EMPTY: StringName = (
+	&"progression.mainline.content_id.empty"
+)
+const PROGRESSION_MAINLINE_CONTENT_ID_INVALID: StringName = (
+	&"progression.mainline.content_id.invalid"
+)
+const PROGRESSION_MAINLINE_CONTENT_ID_DUPLICATE: StringName = (
+	&"progression.mainline.content_id.duplicate"
+)
+const PROGRESSION_MAINLINE_CHAPTER_INVALID: StringName = (
+	&"progression.mainline.chapter.invalid"
+)
+const PROGRESSION_MAINLINE_CHAPTER_DUPLICATE: StringName = (
+	&"progression.mainline.chapter.duplicate"
+)
+const PROGRESSION_MAINLINE_CHAPTER_MISMATCH: StringName = (
+	&"progression.mainline.chapter.mismatch"
+)
+const PROGRESSION_MAINLINE_DELTA_INVALID: StringName = (
+	&"progression.mainline.delta.invalid"
+)
+const PROGRESSION_MAINLINE_DELTA_MISMATCH: StringName = (
+	&"progression.mainline.delta.mismatch"
+)
+const PROGRESSION_OPTIONAL_ENTRY_NULL: StringName = (
+	&"progression.optional.entry.null"
+)
+const PROGRESSION_OPTIONAL_ENTRY_INVALID_SCRIPT: StringName = (
+	&"progression.optional.entry.invalid_script"
+)
+const PROGRESSION_OPTIONAL_CONTENT_ID_EMPTY: StringName = (
+	&"progression.optional.content_id.empty"
+)
+const PROGRESSION_OPTIONAL_CONTENT_ID_INVALID: StringName = (
+	&"progression.optional.content_id.invalid"
+)
+const PROGRESSION_OPTIONAL_CONTENT_ID_DUPLICATE: StringName = (
+	&"progression.optional.content_id.duplicate"
+)
+const PROGRESSION_OPTIONAL_MAP_ID_INVALID: StringName = (
+	&"progression.optional.map_id.invalid"
+)
+const PROGRESSION_OPTIONAL_MAP_ID_DUPLICATE: StringName = (
+	&"progression.optional.map_id.duplicate"
+)
+const PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID: StringName = (
+	&"progression.optional.available_after_chapter.invalid"
+)
+const PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_MISMATCH: StringName = (
+	&"progression.optional.available_after_chapter.mismatch"
+)
+const PROGRESSION_OPTIONAL_DELTA_INVALID: StringName = (
+	&"progression.optional.delta.invalid"
+)
+const PROGRESSION_OPTIONAL_DELTA_MISMATCH: StringName = (
+	&"progression.optional.delta.mismatch"
+)
+const PROGRESSION_OPTIONAL_SPEED_FORBIDDEN: StringName = (
+	&"progression.optional.speed.forbidden"
+)
+const PROGRESSION_MAINLINE_ATOMIC_COUNT_MISMATCH: StringName = (
+	&"progression.mainline.atomic_count.mismatch"
+)
+const PROGRESSION_OPTIONAL_ATOMIC_COUNT_MISMATCH: StringName = (
+	&"progression.optional.atomic_count.mismatch"
+)
+const PROGRESSION_MAINLINE_CHAPTER_TOTAL_MISMATCH: StringName = (
+	&"progression.mainline.chapter_total.mismatch"
+)
+const PROGRESSION_MAINLINE_FINAL_STATS_MISMATCH: StringName = (
+	&"progression.mainline.final_stats.mismatch"
+)
+const PROGRESSION_FULL_COMPLETION_STATS_MISMATCH: StringName = (
+	&"progression.full_completion_stats.mismatch"
+)
 
 const BLUEPRINT_ENTRY_NULL: StringName = &"blueprint.entry.null"
 const BLUEPRINT_ENTRY_INVALID_SCRIPT: StringName = &"blueprint.entry.invalid_script"
@@ -118,6 +221,18 @@ const RECIPE_BLUEPRINT_REFERENCE_MISMATCH: StringName = (
 const LOOKUP_UNKNOWN_BLUEPRINT_ID: StringName = &"lookup.blueprint_id.unknown"
 const LOOKUP_UNKNOWN_RECIPE_ID: StringName = &"lookup.recipe_id.unknown"
 const LOOKUP_REGISTRY_UNINITIALIZED: StringName = &"lookup.registry.uninitialized"
+const LOOKUP_UNKNOWN_MAINLINE_PROGRESSION_ID: StringName = (
+	&"lookup.progression.mainline_id.unknown"
+)
+const LOOKUP_UNKNOWN_OPTIONAL_PROGRESSION_ID: StringName = (
+	&"lookup.progression.optional_id.unknown"
+)
+const LOOKUP_PROGRESSION_CHAPTER_INVALID: StringName = (
+	&"lookup.progression.chapter.invalid"
+)
+const LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED: StringName = (
+	&"lookup.progression.registry.uninitialized"
+)
 
 var _code: StringName
 var _content_id: StringName
