@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RecipeDefinitionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/recipe_definition_resource.gd" id="1_recipe_definition"]
+
+[resource]
+script = ExtResource("1_recipe_definition")
+recipe_id = &"recipe.standard.21"
+output_blueprint_id = &"blueprint.21"
+main_material_id = &"material.crystal_sand"
+main_quantity = 1
+auxiliary_material_id = &""
+auxiliary_quantity = 0

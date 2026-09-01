@@ -37,6 +37,8 @@ bash game/tools/run_headless_tests.sh
 ```
 
 - `game/src/rules/` 保存不依赖场景树、渲染、物理或输入设备的权威规则类型。
+- `game/src/content/` 保存强类型 `Resource` 内容定义，以及不依赖场景树的 `RefCounted` 注册、校验和快照查询类型。
+- `game/content/` 保存正式 `.tres` 内容；`res://content/content_manifest.tres` 是唯一规范清单入口，内容发现只认清单中的显式引用，不扫描目录。
 - `game/tests/` 保存显式注册的灰盒夹具、规则测试与唯一测试运行器，不扫描目录发现测试。
 - `game/tools/` 保存环境检查与测试命令门面，不承载玩法规则。
 - 静态解析失败、Godot 未处理错误、零测试、单项零断言、缺失汇总或任意测试失败都会返回非零退出码；成功日志会列出测试名称、通过数、失败数和断言数。

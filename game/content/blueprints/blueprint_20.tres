@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BlueprintDefinitionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/blueprint_definition_resource.gd" id="1_blueprint_definition"]
+
+[resource]
+script = ExtResource("1_blueprint_definition")
+content_id = &"blueprint.20"
+ordinal = 20
+category = 5
+tier = 1
+unlock_chapter = 4
+default_lifecycle = 2
+standard_recipe_id = &"recipe.standard.20"
+mechanic_id = &"mechanic.blueprint.next_battle_attack"
+display_name_text_id = &"blueprint.20.display_name"
+function_text_id = &"blueprint.20.function"
