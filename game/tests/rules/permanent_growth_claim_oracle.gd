@@ -1,8 +1,8 @@
 extends RefCounted
 
 const PROFILE_ID: StringName = &"progression.player.loer"
-const CONTENT_SCHEMA_VERSION: int = 3
-const CONTENT_VERSION: int = 3
+const CONTENT_SCHEMA_VERSION: int = 4
+const CONTENT_VERSION: int = 4
 
 
 class RewardTransitionRow extends RefCounted:

@@ -22,9 +22,15 @@ const PermanentGrowthRewardDefinitionScript := preload(
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
+const RepresentativeRouteContractScript := preload(
+	"res://src/content/definitions/representative_route_contract_resource.gd"
+)
+const RepresentativeRouteCatalogScript := preload(
+	"res://src/content/definitions/representative_route_contract_catalog_resource.gd"
+)
 
 const EXPECTED_FINGERPRINT: String = (
-	"e213f5a2f75fb3744c68c3046422df2ead4891dfd1b470f452f0c9facd210adc"
+	"bdbf394eb9e74a95eb5dc9fa789d99e0662a266a098706fc1d5f8a997687cad5"
 )
 
 
@@ -34,6 +40,7 @@ static func matches(
 	blueprints: Array[BlueprintDefinitionScript],
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
+	route_catalog: RepresentativeRouteCatalogScript,
 ) -> bool:
 	return (
 		not EXPECTED_FINGERPRINT.is_empty()
@@ -43,6 +50,7 @@ static func matches(
 			blueprints,
 			recipes,
 			progression_catalog,
+			route_catalog,
 		)
 		== EXPECTED_FINGERPRINT
 	)
@@ -54,6 +62,7 @@ static func calculate(
 	blueprints: Array[BlueprintDefinitionScript],
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
+	route_catalog: RepresentativeRouteCatalogScript,
 ) -> String:
 	var ordered_blueprints: Array[BlueprintDefinitionScript] = []
 	for blueprint: BlueprintDefinitionScript in blueprints:
@@ -77,6 +86,21 @@ static func calculate(
 		or profile_resource.get_script() != PlayerStatProfileScript
 	):
 		return ""
+	var route_catalog_resource: Resource = route_catalog as Resource
+	if (
+		route_catalog_resource == null
+		or route_catalog_resource.get_script() != RepresentativeRouteCatalogScript
+	):
+		return ""
+	var ordered_route_contracts: Array[RepresentativeRouteContractScript] = []
+	for contract: RepresentativeRouteContractScript in route_catalog.contracts:
+		var contract_resource: Resource = contract as Resource
+		if (
+			contract_resource == null
+			or contract_resource.get_script() != RepresentativeRouteContractScript
+		):
+			return ""
+		ordered_route_contracts.append(contract)
 	var ordered_mainline: Array[MainlineProgressionDefinitionScript] = []
 	for definition: MainlineProgressionDefinitionScript in (
 		progression_catalog.mainline_progression
@@ -115,8 +139,9 @@ static func calculate(
 	ordered_mainline.sort_custom(_mainline_less_than)
 	ordered_optional.sort_custom(_optional_less_than)
 	ordered_rewards.sort_custom(_reward_less_than)
+	ordered_route_contracts.sort_custom(_route_contract_less_than)
 
-	var payload: String = "contract:v3;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;" % [
+	var payload: String = "contract:v4;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;q%s;t%d;" % [
 		schema_version,
 		content_version,
 		ordered_blueprints.size(),
@@ -125,6 +150,8 @@ static func calculate(
 		ordered_rewards.size(),
 		ordered_mainline.size(),
 		ordered_optional.size(),
+		_encode_string(String(route_catalog.catalog_id)),
+		ordered_route_contracts.size(),
 	]
 	for blueprint: BlueprintDefinitionScript in ordered_blueprints:
 		payload += "B%s;i%d;i%d;i%d;i%d;i%d;%s;%s;%s;%s;" % [
@@ -185,6 +212,49 @@ static func calculate(
 		]
 		for reward_id: StringName in ordered_reward_ids:
 			payload += "a%s;" % _encode_string(String(reward_id))
+	for contract: RepresentativeRouteContractScript in ordered_route_contracts:
+		var ordered_progression_ids: Array[StringName] = _ordered_string_names(
+			contract.mainline_progression_reference_ids
+		)
+		var ordered_blueprint_ids: Array[StringName] = _ordered_string_names(
+			contract.available_blueprint_reference_ids
+		)
+		var ordered_tradeoff_ids: Array[StringName] = _ordered_string_names(
+			contract.tradeoff_dimension_ids
+		)
+		payload += "T%s;i%d;i%d;%s;p%d;" % [
+			_encode_string(String(contract.contract_id)),
+			contract.stage_start_chapter,
+			contract.stage_end_chapter,
+			_encode_string(String(contract.player_profile_id)),
+			ordered_progression_ids.size(),
+		]
+		for content_id: StringName in ordered_progression_ids:
+			payload += "p%s;" % _encode_string(String(content_id))
+		payload += "b%d;" % ordered_blueprint_ids.size()
+		for content_id: StringName in ordered_blueprint_ids:
+			payload += "b%s;" % _encode_string(String(content_id))
+		payload += "d%d;" % ordered_tradeoff_ids.size()
+		for dimension_id: StringName in ordered_tradeoff_ids:
+			payload += "d%s;" % _encode_string(String(dimension_id))
+		payload += "i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;" % [
+			contract.backpack_slot_capacity,
+			contract.encounter_group_minimum,
+			contract.encounter_group_maximum,
+			contract.encounter_group_hard_cap,
+			contract.low_loss_contact_minimum,
+			contract.low_loss_contact_maximum,
+			contract.intuitive_contact_minimum,
+			contract.intuitive_contact_maximum,
+			contract.low_loss_minimum_exit_health_percent,
+			contract.intuitive_minimum_exit_health_percent,
+			contract.minimum_fixed_recovery_points,
+			contract.fixed_recovery_amount,
+			contract.minimum_legal_route_count,
+			contract.minimum_legal_loadout_count,
+			contract.minimum_distinct_tradeoff_dimensions,
+			1 if contract.requires_non_dominated_route_set else 0,
+		]
 	return payload.sha256_text()
 
 
@@ -198,6 +268,14 @@ static func _ordered_reward_ids(reward_ids: Array[StringName]) -> Array[StringNa
 		ordered_reward_ids.append(reward_id)
 	ordered_reward_ids.sort_custom(_string_name_less_than)
 	return ordered_reward_ids
+
+
+static func _ordered_string_names(values: Array[StringName]) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for value: StringName in values:
+		result.append(value)
+	result.sort_custom(_string_name_less_than)
+	return result
 
 
 static func _blueprint_less_than(
@@ -239,6 +317,13 @@ static func _reward_less_than(
 	if left.stat_kind != right.stat_kind:
 		return left.stat_kind < right.stat_kind
 	return left.increase < right.increase
+
+
+static func _route_contract_less_than(
+	left: RepresentativeRouteContractScript,
+	right: RepresentativeRouteContractScript,
+) -> bool:
+	return String(left.contract_id) < String(right.contract_id)
 
 
 static func _string_name_less_than(left: StringName, right: StringName) -> bool:

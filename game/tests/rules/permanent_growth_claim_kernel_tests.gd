@@ -629,15 +629,15 @@ func _rejects_invalid_state_matrix(context: HeadlessTestContextScript) -> void:
 	]
 	var invalid_states: Array[PlayerProgressionStateScript] = [
 		PlayerProgressionStateScript.new(),
-		PlayerProgressionStateScript.create(&"", 3, 3, 100, []),
+		PlayerProgressionStateScript.create(&"", 4, 4, 100, []),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 0, 3, 100, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 0, 4, 100, []
 		),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 3, 0, 100, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 4, 0, 100, []
 		),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 3, 3, -1, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 4, 4, -1, []
 		),
 		_state(100, [reward_id, reward_id]),
 		_state(100, [&""]),
@@ -672,7 +672,7 @@ func _rejects_invalid_restored_ledger_matrix(
 		&"progression.reward.main.chapter.01.attack"
 	)
 	var wrong_profile: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		&"progression.player.impostor", 3, 3, 100,
+		&"progression.player.impostor", 4, 4, 100,
 		[&"progression.reward.unknown"],
 	)
 	_expect_rejected(
@@ -749,7 +749,7 @@ func _fails_closed_for_registry_and_versions(
 		reward_id
 	)
 	var schema_mismatch: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		PermanentGrowthClaimOracle.PROFILE_ID, 2, 3, 0, [reward_id]
+		PermanentGrowthClaimOracle.PROFILE_ID, 3, 4, 0, [reward_id]
 	)
 	_expect_rejected(
 		context,
@@ -760,7 +760,7 @@ func _fails_closed_for_registry_and_versions(
 		"Schema mismatch before duplicate and zero health",
 	)
 	var content_mismatch: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		PermanentGrowthClaimOracle.PROFILE_ID, 3, 2, 0, [reward_id]
+		PermanentGrowthClaimOracle.PROFILE_ID, 4, 3, 0, [reward_id]
 	)
 	_expect_rejected(
 		context,
@@ -773,8 +773,8 @@ func _fails_closed_for_registry_and_versions(
 	var content_and_profile_mismatch: PlayerProgressionStateScript = (
 		PlayerProgressionStateScript.create(
 			&"progression.player.impostor",
+			4,
 			3,
-			2,
 			100,
 			[],
 		)
@@ -792,7 +792,7 @@ func _fails_closed_for_registry_and_versions(
 		"Content mismatch before profile mismatch",
 	)
 	var both_mismatch: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		PermanentGrowthClaimOracle.PROFILE_ID, 2, 2, 100, []
+		PermanentGrowthClaimOracle.PROFILE_ID, 3, 3, 100, []
 	)
 	_expect_rejected(
 		context,
@@ -1236,8 +1236,8 @@ func _rejects_malformed_public_result_events(
 	var valid_event: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			reward_id,
 			2,
 			1,
@@ -1375,8 +1375,8 @@ func _rejects_inconsistent_public_result_deltas(
 	var valid_attack_event: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			attack_id,
 			2,
 			1,
@@ -1418,8 +1418,8 @@ func _rejects_inconsistent_public_result_deltas(
 	var wrong_kind_event: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			attack_id,
 			3,
 			1,
@@ -1449,8 +1449,8 @@ func _rejects_inconsistent_public_result_deltas(
 	var wrong_increase_event: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			attack_id,
 			2,
 			2,
@@ -1480,8 +1480,8 @@ func _rejects_inconsistent_public_result_deltas(
 	var health_event_with_wrong_maximum_delta: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			health_id,
 			1,
 			10,
@@ -1521,8 +1521,8 @@ func _rejects_inconsistent_public_result_deltas(
 	var health_event_from_damaged: PermanentGrowthClaimEventScript = (
 		PermanentGrowthClaimEventScript.applied(
 			PermanentGrowthClaimOracle.PROFILE_ID,
-			3,
-			3,
+			PermanentGrowthClaimOracle.CONTENT_SCHEMA_VERSION,
+			PermanentGrowthClaimOracle.CONTENT_VERSION,
 			health_id,
 			1,
 			10,
@@ -1736,8 +1736,8 @@ func _expect_applied(
 		"The event kind must be APPLIED.",
 	)
 	context.expect_equal(event.profile_id(), PermanentGrowthClaimOracle.PROFILE_ID, "Event profile.")
-	context.expect_equal(event.content_schema_version(), 3, "Event schema version.")
-	context.expect_equal(event.content_version(), 3, "Event content version.")
+	context.expect_equal(event.content_schema_version(), 4, "Event schema version.")
+	context.expect_equal(event.content_version(), 4, "Event content version.")
 	context.expect_equal(event.reward_id(), row.reward_id, "Event reward ID.")
 	context.expect_equal(event.stat_kind(), row.stat_kind, "Event stat kind.")
 	context.expect_equal(event.increase(), row.increase, "Event increase.")
@@ -2106,8 +2106,8 @@ func _assert_state(
 	if state == null:
 		return
 	context.expect_equal(state.profile_id(), PermanentGrowthClaimOracle.PROFILE_ID, "%s profile." % label)
-	context.expect_equal(state.content_schema_version(), 3, "%s schema version." % label)
-	context.expect_equal(state.content_version(), 3, "%s content version." % label)
+	context.expect_equal(state.content_schema_version(), 4, "%s schema version." % label)
+	context.expect_equal(state.content_version(), 4, "%s content version." % label)
 	context.expect_equal(state.current_health(), expected_current_health, "%s health." % label)
 	context.expect_equal(state.claimed_reward_ids(), expected_claimed_ids, "%s claimed IDs." % label)
 
@@ -2124,8 +2124,8 @@ func _assert_snapshot(
 		return
 	context.expect_true(snapshot.is_valid(), "%s must be valid." % label)
 	context.expect_equal(snapshot.profile_id(), PermanentGrowthClaimOracle.PROFILE_ID, "%s profile." % label)
-	context.expect_equal(snapshot.content_schema_version(), 3, "%s schema version." % label)
-	context.expect_equal(snapshot.content_version(), 3, "%s content version." % label)
+	context.expect_equal(snapshot.content_schema_version(), 4, "%s schema version." % label)
+	context.expect_equal(snapshot.content_version(), 4, "%s content version." % label)
 	context.expect_equal(snapshot.current_health(), expected_values[0], "%s current health." % label)
 	context.expect_equal(snapshot.maximum_health(), expected_values[1], "%s maximum health." % label)
 	context.expect_equal(snapshot.attack(), expected_values[2], "%s attack." % label)

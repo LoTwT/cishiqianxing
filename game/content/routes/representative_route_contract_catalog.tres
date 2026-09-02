@@ -1,0 +1,139 @@
+[gd_resource type="Resource" script_class="RepresentativeRouteContractCatalogResource" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/representative_route_contract_catalog_resource.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://src/content/definitions/representative_route_contract_resource.gd" id="2_contract"]
+
+[sub_resource type="Resource" id="RouteContract_stage_01_02"]
+script = ExtResource("2_contract")
+contract_id = &"route.contract.main.stage.01_02"
+stage_start_chapter = 1
+stage_end_chapter = 2
+player_profile_id = &"progression.player.loer"
+mainline_progression_reference_ids = Array[StringName]([&"progression.main.chapter.01", &"progression.main.chapter.02"])
+available_blueprint_reference_ids = Array[StringName]([&"blueprint.01", &"blueprint.02", &"blueprint.03", &"blueprint.05", &"blueprint.08", &"blueprint.10", &"blueprint.15", &"blueprint.16"])
+backpack_slot_capacity = 12
+encounter_group_minimum = 8
+encounter_group_maximum = 12
+encounter_group_hard_cap = 14
+low_loss_contact_minimum = 3
+low_loss_contact_maximum = 5
+intuitive_contact_minimum = 5
+intuitive_contact_maximum = 7
+low_loss_minimum_exit_health_percent = 40
+intuitive_minimum_exit_health_percent = 25
+minimum_fixed_recovery_points = 2
+fixed_recovery_amount = 50
+minimum_legal_route_count = 2
+minimum_legal_loadout_count = 2
+tradeoff_dimension_ids = Array[StringName]([&"route.cost.health", &"route.cost.block", &"route.cost.consumable", &"route.cost.detour", &"route.cost.one_time_node", &"route.cost.optional_reward"])
+minimum_distinct_tradeoff_dimensions = 2
+requires_non_dominated_route_set = true
+
+[sub_resource type="Resource" id="RouteContract_stage_03_04"]
+script = ExtResource("2_contract")
+contract_id = &"route.contract.main.stage.03_04"
+stage_start_chapter = 3
+stage_end_chapter = 4
+player_profile_id = &"progression.player.loer"
+mainline_progression_reference_ids = Array[StringName]([&"progression.main.chapter.01", &"progression.main.chapter.02", &"progression.main.chapter.03", &"progression.main.chapter.04"])
+available_blueprint_reference_ids = Array[StringName]([&"blueprint.01", &"blueprint.02", &"blueprint.03", &"blueprint.04", &"blueprint.05", &"blueprint.06", &"blueprint.08", &"blueprint.09", &"blueprint.10", &"blueprint.12", &"blueprint.15", &"blueprint.16", &"blueprint.17", &"blueprint.20"])
+backpack_slot_capacity = 16
+encounter_group_minimum = 8
+encounter_group_maximum = 12
+encounter_group_hard_cap = 14
+low_loss_contact_minimum = 3
+low_loss_contact_maximum = 5
+intuitive_contact_minimum = 5
+intuitive_contact_maximum = 7
+low_loss_minimum_exit_health_percent = 40
+intuitive_minimum_exit_health_percent = 25
+minimum_fixed_recovery_points = 2
+fixed_recovery_amount = 50
+minimum_legal_route_count = 2
+minimum_legal_loadout_count = 2
+tradeoff_dimension_ids = Array[StringName]([&"route.cost.health", &"route.cost.block", &"route.cost.consumable", &"route.cost.detour", &"route.cost.one_time_node", &"route.cost.optional_reward"])
+minimum_distinct_tradeoff_dimensions = 2
+requires_non_dominated_route_set = true
+
+[sub_resource type="Resource" id="RouteContract_stage_05_06"]
+script = ExtResource("2_contract")
+contract_id = &"route.contract.main.stage.05_06"
+stage_start_chapter = 5
+stage_end_chapter = 6
+player_profile_id = &"progression.player.loer"
+mainline_progression_reference_ids = Array[StringName]([&"progression.main.chapter.01", &"progression.main.chapter.02", &"progression.main.chapter.03", &"progression.main.chapter.04", &"progression.main.chapter.05", &"progression.main.chapter.06"])
+available_blueprint_reference_ids = Array[StringName]([&"blueprint.01", &"blueprint.02", &"blueprint.03", &"blueprint.04", &"blueprint.05", &"blueprint.06", &"blueprint.08", &"blueprint.09", &"blueprint.10", &"blueprint.11", &"blueprint.12", &"blueprint.13", &"blueprint.14", &"blueprint.15", &"blueprint.16", &"blueprint.17", &"blueprint.19", &"blueprint.20", &"blueprint.21", &"blueprint.22"])
+backpack_slot_capacity = 20
+encounter_group_minimum = 8
+encounter_group_maximum = 12
+encounter_group_hard_cap = 14
+low_loss_contact_minimum = 3
+low_loss_contact_maximum = 5
+intuitive_contact_minimum = 5
+intuitive_contact_maximum = 7
+low_loss_minimum_exit_health_percent = 40
+intuitive_minimum_exit_health_percent = 25
+minimum_fixed_recovery_points = 2
+fixed_recovery_amount = 50
+minimum_legal_route_count = 2
+minimum_legal_loadout_count = 2
+tradeoff_dimension_ids = Array[StringName]([&"route.cost.health", &"route.cost.block", &"route.cost.consumable", &"route.cost.detour", &"route.cost.one_time_node", &"route.cost.optional_reward"])
+minimum_distinct_tradeoff_dimensions = 2
+requires_non_dominated_route_set = true
+
+[sub_resource type="Resource" id="RouteContract_stage_07_08"]
+script = ExtResource("2_contract")
+contract_id = &"route.contract.main.stage.07_08"
+stage_start_chapter = 7
+stage_end_chapter = 8
+player_profile_id = &"progression.player.loer"
+mainline_progression_reference_ids = Array[StringName]([&"progression.main.chapter.01", &"progression.main.chapter.02", &"progression.main.chapter.03", &"progression.main.chapter.04", &"progression.main.chapter.05", &"progression.main.chapter.06", &"progression.main.chapter.07", &"progression.main.chapter.08"])
+available_blueprint_reference_ids = Array[StringName]([&"blueprint.01", &"blueprint.02", &"blueprint.03", &"blueprint.04", &"blueprint.05", &"blueprint.06", &"blueprint.07", &"blueprint.08", &"blueprint.09", &"blueprint.10", &"blueprint.11", &"blueprint.12", &"blueprint.13", &"blueprint.14", &"blueprint.15", &"blueprint.16", &"blueprint.17", &"blueprint.18", &"blueprint.19", &"blueprint.20", &"blueprint.21", &"blueprint.22", &"blueprint.23", &"blueprint.24"])
+backpack_slot_capacity = 24
+encounter_group_minimum = 8
+encounter_group_maximum = 12
+encounter_group_hard_cap = 14
+low_loss_contact_minimum = 3
+low_loss_contact_maximum = 5
+intuitive_contact_minimum = 5
+intuitive_contact_maximum = 7
+low_loss_minimum_exit_health_percent = 40
+intuitive_minimum_exit_health_percent = 25
+minimum_fixed_recovery_points = 2
+fixed_recovery_amount = 50
+minimum_legal_route_count = 2
+minimum_legal_loadout_count = 2
+tradeoff_dimension_ids = Array[StringName]([&"route.cost.health", &"route.cost.block", &"route.cost.consumable", &"route.cost.detour", &"route.cost.one_time_node", &"route.cost.optional_reward"])
+minimum_distinct_tradeoff_dimensions = 2
+requires_non_dominated_route_set = true
+
+[sub_resource type="Resource" id="RouteContract_stage_09"]
+script = ExtResource("2_contract")
+contract_id = &"route.contract.main.stage.09"
+stage_start_chapter = 9
+stage_end_chapter = 9
+player_profile_id = &"progression.player.loer"
+mainline_progression_reference_ids = Array[StringName]([&"progression.main.chapter.01", &"progression.main.chapter.02", &"progression.main.chapter.03", &"progression.main.chapter.04", &"progression.main.chapter.05", &"progression.main.chapter.06", &"progression.main.chapter.07", &"progression.main.chapter.08", &"progression.main.chapter.09"])
+available_blueprint_reference_ids = Array[StringName]([&"blueprint.01", &"blueprint.02", &"blueprint.03", &"blueprint.04", &"blueprint.05", &"blueprint.06", &"blueprint.07", &"blueprint.08", &"blueprint.09", &"blueprint.10", &"blueprint.11", &"blueprint.12", &"blueprint.13", &"blueprint.14", &"blueprint.15", &"blueprint.16", &"blueprint.17", &"blueprint.18", &"blueprint.19", &"blueprint.20", &"blueprint.21", &"blueprint.22", &"blueprint.23", &"blueprint.24"])
+backpack_slot_capacity = 24
+encounter_group_minimum = 8
+encounter_group_maximum = 12
+encounter_group_hard_cap = 14
+low_loss_contact_minimum = 3
+low_loss_contact_maximum = 5
+intuitive_contact_minimum = 5
+intuitive_contact_maximum = 7
+low_loss_minimum_exit_health_percent = 40
+intuitive_minimum_exit_health_percent = 25
+minimum_fixed_recovery_points = 2
+fixed_recovery_amount = 50
+minimum_legal_route_count = 2
+minimum_legal_loadout_count = 2
+tradeoff_dimension_ids = Array[StringName]([&"route.cost.health", &"route.cost.block", &"route.cost.consumable", &"route.cost.detour", &"route.cost.one_time_node", &"route.cost.optional_reward"])
+minimum_distinct_tradeoff_dimensions = 2
+requires_non_dominated_route_set = true
+
+[resource]
+script = ExtResource("1_catalog")
+catalog_id = &"route.contract.catalog.main"
+contracts = Array[RepresentativeRouteContractResource]([SubResource("RouteContract_stage_01_02"), SubResource("RouteContract_stage_03_04"), SubResource("RouteContract_stage_05_06"), SubResource("RouteContract_stage_07_08"), SubResource("RouteContract_stage_09")])

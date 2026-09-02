@@ -5,6 +5,9 @@ const ContentRegistryTests := preload("res://tests/content/content_registry_test
 const GlobalProgressionRegistryTests := preload(
 	"res://tests/content/global_progression_registry_tests.gd"
 )
+const RepresentativeRouteContractTests := preload(
+	"res://tests/content/representative_route_contract_tests.gd"
+)
 const PermanentGrowthClaimKernelTests := preload(
 	"res://tests/rules/permanent_growth_claim_kernel_tests.gd"
 )
@@ -49,6 +52,16 @@ func _initialize() -> void:
 		_fail_empty_suite("global_progression")
 		return
 
+	var representative_route_test_suite: RepresentativeRouteContractTests = (
+		RepresentativeRouteContractTests.new()
+	)
+	var representative_route_test_cases: Array[HeadlessTestCaseScript] = (
+		representative_route_test_suite.cases()
+	)
+	if representative_route_test_cases.is_empty():
+		_fail_empty_suite("representative_routes")
+		return
+
 	var permanent_growth_claim_test_suite: PermanentGrowthClaimKernelTests = (
 		PermanentGrowthClaimKernelTests.new()
 	)
@@ -63,6 +76,7 @@ func _initialize() -> void:
 	test_cases.append_array(grid_rule_kernel_test_cases)
 	test_cases.append_array(content_registry_test_cases)
 	test_cases.append_array(global_progression_test_cases)
+	test_cases.append_array(representative_route_test_cases)
 	test_cases.append_array(permanent_growth_claim_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
