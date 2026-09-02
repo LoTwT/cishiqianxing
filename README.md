@@ -36,7 +36,7 @@ GitHub Actions 的 `Baseline / verify` 检查会在 pull request 与 `main` 更�
 bash game/tools/run_headless_tests.sh
 ```
 
-- `game/src/rules/` 保存不依赖场景树、渲染、物理或输入设备的权威规则类型。
+- `game/src/rules/` 保存不依赖场景树、渲染、物理或输入设备的权威规则类型，包括整数格规则与永久成长的纯运行时领取事务。
 - `game/src/content/` 保存强类型 `Resource` 内容定义，以及不依赖场景树的 `RefCounted` 注册、校验和快照查询类型；蓝图、配方与全局永久成长共用同一注册职责。
 - `game/content/` 保存正式 `.tres` 内容；`res://content/content_manifest.tres` 是唯一规范清单入口，并显式引用 `res://content/progression/global_progression_catalog.tres`，内容发现不扫描目录。
 - `game/tests/` 保存显式注册的灰盒夹具、规则测试与唯一测试运行器，不扫描目录发现测试。
