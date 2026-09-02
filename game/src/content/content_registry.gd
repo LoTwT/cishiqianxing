@@ -22,9 +22,18 @@ const PermanentGrowthRewardDefinitionScript := preload(
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
+const RepresentativeRouteContractScript := preload(
+	"res://src/content/definitions/representative_route_contract_resource.gd"
+)
+const RepresentativeRouteCatalogScript := preload(
+	"res://src/content/definitions/representative_route_contract_catalog_resource.gd"
+)
 const ContentLookupResultScript := preload("res://src/content/content_lookup_result.gd")
 const GlobalProgressionQueryResultScript := preload(
 	"res://src/content/global_progression_query_result.gd"
+)
+const RepresentativeRouteQueryResultScript := preload(
+	"res://src/content/representative_route_query_result.gd"
 )
 const ContentContractFingerprintScript := preload(
 	"res://src/content/content_contract_fingerprint.gd"
@@ -36,6 +45,7 @@ const ContentValidationIssueScript := preload(
 const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
 const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
 const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
+const EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT: int = 5
 
 var _schema_version: int
 var _content_version: int
@@ -53,6 +63,10 @@ var _permanent_growth_rewards: Array[PermanentGrowthRewardDefinitionScript] = []
 var _mainline_progression_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
 var _optional_progression_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
 var _permanent_growth_rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
+var _route_contract_catalog_id: StringName = &""
+var _representative_route_contract_ids: Array[StringName] = []
+var _representative_route_contracts: Array[RepresentativeRouteContractScript] = []
+var _representative_route_contracts_by_id: Dictionary[StringName, RepresentativeRouteContractScript] = {}
 
 
 func _init() -> void:
@@ -65,6 +79,7 @@ func _initialize_validated(
 	blueprints: Array[BlueprintDefinitionScript],
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
+	route_catalog: RepresentativeRouteCatalogScript,
 ) -> void:
 	if is_initialized():
 		return
@@ -74,6 +89,7 @@ func _initialize_validated(
 		blueprints,
 		recipes,
 		progression_catalog,
+		route_catalog,
 	):
 		return
 	var stored_material_ids: Array[StringName] = (
@@ -90,6 +106,9 @@ func _initialize_validated(
 	var stored_mainline_by_id: Dictionary[StringName, MainlineProgressionDefinitionScript] = {}
 	var stored_optional_by_id: Dictionary[StringName, OptionalProgressionDefinitionScript] = {}
 	var stored_rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
+	var stored_route_contract_ids: Array[StringName] = []
+	var stored_route_contracts: Array[RepresentativeRouteContractScript] = []
+	var stored_route_contracts_by_id: Dictionary[StringName, RepresentativeRouteContractScript] = {}
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		var stored_blueprint: BlueprintDefinitionScript = (
 			BlueprintDefinitionScript.snapshot(blueprint)
@@ -125,12 +144,28 @@ func _initialize_validated(
 		stored_reward_ids.append(stored_reward.reward_id)
 		stored_rewards.append(stored_reward)
 		stored_rewards_by_id[stored_reward.reward_id] = stored_reward
+	for contract: RepresentativeRouteContractScript in route_catalog.contracts:
+		var stored_contract: RepresentativeRouteContractScript = (
+			RepresentativeRouteContractScript.snapshot(contract)
+		)
+		stored_contract.mainline_progression_reference_ids.sort_custom(
+			_content_id_less_than
+		)
+		stored_contract.available_blueprint_reference_ids.sort_custom(
+			_content_id_less_than
+		)
+		stored_contract.tradeoff_dimension_ids.sort_custom(_content_id_less_than)
+		stored_route_contract_ids.append(stored_contract.contract_id)
+		stored_route_contracts.append(stored_contract)
+		stored_route_contracts_by_id[stored_contract.contract_id] = stored_contract
 	stored_blueprint_ids.sort_custom(_content_id_less_than)
 	stored_recipe_ids.sort_custom(_content_id_less_than)
 	stored_mainline_ids.sort_custom(_content_id_less_than)
 	stored_optional_ids.sort_custom(_content_id_less_than)
 	stored_reward_ids.sort_custom(_content_id_less_than)
 	stored_rewards.sort_custom(_permanent_growth_reward_less_than)
+	stored_route_contract_ids.sort_custom(_content_id_less_than)
+	stored_route_contracts.sort_custom(_representative_route_contract_less_than)
 	stored_material_ids.sort_custom(_content_id_less_than)
 	stored_material_ids.make_read_only()
 	stored_blueprint_ids.make_read_only()
@@ -139,11 +174,14 @@ func _initialize_validated(
 	stored_optional_ids.make_read_only()
 	stored_reward_ids.make_read_only()
 	stored_rewards.make_read_only()
+	stored_route_contract_ids.make_read_only()
+	stored_route_contracts.make_read_only()
 	stored_blueprints_by_id.make_read_only()
 	stored_recipes_by_id.make_read_only()
 	stored_mainline_by_id.make_read_only()
 	stored_optional_by_id.make_read_only()
 	stored_rewards_by_id.make_read_only()
+	stored_route_contracts_by_id.make_read_only()
 	_schema_version = schema_version
 	_content_version = content_version
 	_material_ids = stored_material_ids
@@ -162,6 +200,10 @@ func _initialize_validated(
 	_mainline_progression_by_id = stored_mainline_by_id
 	_optional_progression_by_id = stored_optional_by_id
 	_permanent_growth_rewards_by_id = stored_rewards_by_id
+	_route_contract_catalog_id = route_catalog.catalog_id
+	_representative_route_contract_ids = stored_route_contract_ids
+	_representative_route_contracts = stored_route_contracts
+	_representative_route_contracts_by_id = stored_route_contracts_by_id
 
 
 func is_initialized() -> bool:
@@ -251,6 +293,55 @@ func global_progression_catalog() -> GlobalProgressionCatalogScript:
 			PermanentGrowthRewardDefinitionScript.snapshot(reward)
 		)
 	return result
+
+
+func representative_route_contract_catalog() -> RepresentativeRouteCatalogScript:
+	if not is_initialized():
+		return null
+	var result := RepresentativeRouteCatalogScript.new()
+	result.catalog_id = _route_contract_catalog_id
+	for contract: RepresentativeRouteContractScript in _representative_route_contracts:
+		result.contracts.append(RepresentativeRouteContractScript.snapshot(contract))
+	return result
+
+
+func representative_route_contract_count() -> int:
+	return _representative_route_contract_ids.size() if is_initialized() else 0
+
+
+func representative_route_contract_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_representative_route_contract_ids)
+
+
+func representative_route_contracts() -> Array[RepresentativeRouteContractScript]:
+	var result: Array[RepresentativeRouteContractScript] = []
+	if not is_initialized():
+		return result
+	for contract: RepresentativeRouteContractScript in _representative_route_contracts:
+		result.append(RepresentativeRouteContractScript.snapshot(contract))
+	return result
+
+
+func lookup_representative_route_contract(
+	contract_id: StringName,
+) -> RepresentativeRouteQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_route_contract_query(contract_id)
+	if not _representative_route_contracts_by_id.has(contract_id):
+		return RepresentativeRouteQueryResultScript.failed(
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_ROUTE_CONTRACT_ID,
+				contract_id,
+				"contract_id",
+				"No representative route contract is registered for ID '%s'."
+				% String(contract_id),
+			)
+		)
+	return _route_contract_query(
+		_representative_route_contracts_by_id[contract_id]
+	)
 
 
 func initial_player_stats() -> GlobalProgressionQueryResultScript:
@@ -506,6 +597,40 @@ func _uninitialized_progression_query(
 	)
 
 
+func _uninitialized_route_contract_query(
+	requested_id: StringName,
+) -> RepresentativeRouteQueryResultScript:
+	return RepresentativeRouteQueryResultScript.failed(
+		ContentValidationIssueScript.new(
+			ContentValidationIssueScript.LOOKUP_ROUTE_CONTRACT_REGISTRY_UNINITIALIZED,
+			requested_id,
+			"registry",
+			"Content registry has not passed complete route-contract validation.",
+		)
+	)
+
+
+func _route_contract_query(
+	contract: RepresentativeRouteContractScript,
+) -> RepresentativeRouteQueryResultScript:
+	var stage_end_minimum_stats: PlayerStatProfileScript = PlayerStatProfileScript.snapshot(
+		_initial_player_stats
+	)
+	for progression_id: StringName in contract.mainline_progression_reference_ids:
+		_apply_permanent_growth_rewards(
+			stage_end_minimum_stats,
+			_mainline_progression_by_id[progression_id].reward_ids,
+		)
+	var available_blueprints: Array[BlueprintDefinitionScript] = []
+	for blueprint_id: StringName in contract.available_blueprint_reference_ids:
+		available_blueprints.append(_blueprints_by_id[blueprint_id])
+	return RepresentativeRouteQueryResultScript.found(
+		contract,
+		stage_end_minimum_stats,
+		available_blueprints,
+	)
+
+
 func _has_valid_contract() -> bool:
 	var expected_material_ids: Array[StringName] = (
 		RecipeDefinitionScript.allowed_material_ids()
@@ -529,6 +654,18 @@ func _has_valid_contract() -> bool:
 			_permanent_growth_reward_ids.size()
 			!= _permanent_growth_rewards_by_id.size()
 		)
+		or (
+			_representative_route_contract_ids.size()
+			!= EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT
+		)
+		or (
+			_representative_route_contract_ids.size()
+			!= _representative_route_contracts.size()
+		)
+		or (
+			_representative_route_contract_ids.size()
+			!= _representative_route_contracts_by_id.size()
+		)
 	):
 		return false
 	var ordered_blueprint_ids: Array[StringName] = _copy_ids(_blueprint_ids)
@@ -542,17 +679,22 @@ func _has_valid_contract() -> bool:
 	var ordered_reward_ids: Array[StringName] = _copy_ids(
 		_permanent_growth_reward_ids
 	)
+	var ordered_route_contract_ids: Array[StringName] = _copy_ids(
+		_representative_route_contract_ids
+	)
 	ordered_blueprint_ids.sort_custom(_content_id_less_than)
 	ordered_recipe_ids.sort_custom(_content_id_less_than)
 	ordered_mainline_ids.sort_custom(_content_id_less_than)
 	ordered_optional_ids.sort_custom(_content_id_less_than)
 	ordered_reward_ids.sort_custom(_content_id_less_than)
+	ordered_route_contract_ids.sort_custom(_content_id_less_than)
 	if (
 		_blueprint_ids != ordered_blueprint_ids
 		or _recipe_ids != ordered_recipe_ids
 		or _mainline_progression_ids != ordered_mainline_ids
 		or _optional_progression_ids != ordered_optional_ids
 		or _permanent_growth_reward_ids != ordered_reward_ids
+		or _representative_route_contract_ids != ordered_route_contract_ids
 	):
 		return false
 	var blueprints: Array[BlueprintDefinitionScript] = []
@@ -692,6 +834,72 @@ func _has_valid_contract() -> bool:
 		):
 			return false
 		rewards.append(listed_reward)
+	var route_contracts: Array[RepresentativeRouteContractScript] = []
+	for index: int in range(_representative_route_contract_ids.size()):
+		var contract_id: StringName = _representative_route_contract_ids[index]
+		var listed_contract_resource: Resource = (
+			_representative_route_contracts[index] as Resource
+		)
+		if (
+			listed_contract_resource == null
+			or (
+				listed_contract_resource.get_script()
+				!= RepresentativeRouteContractScript
+			)
+			or not _representative_route_contracts_by_id.has(contract_id)
+		):
+			return false
+		var listed_contract: RepresentativeRouteContractScript = (
+			listed_contract_resource as RepresentativeRouteContractScript
+		)
+		var mapped_contract_resource: Resource = (
+			_representative_route_contracts_by_id[contract_id] as Resource
+		)
+		if (
+			mapped_contract_resource == null
+			or (
+				mapped_contract_resource.get_script()
+				!= RepresentativeRouteContractScript
+			)
+		):
+			return false
+		var mapped_contract: RepresentativeRouteContractScript = (
+			mapped_contract_resource as RepresentativeRouteContractScript
+		)
+		if (
+			listed_contract.contract_id != contract_id
+			or not listed_contract.is_equal_to(mapped_contract)
+		):
+			return false
+		var ordered_progression_refs: Array[StringName] = _copy_ids(
+			listed_contract.mainline_progression_reference_ids
+		)
+		var ordered_blueprint_refs: Array[StringName] = _copy_ids(
+			listed_contract.available_blueprint_reference_ids
+		)
+		var ordered_tradeoff_ids: Array[StringName] = _copy_ids(
+			listed_contract.tradeoff_dimension_ids
+		)
+		ordered_progression_refs.sort_custom(_content_id_less_than)
+		ordered_blueprint_refs.sort_custom(_content_id_less_than)
+		ordered_tradeoff_ids.sort_custom(_content_id_less_than)
+		if (
+			listed_contract.mainline_progression_reference_ids
+			!= ordered_progression_refs
+			or (
+				listed_contract.available_blueprint_reference_ids
+				!= ordered_blueprint_refs
+			)
+			or listed_contract.tradeoff_dimension_ids != ordered_tradeoff_ids
+		):
+			return false
+		for progression_id: StringName in ordered_progression_refs:
+			if not _mainline_progression_by_id.has(progression_id):
+				return false
+		for blueprint_id: StringName in ordered_blueprint_refs:
+			if not _blueprints_by_id.has(blueprint_id):
+				return false
+		route_contracts.append(listed_contract)
 	var progression_catalog := GlobalProgressionCatalogScript.new()
 	progression_catalog.catalog_id = _progression_catalog_id
 	progression_catalog.initial_stats = _initial_player_stats
@@ -701,12 +909,17 @@ func _has_valid_contract() -> bool:
 		progression_catalog.optional_progression.append(definition)
 	for reward: PermanentGrowthRewardDefinitionScript in rewards:
 		progression_catalog.permanent_growth_rewards.append(reward)
+	var route_catalog := RepresentativeRouteCatalogScript.new()
+	route_catalog.catalog_id = _route_contract_catalog_id
+	for contract: RepresentativeRouteContractScript in route_contracts:
+		route_catalog.contracts.append(contract)
 	return ContentContractFingerprintScript.matches(
 		_schema_version,
 		_content_version,
 		blueprints,
 		recipes,
 		progression_catalog,
+		route_catalog,
 	)
 
 
@@ -752,3 +965,10 @@ static func _permanent_growth_reward_less_than(
 	right: PermanentGrowthRewardDefinitionScript,
 ) -> bool:
 	return String(left.reward_id) < String(right.reward_id)
+
+
+static func _representative_route_contract_less_than(
+	left: RepresentativeRouteContractScript,
+	right: RepresentativeRouteContractScript,
+) -> bool:
+	return String(left.contract_id) < String(right.contract_id)

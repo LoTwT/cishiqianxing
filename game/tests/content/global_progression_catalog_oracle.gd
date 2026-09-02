@@ -1,7 +1,7 @@
 extends RefCounted
 
-const FROZEN_V3_FINGERPRINT: String = (
-	"e213f5a2f75fb3744c68c3046422df2ead4891dfd1b470f452f0c9facd210adc"
+const FROZEN_V4_FINGERPRINT: String = (
+	"bdbf394eb9e74a95eb5dc9fa789d99e0662a266a098706fc1d5f8a997687cad5"
 )
 
 

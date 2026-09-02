@@ -14,6 +14,54 @@ const MANIFEST_RECIPE_COUNT_INVALID: StringName = &"manifest.recipe_count.invali
 const MANIFEST_PROGRESSION_CATALOG_NULL: StringName = (
 	&"manifest.global_progression_catalog.null"
 )
+const MANIFEST_ROUTE_CONTRACT_CATALOG_NULL: StringName = (
+	&"manifest.representative_route_contract_catalog.null"
+)
+
+const ROUTE_CATALOG_INVALID_SCRIPT: StringName = &"route.catalog.invalid_script"
+const ROUTE_CATALOG_ID_INVALID: StringName = &"route.catalog_id.invalid"
+const ROUTE_CONTRACT_COUNT_INVALID: StringName = &"route.contract_count.invalid"
+const ROUTE_CONTRACT_ENTRY_NULL: StringName = &"route.contract.entry.null"
+const ROUTE_CONTRACT_ENTRY_INVALID_SCRIPT: StringName = (
+	&"route.contract.entry.invalid_script"
+)
+const ROUTE_CONTRACT_ID_EMPTY: StringName = &"route.contract_id.empty"
+const ROUTE_CONTRACT_ID_INVALID: StringName = &"route.contract_id.invalid"
+const ROUTE_CONTRACT_ID_DUPLICATE: StringName = &"route.contract_id.duplicate"
+const ROUTE_CONTRACT_ID_STAGE_MISMATCH: StringName = (
+	&"route.contract_id.stage_mismatch"
+)
+const ROUTE_STAGE_RANGE_INVALID: StringName = &"route.stage_range.invalid"
+const ROUTE_CHAPTER_COVERAGE_INVALID: StringName = &"route.chapter_coverage.invalid"
+const ROUTE_PLAYER_PROFILE_REFERENCE_INVALID: StringName = (
+	&"route.player_profile_reference.invalid"
+)
+const ROUTE_PROGRESSION_REFERENCE_INVALID: StringName = (
+	&"route.progression_reference.invalid"
+)
+const ROUTE_BLUEPRINT_REFERENCE_INVALID: StringName = (
+	&"route.blueprint_reference.invalid"
+)
+const ROUTE_BACKPACK_CAPACITY_INVALID: StringName = (
+	&"route.backpack_capacity.invalid"
+)
+const ROUTE_ENCOUNTER_RANGE_INVALID: StringName = &"route.encounter_range.invalid"
+const ROUTE_CONTACT_RANGE_INVALID: StringName = &"route.contact_range.invalid"
+const ROUTE_EXIT_HEALTH_THRESHOLD_INVALID: StringName = (
+	&"route.exit_health_threshold.invalid"
+)
+const ROUTE_RECOVERY_POINT_COUNT_INVALID: StringName = (
+	&"route.recovery_point_count.invalid"
+)
+const ROUTE_LEGAL_ALTERNATIVE_COUNT_INVALID: StringName = (
+	&"route.legal_alternative_count.invalid"
+)
+const ROUTE_TRADEOFF_DIMENSION_INVALID: StringName = (
+	&"route.tradeoff_dimension.invalid"
+)
+const ROUTE_DOMINANCE_POLICY_INVALID: StringName = (
+	&"route.dominance_policy.invalid"
+)
 
 const PROGRESSION_CATALOG_INVALID_SCRIPT: StringName = (
 	&"progression.catalog.invalid_script"
@@ -268,6 +316,12 @@ const LOOKUP_PROGRESSION_CHAPTER_INVALID: StringName = (
 )
 const LOOKUP_PROGRESSION_REGISTRY_UNINITIALIZED: StringName = (
 	&"lookup.progression.registry.uninitialized"
+)
+const LOOKUP_UNKNOWN_ROUTE_CONTRACT_ID: StringName = (
+	&"lookup.route_contract_id.unknown"
+)
+const LOOKUP_ROUTE_CONTRACT_REGISTRY_UNINITIALIZED: StringName = (
+	&"lookup.route_contract.registry.uninitialized"
 )
 
 var _code: StringName
