@@ -32,10 +32,16 @@ const RepresentativeRouteCatalogScript := preload(
 const RepresentativeRouteValidatorScript := preload(
 	"res://src/content/representative_route_contract_validator.gd"
 )
+const EnemyProfileCatalogScript := preload(
+	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
+)
+const EnemyProfileValidatorScript := preload(
+	"res://src/content/enemy_profile_validator.gd"
+)
 
 const CANONICAL_MANIFEST_PATH: String = "res://content/content_manifest.tres"
-const SUPPORTED_SCHEMA_VERSION: int = 4
-const SUPPORTED_CONTENT_VERSION: int = 4
+const SUPPORTED_SCHEMA_VERSION: int = 5
+const SUPPORTED_CONTENT_VERSION: int = 5
 const EXPECTED_DEFINITION_COUNT: int = 24
 const ADVANCED_ORDINALS: Array[int] = [6, 7, 13, 14, 18, 19, 23, 24]
 const EXPECTED_CATEGORIES: Array[int] = [
@@ -198,6 +204,13 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 			issues,
 		)
 	)
+	var enemy_catalog: EnemyProfileCatalogScript = (
+		EnemyProfileValidatorScript.snapshot_and_validate(
+			exact_manifest.enemy_profile_catalog as Resource,
+			route_catalog,
+			issues,
+		)
+	)
 	if not issues.is_empty():
 		return _failure(issues)
 
@@ -210,7 +223,20 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		recipes,
 		progression_catalog,
 		route_catalog,
+		enemy_catalog,
 	)
+	if not registry.is_initialized():
+		_add_issue(
+			issues,
+			ContentValidationIssueScript.MANIFEST_CONTRACT_FINGERPRINT_MISMATCH,
+			&"",
+			"manifest",
+			"Content manifest does not match the frozen v5 contract fingerprint.",
+		)
+		return _failure(issues)
+	EnemyProfileValidatorScript.validate_balance(registry, enemy_catalog, issues)
+	if not issues.is_empty():
+		return _failure(issues)
 	return ContentRegistryBuildResultScript.success(registry, report)
 
 

@@ -28,9 +28,18 @@ const RepresentativeRouteContractScript := preload(
 const RepresentativeRouteCatalogScript := preload(
 	"res://src/content/definitions/representative_route_contract_catalog_resource.gd"
 )
+const EnemyFamilyDefinitionScript := preload(
+	"res://src/content/definitions/enemy_family_definition_resource.gd"
+)
+const EnemyProfileDefinitionScript := preload(
+	"res://src/content/definitions/enemy_profile_definition_resource.gd"
+)
+const EnemyProfileCatalogScript := preload(
+	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
+)
 
 const EXPECTED_FINGERPRINT: String = (
-	"bdbf394eb9e74a95eb5dc9fa789d99e0662a266a098706fc1d5f8a997687cad5"
+	"bb06ce6fb51cfd82b40be73cc008a317d966cb344118fe6e4befcee5fc55e33f"
 )
 
 
@@ -41,6 +50,7 @@ static func matches(
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
+	enemy_catalog: EnemyProfileCatalogScript,
 ) -> bool:
 	return (
 		not EXPECTED_FINGERPRINT.is_empty()
@@ -51,6 +61,7 @@ static func matches(
 			recipes,
 			progression_catalog,
 			route_catalog,
+			enemy_catalog,
 		)
 		== EXPECTED_FINGERPRINT
 	)
@@ -63,6 +74,7 @@ static func calculate(
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
+	enemy_catalog: EnemyProfileCatalogScript,
 ) -> String:
 	var ordered_blueprints: Array[BlueprintDefinitionScript] = []
 	for blueprint: BlueprintDefinitionScript in blueprints:
@@ -80,10 +92,10 @@ static func calculate(
 		or catalog_resource.get_script() != GlobalProgressionCatalogScript
 	):
 		return ""
-	var profile_resource: Resource = progression_catalog.initial_stats as Resource
+	var player_profile_resource: Resource = progression_catalog.initial_stats as Resource
 	if (
-		profile_resource == null
-		or profile_resource.get_script() != PlayerStatProfileScript
+		player_profile_resource == null
+		or player_profile_resource.get_script() != PlayerStatProfileScript
 	):
 		return ""
 	var route_catalog_resource: Resource = route_catalog as Resource
@@ -101,6 +113,30 @@ static func calculate(
 		):
 			return ""
 		ordered_route_contracts.append(contract)
+	var enemy_catalog_resource: Resource = enemy_catalog as Resource
+	if (
+		enemy_catalog_resource == null
+		or enemy_catalog_resource.get_script() != EnemyProfileCatalogScript
+	):
+		return ""
+	var ordered_enemy_families: Array[EnemyFamilyDefinitionScript] = []
+	for family: EnemyFamilyDefinitionScript in enemy_catalog.families:
+		var family_resource: Resource = family as Resource
+		if (
+			family_resource == null
+			or family_resource.get_script() != EnemyFamilyDefinitionScript
+		):
+			return ""
+		ordered_enemy_families.append(family)
+	var ordered_enemy_profiles: Array[EnemyProfileDefinitionScript] = []
+	for profile: EnemyProfileDefinitionScript in enemy_catalog.profiles:
+		var profile_resource: Resource = profile as Resource
+		if (
+			profile_resource == null
+			or profile_resource.get_script() != EnemyProfileDefinitionScript
+		):
+			return ""
+		ordered_enemy_profiles.append(profile)
 	var ordered_mainline: Array[MainlineProgressionDefinitionScript] = []
 	for definition: MainlineProgressionDefinitionScript in (
 		progression_catalog.mainline_progression
@@ -140,8 +176,10 @@ static func calculate(
 	ordered_optional.sort_custom(_optional_less_than)
 	ordered_rewards.sort_custom(_reward_less_than)
 	ordered_route_contracts.sort_custom(_route_contract_less_than)
+	ordered_enemy_families.sort_custom(_enemy_family_less_than)
+	ordered_enemy_profiles.sort_custom(_enemy_profile_less_than)
 
-	var payload: String = "contract:v4;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;q%s;t%d;" % [
+	var payload: String = "contract:v5;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;q%s;t%d;e%s;f%d;n%d;" % [
 		schema_version,
 		content_version,
 		ordered_blueprints.size(),
@@ -152,6 +190,9 @@ static func calculate(
 		ordered_optional.size(),
 		_encode_string(String(route_catalog.catalog_id)),
 		ordered_route_contracts.size(),
+		_encode_string(String(enemy_catalog.catalog_id)),
+		ordered_enemy_families.size(),
+		ordered_enemy_profiles.size(),
 	]
 	for blueprint: BlueprintDefinitionScript in ordered_blueprints:
 		payload += "B%s;i%d;i%d;i%d;i%d;i%d;%s;%s;%s;%s;" % [
@@ -255,6 +296,41 @@ static func calculate(
 			contract.minimum_distinct_tradeoff_dimensions,
 			1 if contract.requires_non_dominated_route_set else 0,
 		]
+	for family: EnemyFamilyDefinitionScript in ordered_enemy_families:
+		payload += "F%s;i%d;i%d;i%d;%s;%s;%s;" % [
+			_encode_string(String(family.family_id)),
+			family.ordinal,
+			family.source,
+			family.numeric_archetype,
+			_encode_string(String(family.display_name_text_id)),
+			_encode_string(String(family.regional_role_id)),
+			_encode_string(String(family.visual_family_id)),
+		]
+	for profile: EnemyProfileDefinitionScript in ordered_enemy_profiles:
+		var ordered_trait_ids: Array[StringName] = _ordered_string_names(
+			profile.combat_trait_ids
+		)
+		payload += "E%s;%s;i%d;i%d;%s;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;%s;x%d;" % [
+			_encode_string(String(profile.profile_id)),
+			_encode_string(String(profile.family_id)),
+			profile.tier,
+			profile.source,
+			_encode_string(String(profile.balance_contract_id)),
+			profile.maximum_durability,
+			profile.attack,
+			profile.defense,
+			profile.speed,
+			1 if profile.has_alternate_state else 0,
+			profile.alternate_maximum_durability,
+			profile.alternate_attack,
+			profile.alternate_defense,
+			profile.alternate_speed,
+			_encode_string(String(profile.behavior_id)),
+			ordered_trait_ids.size(),
+		]
+		for trait_id: StringName in ordered_trait_ids:
+			payload += "x%s;" % _encode_string(String(trait_id))
+		payload += "v%s;" % _encode_string(String(profile.visual_binding_id))
 	return payload.sha256_text()
 
 
@@ -324,6 +400,20 @@ static func _route_contract_less_than(
 	right: RepresentativeRouteContractScript,
 ) -> bool:
 	return String(left.contract_id) < String(right.contract_id)
+
+
+static func _enemy_family_less_than(
+	left: EnemyFamilyDefinitionScript,
+	right: EnemyFamilyDefinitionScript,
+) -> bool:
+	return String(left.family_id) < String(right.family_id)
+
+
+static func _enemy_profile_less_than(
+	left: EnemyProfileDefinitionScript,
+	right: EnemyProfileDefinitionScript,
+) -> bool:
+	return String(left.profile_id) < String(right.profile_id)
 
 
 static func _string_name_less_than(left: StringName, right: StringName) -> bool:

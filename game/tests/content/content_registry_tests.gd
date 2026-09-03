@@ -130,8 +130,8 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 		registry.is_initialized(),
 		"A successful build must publish an initialized registry.",
 	)
-	context.expect_equal(registry.schema_version(), 4, "Schema version must be frozen at four.")
-	context.expect_equal(registry.content_version(), 4, "Content version must be frozen at four.")
+	context.expect_equal(registry.schema_version(), 5, "Schema version must be frozen at five.")
+	context.expect_equal(registry.content_version(), 5, "Content version must be frozen at five.")
 	context.expect_equal(registry.blueprint_count(), 24, "The registry must contain 24 blueprints.")
 	context.expect_equal(registry.recipe_count(), 24, "The registry must contain 24 recipes.")
 	context.expect_equal(registry.material_count(), 3, "The registry must expose three materials.")
@@ -159,7 +159,15 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 	)
 	var no_blueprints: Array[BlueprintDefinitionScript] = []
 	var no_recipes: Array[RecipeDefinitionScript] = []
-	raw_registry._initialize_validated(999, 999, no_blueprints, no_recipes, null, null)
+	raw_registry._initialize_validated(
+		999,
+		999,
+		no_blueprints,
+		no_recipes,
+		null,
+		null,
+		null,
+	)
 	context.expect_true(
 		not raw_registry.is_initialized(),
 		"The internal initializer must reject an unsealed content contract.",
@@ -609,8 +617,8 @@ func _rejects_malformed_manifest_atomically(
 	if not canonical.succeeded():
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(canonical.registry())
-	manifest.schema_version = 3
-	manifest.content_version = 3
+	manifest.schema_version = 4
+	manifest.content_version = 4
 	manifest.blueprints[0].content_id = manifest.blueprints[1].content_id
 	manifest.blueprints[0].category = 99
 	manifest.blueprints[0].unlock_chapter = 0
@@ -1252,7 +1260,7 @@ func _isolates_query_results(context: HeadlessTestContextScript) -> void:
 	)
 
 	var invalid_manifest: ContentManifestScript = _manifest_from_registry(registry)
-	invalid_manifest.schema_version = 3
+	invalid_manifest.schema_version = 4
 	var invalid_result: ContentRegistryBuildResultScript = (
 		ContentRegistryBuilderScript.build(invalid_manifest)
 	)
@@ -1315,6 +1323,7 @@ func _manifest_from_registry(registry: ContentRegistryScript) -> ContentManifest
 	manifest.representative_route_contract_catalog = (
 		registry.representative_route_contract_catalog()
 	)
+	manifest.enemy_profile_catalog = registry.enemy_profile_catalog()
 	return manifest
 
 

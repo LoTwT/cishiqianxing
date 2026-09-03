@@ -58,8 +58,8 @@ const ContactCombatTestDoubles := preload(
 )
 
 const PROFILE_ID: StringName = &"progression.player.loer"
-const CONTENT_SCHEMA_VERSION: int = 4
-const CONTENT_VERSION: int = 4
+const CONTENT_SCHEMA_VERSION: int = 5
+const CONTENT_VERSION: int = 5
 const OPPONENT_ID: StringName = &"opponent.test.contact"
 const BASE_MAXIMUM_HEALTH: int = 100
 const BASE_ATTACK: int = 10
@@ -748,8 +748,8 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 	)
 	for invalid_state: PlayerProgressionStateScript in [
 		PlayerProgressionStateScript.new(),
-		PlayerProgressionStateScript.create(&"", 4, 4, 20, []),
-		PlayerProgressionStateScript.create(PROFILE_ID, 4, 4, -1, []),
+		PlayerProgressionStateScript.create(&"", 5, 5, 20, []),
+		PlayerProgressionStateScript.create(PROFILE_ID, 5, 5, -1, []),
 	]:
 		_expect_rejected(
 			context,
@@ -768,7 +768,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
-			PlayerProgressionStateScript.create(PROFILE_ID, 3, 4, 20, []),
+			PlayerProgressionStateScript.create(PROFILE_ID, 4, 5, 20, []),
 			valid_opponent,
 			valid_command,
 			registry,
@@ -779,7 +779,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
-			PlayerProgressionStateScript.create(PROFILE_ID, 4, 3, 20, []),
+			PlayerProgressionStateScript.create(PROFILE_ID, 5, 4, 20, []),
 			valid_opponent,
 			valid_command,
 			registry,
@@ -790,7 +790,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
-			PlayerProgressionStateScript.create(&"progression.player.other", 4, 4, 20, []),
+			PlayerProgressionStateScript.create(&"progression.player.other", 5, 5, 20, []),
 			valid_opponent,
 			valid_command,
 			registry,
@@ -802,7 +802,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 		context,
 		ContactCombatKernelScript.evaluate(
 			PlayerProgressionStateScript.create(
-				PROFILE_ID, 4, 4, 20, [&"progression.reward.unknown"]
+				PROFILE_ID, 5, 5, 20, [&"progression.reward.unknown"]
 			),
 			valid_opponent,
 			valid_command,
@@ -814,7 +814,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
-			PlayerProgressionStateScript.create(PROFILE_ID, 4, 4, 101, []),
+			PlayerProgressionStateScript.create(PROFILE_ID, 5, 5, 101, []),
 			valid_opponent,
 			valid_command,
 			registry,
@@ -1014,7 +1014,7 @@ func _rejects_overflow_and_keeps_counts_compact(
 	context.expect_true(
 		not ContactCombatKernelScript._would_add_overflow(MAX_INT - 2, 2),
 		(
-			"The exact +2 overflow guard must allow MAX-2 + 2. Canonical v4 "
+			"The exact +2 overflow guard must allow MAX-2 + 2. Canonical v5 "
 			+ "player stats cannot reach this boundary through the public kernel."
 		),
 	)
@@ -1027,7 +1027,7 @@ func _rejects_overflow_and_keeps_counts_compact(
 		ContactCombatKernelScript._would_add_overflow(MAX_INT - 1, 2),
 		(
 			"The exact +2 overflow guard must reject MAX-1 + 2 even though "
-			+ "canonical v4 player derivation cannot currently reach it."
+			+ "canonical v5 player derivation cannot currently reach it."
 		),
 	)
 	_expect_rejected(

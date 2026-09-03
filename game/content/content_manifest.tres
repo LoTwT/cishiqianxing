@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ContentManifestResource" load_steps=52 format=3]
+[gd_resource type="Resource" script_class="ContentManifestResource" load_steps=53 format=3]
 
 [ext_resource type="Script" path="res://src/content/definitions/content_manifest_resource.gd" id="1_manifest"]
 [ext_resource type="Resource" path="res://content/blueprints/blueprint_01.tres" id="2_blueprint_01"]
@@ -51,12 +51,14 @@
 [ext_resource type="Resource" path="res://content/recipes/standard_recipe_24.tres" id="49_recipe_24"]
 [ext_resource type="Resource" path="res://content/progression/global_progression_catalog.tres" id="50_progression"]
 [ext_resource type="Resource" path="res://content/routes/representative_route_contract_catalog.tres" id="51_routes"]
+[ext_resource type="Resource" path="res://content/enemies/enemy_profile_catalog.tres" id="52_enemies"]
 
 [resource]
 script = ExtResource("1_manifest")
-schema_version = 4
-content_version = 4
+schema_version = 5
+content_version = 5
 blueprints = Array[BlueprintDefinitionResource]([ExtResource("2_blueprint_01"), ExtResource("3_blueprint_02"), ExtResource("4_blueprint_03"), ExtResource("5_blueprint_04"), ExtResource("6_blueprint_05"), ExtResource("7_blueprint_06"), ExtResource("8_blueprint_07"), ExtResource("9_blueprint_08"), ExtResource("10_blueprint_09"), ExtResource("11_blueprint_10"), ExtResource("12_blueprint_11"), ExtResource("13_blueprint_12"), ExtResource("14_blueprint_13"), ExtResource("15_blueprint_14"), ExtResource("16_blueprint_15"), ExtResource("17_blueprint_16"), ExtResource("18_blueprint_17"), ExtResource("19_blueprint_18"), ExtResource("20_blueprint_19"), ExtResource("21_blueprint_20"), ExtResource("22_blueprint_21"), ExtResource("23_blueprint_22"), ExtResource("24_blueprint_23"), ExtResource("25_blueprint_24")])
 recipes = Array[RecipeDefinitionResource]([ExtResource("26_recipe_01"), ExtResource("27_recipe_02"), ExtResource("28_recipe_03"), ExtResource("29_recipe_04"), ExtResource("30_recipe_05"), ExtResource("31_recipe_06"), ExtResource("32_recipe_07"), ExtResource("33_recipe_08"), ExtResource("34_recipe_09"), ExtResource("35_recipe_10"), ExtResource("36_recipe_11"), ExtResource("37_recipe_12"), ExtResource("38_recipe_13"), ExtResource("39_recipe_14"), ExtResource("40_recipe_15"), ExtResource("41_recipe_16"), ExtResource("42_recipe_17"), ExtResource("43_recipe_18"), ExtResource("44_recipe_19"), ExtResource("45_recipe_20"), ExtResource("46_recipe_21"), ExtResource("47_recipe_22"), ExtResource("48_recipe_23"), ExtResource("49_recipe_24")])
 global_progression_catalog = ExtResource("50_progression")
 representative_route_contract_catalog = ExtResource("51_routes")
+enemy_profile_catalog = ExtResource("52_enemies")

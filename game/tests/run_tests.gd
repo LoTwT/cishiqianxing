@@ -8,6 +8,9 @@ const GlobalProgressionRegistryTests := preload(
 const RepresentativeRouteContractTests := preload(
 	"res://tests/content/representative_route_contract_tests.gd"
 )
+const EnemyProfileRegistryTests := preload(
+	"res://tests/content/enemy_profile_registry_tests.gd"
+)
 const PermanentGrowthClaimKernelTests := preload(
 	"res://tests/rules/permanent_growth_claim_kernel_tests.gd"
 )
@@ -65,6 +68,16 @@ func _initialize() -> void:
 		_fail_empty_suite("representative_routes")
 		return
 
+	var enemy_profile_test_suite: EnemyProfileRegistryTests = (
+		EnemyProfileRegistryTests.new()
+	)
+	var enemy_profile_test_cases: Array[HeadlessTestCaseScript] = (
+		enemy_profile_test_suite.cases()
+	)
+	if enemy_profile_test_cases.is_empty():
+		_fail_empty_suite("enemy_profiles")
+		return
+
 	var permanent_growth_claim_test_suite: PermanentGrowthClaimKernelTests = (
 		PermanentGrowthClaimKernelTests.new()
 	)
@@ -90,6 +103,7 @@ func _initialize() -> void:
 	test_cases.append_array(content_registry_test_cases)
 	test_cases.append_array(global_progression_test_cases)
 	test_cases.append_array(representative_route_test_cases)
+	test_cases.append_array(enemy_profile_test_cases)
 	test_cases.append_array(permanent_growth_claim_test_cases)
 	test_cases.append_array(contact_combat_test_cases)
 	if test_cases.is_empty():
