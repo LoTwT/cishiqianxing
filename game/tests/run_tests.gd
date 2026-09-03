@@ -11,6 +11,9 @@ const RepresentativeRouteContractTests := preload(
 const PermanentGrowthClaimKernelTests := preload(
 	"res://tests/rules/permanent_growth_claim_kernel_tests.gd"
 )
+const ContactCombatKernelTests := preload(
+	"res://tests/rules/contact_combat_kernel_tests.gd"
+)
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
@@ -72,12 +75,23 @@ func _initialize() -> void:
 		_fail_empty_suite("permanent_growth_claim")
 		return
 
+	var contact_combat_test_suite: ContactCombatKernelTests = (
+		ContactCombatKernelTests.new()
+	)
+	var contact_combat_test_cases: Array[HeadlessTestCaseScript] = (
+		contact_combat_test_suite.cases()
+	)
+	if contact_combat_test_cases.is_empty():
+		_fail_empty_suite("contact_combat")
+		return
+
 	var test_cases: Array[HeadlessTestCaseScript] = []
 	test_cases.append_array(grid_rule_kernel_test_cases)
 	test_cases.append_array(content_registry_test_cases)
 	test_cases.append_array(global_progression_test_cases)
 	test_cases.append_array(representative_route_test_cases)
 	test_cases.append_array(permanent_growth_claim_test_cases)
+	test_cases.append_array(contact_combat_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
 		print("[TEST][SUMMARY] total=0 passed=0 failed=1 assertions=0")
