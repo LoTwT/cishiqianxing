@@ -1,6 +1,10 @@
 class_name EnemyProfileDefinitionResource
 extends Resource
 
+const MAXIMUM_COMBAT_TRAIT_COUNT: int = 2
+const PHASE_ALTERNATION_TRAIT_ID: StringName = &"enemy.trait.phase_alternation"
+const SHIELD_TRAIT_ID: StringName = &"enemy.trait.shield"
+
 enum Tier {
 	BASE = 1,
 	ENHANCED = 2,
