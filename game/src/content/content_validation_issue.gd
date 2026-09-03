@@ -9,6 +9,9 @@ const MANIFEST_SCHEMA_VERSION_UNSUPPORTED: StringName = (
 const MANIFEST_CONTENT_VERSION_UNSUPPORTED: StringName = (
 	&"manifest.content_version.unsupported"
 )
+const MANIFEST_CONTRACT_FINGERPRINT_MISMATCH: StringName = (
+	&"manifest.contract_fingerprint.mismatch"
+)
 const MANIFEST_BLUEPRINT_COUNT_INVALID: StringName = &"manifest.blueprint_count.invalid"
 const MANIFEST_RECIPE_COUNT_INVALID: StringName = &"manifest.recipe_count.invalid"
 const MANIFEST_PROGRESSION_CATALOG_NULL: StringName = (
@@ -16,6 +19,82 @@ const MANIFEST_PROGRESSION_CATALOG_NULL: StringName = (
 )
 const MANIFEST_ROUTE_CONTRACT_CATALOG_NULL: StringName = (
 	&"manifest.representative_route_contract_catalog.null"
+)
+const MANIFEST_ENEMY_PROFILE_CATALOG_NULL: StringName = (
+	&"manifest.enemy_profile_catalog.null"
+)
+
+const ENEMY_CATALOG_INVALID_SCRIPT: StringName = &"enemy.catalog.invalid_script"
+const ENEMY_CATALOG_ID_INVALID: StringName = &"enemy.catalog_id.invalid"
+const ENEMY_FAMILY_COUNT_INVALID: StringName = &"enemy.family_count.invalid"
+const ENEMY_PROFILE_COUNT_INVALID: StringName = &"enemy.profile_count.invalid"
+const ENEMY_FAMILY_ENTRY_NULL: StringName = &"enemy.family.entry.null"
+const ENEMY_FAMILY_ENTRY_INVALID_SCRIPT: StringName = (
+	&"enemy.family.entry.invalid_script"
+)
+const ENEMY_PROFILE_ENTRY_NULL: StringName = &"enemy.profile.entry.null"
+const ENEMY_PROFILE_ENTRY_INVALID_SCRIPT: StringName = (
+	&"enemy.profile.entry.invalid_script"
+)
+const ENEMY_FAMILY_ID_INVALID: StringName = &"enemy.family_id.invalid"
+const ENEMY_FAMILY_ID_DUPLICATE: StringName = &"enemy.family_id.duplicate"
+const ENEMY_FAMILY_ORDINAL_DUPLICATE: StringName = (
+	&"enemy.family.ordinal.duplicate"
+)
+const ENEMY_FAMILY_FIELD_MISMATCH: StringName = &"enemy.family.field_mismatch"
+const ENEMY_FAMILY_VISUAL_ID_DUPLICATE: StringName = (
+	&"enemy.family.visual_id.duplicate"
+)
+const ENEMY_FAMILY_SOURCE_DISTRIBUTION_INVALID: StringName = (
+	&"enemy.family.source_distribution.invalid"
+)
+const ENEMY_PROFILE_ID_INVALID: StringName = &"enemy.profile_id.invalid"
+const ENEMY_PROFILE_ID_DUPLICATE: StringName = &"enemy.profile_id.duplicate"
+const ENEMY_PROFILE_FAMILY_REFERENCE_INVALID: StringName = (
+	&"enemy.profile.family_reference.invalid"
+)
+const ENEMY_PROFILE_BALANCE_CONTRACT_REFERENCE_INVALID: StringName = (
+	&"enemy.profile.balance_contract_reference.invalid"
+)
+const ENEMY_PROFILE_BEHAVIOR_ID_INVALID: StringName = (
+	&"enemy.profile.behavior_id.invalid"
+)
+const ENEMY_PROFILE_TRAIT_ID_INVALID: StringName = &"enemy.profile.trait_id.invalid"
+const ENEMY_PROFILE_TRAIT_ID_DUPLICATE: StringName = (
+	&"enemy.profile.trait_id.duplicate"
+)
+const ENEMY_PROFILE_STATS_INVALID: StringName = &"enemy.profile.stats.invalid"
+const ENEMY_PROFILE_ALTERNATE_STATE_INVALID: StringName = (
+	&"enemy.profile.alternate_state.invalid"
+)
+const ENEMY_PROFILE_VISUAL_ID_DUPLICATE: StringName = (
+	&"enemy.profile.visual_id.duplicate"
+)
+const ENEMY_PROFILE_FAMILY_TIER_PAIR_INVALID: StringName = (
+	&"enemy.profile.family_tier_pair.invalid"
+)
+const ENEMY_PROFILE_FIELD_MISMATCH: StringName = &"enemy.profile.field_mismatch"
+const ENEMY_PROFILE_BALANCE_CONTEXT_INVALID: StringName = (
+	&"enemy.profile.balance_context.invalid"
+)
+const ENEMY_PROFILE_BALANCE_EVALUATION_FAILED: StringName = (
+	&"enemy.profile.balance_evaluation.failed"
+)
+const ENEMY_PROFILE_PLAYER_DAMAGE_TOO_LOW: StringName = (
+	&"enemy.profile.player_damage.too_low"
+)
+const ENEMY_PROFILE_ATTACK_COUNT_INVALID: StringName = (
+	&"enemy.profile.attack_count.invalid"
+)
+const ENEMY_PROFILE_SHIELD_ATTACK_DELTA_INVALID: StringName = (
+	&"enemy.profile.shield_attack_delta.invalid"
+)
+const ENEMY_PROFILE_NOT_CLEARABLE: StringName = &"enemy.profile.not_clearable"
+const ENEMY_PROFILE_HEALTH_LOSS_INVALID: StringName = (
+	&"enemy.profile.health_loss.invalid"
+)
+const ENEMY_PROFILE_SPEED_ARCHETYPE_INVALID: StringName = (
+	&"enemy.profile.speed_archetype.invalid"
 )
 
 const ROUTE_CATALOG_INVALID_SCRIPT: StringName = &"route.catalog.invalid_script"
@@ -322,6 +401,15 @@ const LOOKUP_UNKNOWN_ROUTE_CONTRACT_ID: StringName = (
 )
 const LOOKUP_ROUTE_CONTRACT_REGISTRY_UNINITIALIZED: StringName = (
 	&"lookup.route_contract.registry.uninitialized"
+)
+const LOOKUP_UNKNOWN_ENEMY_FAMILY_ID: StringName = (
+	&"lookup.enemy_family_id.unknown"
+)
+const LOOKUP_UNKNOWN_ENEMY_PROFILE_ID: StringName = (
+	&"lookup.enemy_profile_id.unknown"
+)
+const LOOKUP_ENEMY_REGISTRY_UNINITIALIZED: StringName = (
+	&"lookup.enemy.registry.uninitialized"
 )
 
 var _code: StringName

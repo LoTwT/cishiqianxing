@@ -15,6 +15,12 @@ const PermanentGrowthRewardDefinitionScript := preload(
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
+const EnemyProfileCatalogScript := preload(
+	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
+)
+const EnemyProfileDefinitionScript := preload(
+	"res://src/content/definitions/enemy_profile_definition_resource.gd"
+)
 const ContentManifestScript := preload(
 	"res://src/content/definitions/content_manifest_resource.gd"
 )
@@ -140,14 +146,14 @@ func cases() -> Array[HeadlessTestCaseScript]:
 func _builds_canonical_catalog(context: HeadlessTestContextScript) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Canonical H-3.1 catalog",
+		"Canonical H-4.4 catalog",
 	)
 	if not result.succeeded():
 		return
 	var registry: ContentRegistryScript = result.registry()
-	context.expect_true(registry.is_initialized(), "Canonical H-3.1 registry must initialize.")
-	context.expect_equal(registry.schema_version(), 4, "Content schema version must be four.")
-	context.expect_equal(registry.content_version(), 4, "Content version must be four.")
+	context.expect_true(registry.is_initialized(), "Canonical H-4.4 registry must initialize.")
+	context.expect_equal(registry.schema_version(), 5, "Content schema version must be five.")
+	context.expect_equal(registry.content_version(), 5, "Content version must be five.")
 	context.expect_equal(
 		registry.mainline_progression_ids().size(),
 		9,
@@ -254,7 +260,7 @@ func _builds_canonical_catalog(context: HeadlessTestContextScript) -> void:
 func _matches_independent_oracle(context: HeadlessTestContextScript) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Independent H-3.1 oracle",
+		"Independent H-4.4 oracle",
 	)
 	if not result.succeeded():
 		return
@@ -395,7 +401,7 @@ func _rejects_baseline_field_regressions(
 ) -> void:
 	var canonical: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Baseline H-3 field regressions",
+		"Baseline H-4.4 field regressions",
 	)
 	if not canonical.succeeded():
 		return
@@ -710,7 +716,7 @@ func _rejects_baseline_resource_regressions(
 ) -> void:
 	var canonical: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Baseline H-3 exact-resource regressions",
+		"Baseline H-4.4 exact-resource regressions",
 	)
 	if not canonical.succeeded():
 		return
@@ -1210,7 +1216,7 @@ func _rejects_oversized_catalog_at_header(
 ) -> void:
 	var canonical: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Oversized H-3.1 catalog",
+		"Oversized H-4.4 catalog",
 	)
 	if not canonical.succeeded():
 		return
@@ -1219,7 +1225,7 @@ func _rejects_oversized_catalog_at_header(
 	manifest.global_progression_catalog.optional_progression.resize(4096)
 	manifest.global_progression_catalog.permanent_growth_rewards.resize(4096)
 	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
-	context.expect_true(not result.succeeded(), "An oversized H-3.1 catalog must fail.")
+	context.expect_true(not result.succeeded(), "An oversized H-4.4 catalog must fail.")
 	context.expect_equal(result.registry(), null, "Oversized content must fail closed.")
 	context.expect_equal(
 		_issue_codes(result),
@@ -1337,6 +1343,12 @@ func _orders_success_deterministically(context: HeadlessTestContextScript) -> vo
 			canonical.registry().global_progression_catalog()
 		),
 		"Reordered top arrays and reward_ids must publish an identical snapshot.",
+	)
+	context.expect_true(
+		result.registry().enemy_profile_catalog().is_equal_to(
+			canonical.registry().enemy_profile_catalog()
+		),
+		"Reordered enemy families, profiles, and traits must publish an identical snapshot.",
 	)
 	var canonical_registry: ContentRegistryScript = canonical.registry()
 	var reordered_registry: ContentRegistryScript = result.registry()
@@ -1553,7 +1565,7 @@ func _reports_baseline_structured_queries(
 ) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Baseline H-3 structured queries",
+		"Baseline H-4.4 structured queries",
 	)
 	if not result.succeeded():
 		return
@@ -1778,7 +1790,7 @@ func _isolates_input_and_returned_resources(
 ) -> void:
 	var canonical: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"H-3.1 input isolation",
+		"H-4.4 input isolation",
 	)
 	if not canonical.succeeded():
 		return
@@ -1803,7 +1815,7 @@ func _isolates_input_and_returned_resources(
 	var result: ContentRegistryBuildResultScript = ContentRegistryBuilderScript.build(manifest)
 	context.expect_true(
 		result.succeeded(),
-		"Copied H-3.1 input must build before mutation. %s" % _diagnostics(result),
+		"Copied H-4.4 input must build before mutation. %s" % _diagnostics(result),
 	)
 	if not result.succeeded():
 		return
@@ -2073,7 +2085,7 @@ func _isolates_input_and_returned_resources(
 func _isolates_query_results(context: HeadlessTestContextScript) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"H-3.1 query isolation",
+		"H-4.4 query isolation",
 	)
 	if not result.succeeded():
 		return
@@ -2356,8 +2368,8 @@ func _invalidates_tampered_registry_state(
 	)
 	if version_result.succeeded():
 		var version_registry: ContentRegistryScript = version_result.registry()
-		version_registry._schema_version = 3
-		version_registry._content_version = 3
+		version_registry._schema_version = 4
+		version_registry._content_version = 4
 		_expect_tampering_rejected(
 			context,
 			version_registry,
@@ -2545,11 +2557,11 @@ func _fingerprints_and_rebuilds_deterministically(
 ) -> void:
 	var first: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"First deterministic H-3.1 rebuild",
+		"First deterministic H-4.4 rebuild",
 	)
 	var second: ContentRegistryBuildResultScript = _canonical_result(
 		context,
-		"Second deterministic H-3.1 rebuild",
+		"Second deterministic H-4.4 rebuild",
 	)
 	if not first.succeeded() or not second.succeeded():
 		return
@@ -2559,6 +2571,12 @@ func _fingerprints_and_rebuilds_deterministically(
 			second.registry().global_progression_catalog()
 		),
 		"Rebuilds must expose value-equal catalogs.",
+	)
+	context.expect_true(
+		first.registry().enemy_profile_catalog().is_equal_to(
+			second.registry().enemy_profile_catalog()
+		),
+		"Rebuilds must expose value-equal enemy catalogs.",
 	)
 	context.expect_true(
 		first.registry().permanent_growth_reward_definitions()[0]
@@ -2575,18 +2593,18 @@ func _fingerprints_and_rebuilds_deterministically(
 	var canonical_fingerprint: String = _fingerprint(canonical_manifest)
 	context.expect_equal(
 		canonical_fingerprint,
-		GlobalProgressionCatalogOracle.FROZEN_V4_FINGERPRINT,
-		"Calculated schema/content v4 fingerprint must match the independent oracle.",
+		GlobalProgressionCatalogOracle.FROZEN_V5_FINGERPRINT,
+		"Calculated schema/content v5 fingerprint must match the independent oracle.",
 	)
 	context.expect_equal(
 		ContentContractFingerprintScript.EXPECTED_FINGERPRINT,
-		GlobalProgressionCatalogOracle.FROZEN_V4_FINGERPRINT,
+		GlobalProgressionCatalogOracle.FROZEN_V5_FINGERPRINT,
 		"Production frozen fingerprint must independently match the oracle digest.",
 	)
 	context.expect_equal(
 		canonical_fingerprint.length(),
 		64,
-		"Frozen v4 fingerprint must be a SHA-256 hex digest.",
+		"Frozen v5 fingerprint must be a SHA-256 hex digest.",
 	)
 	context.expect_true(
 		ContentContractFingerprintScript.matches(
@@ -2596,8 +2614,9 @@ func _fingerprints_and_rebuilds_deterministically(
 			canonical_manifest.recipes,
 			canonical_manifest.global_progression_catalog,
 			canonical_manifest.representative_route_contract_catalog,
+			canonical_manifest.enemy_profile_catalog,
 		),
-		"Canonical schema/content v4 must match the frozen fingerprint.",
+		"Canonical schema/content v5 must match the frozen fingerprint.",
 	)
 
 	var reordered_manifest: ContentManifestScript = _manifest_from_registry(first.registry())
@@ -2605,7 +2624,7 @@ func _fingerprints_and_rebuilds_deterministically(
 	context.expect_equal(
 		_fingerprint(reordered_manifest),
 		canonical_fingerprint,
-		"Fingerprint v4 must ignore top-level and per-group declaration order.",
+		"Fingerprint v5 must ignore top-level and nested declaration order.",
 	)
 
 	var reward_id_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
@@ -2615,7 +2634,7 @@ func _fingerprints_and_rebuilds_deterministically(
 	).reward_id = &"progression.reward.tampered"
 	context.expect_true(
 		_fingerprint(reward_id_tamper) != canonical_fingerprint,
-		"Fingerprint v4 must cover reward identity.",
+		"Fingerprint v5 must cover reward identity.",
 	)
 
 	var stat_kind_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
@@ -2625,7 +2644,7 @@ func _fingerprints_and_rebuilds_deterministically(
 	).stat_kind = 3
 	context.expect_true(
 		_fingerprint(stat_kind_tamper) != canonical_fingerprint,
-		"Fingerprint v4 must detect a valid-but-wrong reward stat kind.",
+		"Fingerprint v5 must detect a valid-but-wrong reward stat kind.",
 	)
 
 	var reward_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
@@ -2635,7 +2654,7 @@ func _fingerprints_and_rebuilds_deterministically(
 	).increase = 2
 	context.expect_true(
 		_fingerprint(reward_tamper) != canonical_fingerprint,
-		"Fingerprint v4 must cover reward stat semantics.",
+		"Fingerprint v5 must cover reward stat semantics.",
 	)
 
 	var membership_tamper: ContentManifestScript = _manifest_from_registry(first.registry())
@@ -2664,15 +2683,15 @@ func _fingerprints_and_rebuilds_deterministically(
 	)
 	context.expect_true(
 		_fingerprint(membership_tamper) != canonical_fingerprint,
-		"Fingerprint v4 must detect equal-valued rewards exchanged across groups.",
+		"Fingerprint v5 must detect equal-valued rewards exchanged across groups.",
 	)
 
 	var old_version_manifest: ContentManifestScript = _manifest_from_registry(first.registry())
-	old_version_manifest.schema_version = 3
-	old_version_manifest.content_version = 3
+	old_version_manifest.schema_version = 4
+	old_version_manifest.content_version = 4
 	context.expect_true(
 		_fingerprint(old_version_manifest) != canonical_fingerprint,
-		"The old v3 header must not share the schema/content v4 fingerprint.",
+		"The old v4 header must not share the schema/content v5 fingerprint.",
 	)
 	context.expect_true(
 		not ContentContractFingerprintScript.matches(
@@ -2682,8 +2701,9 @@ func _fingerprints_and_rebuilds_deterministically(
 			old_version_manifest.recipes,
 			old_version_manifest.global_progression_catalog,
 			old_version_manifest.representative_route_contract_catalog,
+			old_version_manifest.enemy_profile_catalog,
 		),
-		"The old v3 header must not match the frozen v4 contract.",
+		"The old v4 header must not match the frozen v5 contract.",
 	)
 
 
@@ -2697,6 +2717,7 @@ func _manifest_from_registry(registry: ContentRegistryScript) -> ContentManifest
 	manifest.representative_route_contract_catalog = (
 		registry.representative_route_contract_catalog()
 	)
+	manifest.enemy_profile_catalog = registry.enemy_profile_catalog()
 	return manifest
 
 
@@ -2793,6 +2814,11 @@ func _reverse_all_declarations(manifest: ContentManifestScript) -> void:
 		definition.reward_ids.reverse()
 	for definition: OptionalProgressionDefinitionScript in catalog.optional_progression:
 		definition.reward_ids.reverse()
+	var enemy_catalog: EnemyProfileCatalogScript = manifest.enemy_profile_catalog
+	enemy_catalog.families.reverse()
+	enemy_catalog.profiles.reverse()
+	for profile: EnemyProfileDefinitionScript in enemy_catalog.profiles:
+		profile.combat_trait_ids.reverse()
 
 
 func _corrupt_for_ordering(catalog: GlobalProgressionCatalogScript) -> void:
@@ -2820,6 +2846,7 @@ func _fingerprint(manifest: ContentManifestScript) -> String:
 		manifest.recipes,
 		manifest.global_progression_catalog,
 		manifest.representative_route_contract_catalog,
+		manifest.enemy_profile_catalog,
 	)
 
 

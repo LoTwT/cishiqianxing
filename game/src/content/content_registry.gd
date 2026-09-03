@@ -28,12 +28,24 @@ const RepresentativeRouteContractScript := preload(
 const RepresentativeRouteCatalogScript := preload(
 	"res://src/content/definitions/representative_route_contract_catalog_resource.gd"
 )
+const EnemyFamilyDefinitionScript := preload(
+	"res://src/content/definitions/enemy_family_definition_resource.gd"
+)
+const EnemyProfileDefinitionScript := preload(
+	"res://src/content/definitions/enemy_profile_definition_resource.gd"
+)
+const EnemyProfileCatalogScript := preload(
+	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
+)
 const ContentLookupResultScript := preload("res://src/content/content_lookup_result.gd")
 const GlobalProgressionQueryResultScript := preload(
 	"res://src/content/global_progression_query_result.gd"
 )
 const RepresentativeRouteQueryResultScript := preload(
 	"res://src/content/representative_route_query_result.gd"
+)
+const EnemyProfileQueryResultScript := preload(
+	"res://src/content/enemy_profile_query_result.gd"
 )
 const ContentContractFingerprintScript := preload(
 	"res://src/content/content_contract_fingerprint.gd"
@@ -46,6 +58,8 @@ const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
 const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
 const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
 const EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT: int = 5
+const EXPECTED_ENEMY_FAMILY_COUNT: int = 12
+const EXPECTED_ENEMY_PROFILE_COUNT: int = 24
 
 var _schema_version: int
 var _content_version: int
@@ -67,6 +81,13 @@ var _route_contract_catalog_id: StringName = &""
 var _representative_route_contract_ids: Array[StringName] = []
 var _representative_route_contracts: Array[RepresentativeRouteContractScript] = []
 var _representative_route_contracts_by_id: Dictionary[StringName, RepresentativeRouteContractScript] = {}
+var _enemy_profile_catalog_id: StringName = &""
+var _enemy_family_ids: Array[StringName] = []
+var _enemy_families: Array[EnemyFamilyDefinitionScript] = []
+var _enemy_families_by_id: Dictionary[StringName, EnemyFamilyDefinitionScript] = {}
+var _enemy_profile_ids: Array[StringName] = []
+var _enemy_profiles: Array[EnemyProfileDefinitionScript] = []
+var _enemy_profiles_by_id: Dictionary[StringName, EnemyProfileDefinitionScript] = {}
 
 
 func _init() -> void:
@@ -80,6 +101,7 @@ func _initialize_validated(
 	recipes: Array[RecipeDefinitionScript],
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
+	enemy_catalog: EnemyProfileCatalogScript,
 ) -> void:
 	if is_initialized():
 		return
@@ -90,6 +112,7 @@ func _initialize_validated(
 		recipes,
 		progression_catalog,
 		route_catalog,
+		enemy_catalog,
 	):
 		return
 	var stored_material_ids: Array[StringName] = (
@@ -109,6 +132,12 @@ func _initialize_validated(
 	var stored_route_contract_ids: Array[StringName] = []
 	var stored_route_contracts: Array[RepresentativeRouteContractScript] = []
 	var stored_route_contracts_by_id: Dictionary[StringName, RepresentativeRouteContractScript] = {}
+	var stored_enemy_family_ids: Array[StringName] = []
+	var stored_enemy_families: Array[EnemyFamilyDefinitionScript] = []
+	var stored_enemy_families_by_id: Dictionary[StringName, EnemyFamilyDefinitionScript] = {}
+	var stored_enemy_profile_ids: Array[StringName] = []
+	var stored_enemy_profiles: Array[EnemyProfileDefinitionScript] = []
+	var stored_enemy_profiles_by_id: Dictionary[StringName, EnemyProfileDefinitionScript] = {}
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		var stored_blueprint: BlueprintDefinitionScript = (
 			BlueprintDefinitionScript.snapshot(blueprint)
@@ -158,6 +187,21 @@ func _initialize_validated(
 		stored_route_contract_ids.append(stored_contract.contract_id)
 		stored_route_contracts.append(stored_contract)
 		stored_route_contracts_by_id[stored_contract.contract_id] = stored_contract
+	for family: EnemyFamilyDefinitionScript in enemy_catalog.families:
+		var stored_family: EnemyFamilyDefinitionScript = (
+			EnemyFamilyDefinitionScript.snapshot(family)
+		)
+		stored_enemy_family_ids.append(stored_family.family_id)
+		stored_enemy_families.append(stored_family)
+		stored_enemy_families_by_id[stored_family.family_id] = stored_family
+	for profile: EnemyProfileDefinitionScript in enemy_catalog.profiles:
+		var stored_enemy_profile: EnemyProfileDefinitionScript = (
+			EnemyProfileDefinitionScript.snapshot(profile)
+		)
+		stored_enemy_profile.combat_trait_ids.sort_custom(_content_id_less_than)
+		stored_enemy_profile_ids.append(stored_enemy_profile.profile_id)
+		stored_enemy_profiles.append(stored_enemy_profile)
+		stored_enemy_profiles_by_id[stored_enemy_profile.profile_id] = stored_enemy_profile
 	stored_blueprint_ids.sort_custom(_content_id_less_than)
 	stored_recipe_ids.sort_custom(_content_id_less_than)
 	stored_mainline_ids.sort_custom(_content_id_less_than)
@@ -166,6 +210,10 @@ func _initialize_validated(
 	stored_rewards.sort_custom(_permanent_growth_reward_less_than)
 	stored_route_contract_ids.sort_custom(_content_id_less_than)
 	stored_route_contracts.sort_custom(_representative_route_contract_less_than)
+	stored_enemy_family_ids.sort_custom(_content_id_less_than)
+	stored_enemy_families.sort_custom(_enemy_family_less_than)
+	stored_enemy_profile_ids.sort_custom(_content_id_less_than)
+	stored_enemy_profiles.sort_custom(_enemy_profile_less_than)
 	stored_material_ids.sort_custom(_content_id_less_than)
 	stored_material_ids.make_read_only()
 	stored_blueprint_ids.make_read_only()
@@ -176,12 +224,18 @@ func _initialize_validated(
 	stored_rewards.make_read_only()
 	stored_route_contract_ids.make_read_only()
 	stored_route_contracts.make_read_only()
+	stored_enemy_family_ids.make_read_only()
+	stored_enemy_families.make_read_only()
+	stored_enemy_profile_ids.make_read_only()
+	stored_enemy_profiles.make_read_only()
 	stored_blueprints_by_id.make_read_only()
 	stored_recipes_by_id.make_read_only()
 	stored_mainline_by_id.make_read_only()
 	stored_optional_by_id.make_read_only()
 	stored_rewards_by_id.make_read_only()
 	stored_route_contracts_by_id.make_read_only()
+	stored_enemy_families_by_id.make_read_only()
+	stored_enemy_profiles_by_id.make_read_only()
 	_schema_version = schema_version
 	_content_version = content_version
 	_material_ids = stored_material_ids
@@ -204,6 +258,13 @@ func _initialize_validated(
 	_representative_route_contract_ids = stored_route_contract_ids
 	_representative_route_contracts = stored_route_contracts
 	_representative_route_contracts_by_id = stored_route_contracts_by_id
+	_enemy_profile_catalog_id = enemy_catalog.catalog_id
+	_enemy_family_ids = stored_enemy_family_ids
+	_enemy_families = stored_enemy_families
+	_enemy_families_by_id = stored_enemy_families_by_id
+	_enemy_profile_ids = stored_enemy_profile_ids
+	_enemy_profiles = stored_enemy_profiles
+	_enemy_profiles_by_id = stored_enemy_profiles_by_id
 
 
 func is_initialized() -> bool:
@@ -341,6 +402,104 @@ func lookup_representative_route_contract(
 		)
 	return _route_contract_query(
 		_representative_route_contracts_by_id[contract_id]
+	)
+
+
+func enemy_profile_catalog() -> EnemyProfileCatalogScript:
+	if not is_initialized():
+		return null
+	var result := EnemyProfileCatalogScript.new()
+	result.catalog_id = _enemy_profile_catalog_id
+	for family: EnemyFamilyDefinitionScript in _enemy_families:
+		result.families.append(EnemyFamilyDefinitionScript.snapshot(family))
+	for profile: EnemyProfileDefinitionScript in _enemy_profiles:
+		result.profiles.append(EnemyProfileDefinitionScript.snapshot(profile))
+	return result
+
+
+func enemy_family_count() -> int:
+	return _enemy_family_ids.size() if is_initialized() else 0
+
+
+func enemy_family_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_enemy_family_ids)
+
+
+func enemy_families() -> Array[EnemyFamilyDefinitionScript]:
+	var result: Array[EnemyFamilyDefinitionScript] = []
+	if not is_initialized():
+		return result
+	for family: EnemyFamilyDefinitionScript in _enemy_families:
+		result.append(EnemyFamilyDefinitionScript.snapshot(family))
+	return result
+
+
+func enemy_profile_count() -> int:
+	return _enemy_profile_ids.size() if is_initialized() else 0
+
+
+func enemy_profile_ids() -> Array[StringName]:
+	if not is_initialized():
+		return []
+	return _copy_ids(_enemy_profile_ids)
+
+
+func enemy_profiles() -> Array[EnemyProfileDefinitionScript]:
+	var result: Array[EnemyProfileDefinitionScript] = []
+	if not is_initialized():
+		return result
+	for profile: EnemyProfileDefinitionScript in _enemy_profiles:
+		result.append(EnemyProfileDefinitionScript.snapshot(profile))
+	return result
+
+
+func lookup_enemy_family(
+	family_id: StringName,
+) -> EnemyProfileQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_enemy_query(
+			EnemyProfileQueryResultScript.Kind.FAMILY,
+			family_id,
+			"family_id",
+		)
+	if not _enemy_families_by_id.has(family_id):
+		return EnemyProfileQueryResultScript.failed(
+			EnemyProfileQueryResultScript.Kind.FAMILY,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_ENEMY_FAMILY_ID,
+				family_id,
+				"family_id",
+				"No enemy family is registered for ID '%s'." % String(family_id),
+			)
+		)
+	return EnemyProfileQueryResultScript.found_family(
+		_enemy_families_by_id[family_id]
+	)
+
+
+func lookup_enemy_profile(
+	profile_id: StringName,
+) -> EnemyProfileQueryResultScript:
+	if not is_initialized():
+		return _uninitialized_enemy_query(
+			EnemyProfileQueryResultScript.Kind.PROFILE,
+			profile_id,
+			"profile_id",
+		)
+	if not _enemy_profiles_by_id.has(profile_id):
+		return EnemyProfileQueryResultScript.failed(
+			EnemyProfileQueryResultScript.Kind.PROFILE,
+			ContentValidationIssueScript.new(
+				ContentValidationIssueScript.LOOKUP_UNKNOWN_ENEMY_PROFILE_ID,
+				profile_id,
+				"profile_id",
+				"No enemy profile is registered for ID '%s'." % String(profile_id),
+			)
+		)
+	return EnemyProfileQueryResultScript.found_profile(
+		_enemy_profiles_by_id[profile_id]
 	)
 
 
@@ -594,6 +753,22 @@ func _uninitialized_progression_query(
 			"registry",
 			"Content registry has not passed complete progression validation.",
 		),
+		)
+
+
+func _uninitialized_enemy_query(
+	kind: int,
+	requested_id: StringName,
+	field_path: String,
+) -> EnemyProfileQueryResultScript:
+	return EnemyProfileQueryResultScript.failed(
+		kind,
+		ContentValidationIssueScript.new(
+			ContentValidationIssueScript.LOOKUP_ENEMY_REGISTRY_UNINITIALIZED,
+			requested_id,
+			field_path,
+			"Content registry has not passed complete enemy-profile validation.",
+		)
 	)
 
 
@@ -666,6 +841,12 @@ func _has_valid_contract() -> bool:
 			_representative_route_contract_ids.size()
 			!= _representative_route_contracts_by_id.size()
 		)
+		or _enemy_family_ids.size() != EXPECTED_ENEMY_FAMILY_COUNT
+		or _enemy_families.size() != EXPECTED_ENEMY_FAMILY_COUNT
+		or _enemy_family_ids.size() != _enemy_families_by_id.size()
+		or _enemy_profile_ids.size() != EXPECTED_ENEMY_PROFILE_COUNT
+		or _enemy_profiles.size() != EXPECTED_ENEMY_PROFILE_COUNT
+		or _enemy_profile_ids.size() != _enemy_profiles_by_id.size()
 	):
 		return false
 	var ordered_blueprint_ids: Array[StringName] = _copy_ids(_blueprint_ids)
@@ -682,12 +863,20 @@ func _has_valid_contract() -> bool:
 	var ordered_route_contract_ids: Array[StringName] = _copy_ids(
 		_representative_route_contract_ids
 	)
+	var ordered_enemy_family_ids: Array[StringName] = _copy_ids(
+		_enemy_family_ids
+	)
+	var ordered_enemy_profile_ids: Array[StringName] = _copy_ids(
+		_enemy_profile_ids
+	)
 	ordered_blueprint_ids.sort_custom(_content_id_less_than)
 	ordered_recipe_ids.sort_custom(_content_id_less_than)
 	ordered_mainline_ids.sort_custom(_content_id_less_than)
 	ordered_optional_ids.sort_custom(_content_id_less_than)
 	ordered_reward_ids.sort_custom(_content_id_less_than)
 	ordered_route_contract_ids.sort_custom(_content_id_less_than)
+	ordered_enemy_family_ids.sort_custom(_content_id_less_than)
+	ordered_enemy_profile_ids.sort_custom(_content_id_less_than)
 	if (
 		_blueprint_ids != ordered_blueprint_ids
 		or _recipe_ids != ordered_recipe_ids
@@ -695,6 +884,8 @@ func _has_valid_contract() -> bool:
 		or _optional_progression_ids != ordered_optional_ids
 		or _permanent_growth_reward_ids != ordered_reward_ids
 		or _representative_route_contract_ids != ordered_route_contract_ids
+		or _enemy_family_ids != ordered_enemy_family_ids
+		or _enemy_profile_ids != ordered_enemy_profile_ids
 	):
 		return false
 	var blueprints: Array[BlueprintDefinitionScript] = []
@@ -900,6 +1091,82 @@ func _has_valid_contract() -> bool:
 			if not _blueprints_by_id.has(blueprint_id):
 				return false
 		route_contracts.append(listed_contract)
+	var enemy_families: Array[EnemyFamilyDefinitionScript] = []
+	for index: int in range(_enemy_family_ids.size()):
+		var family_id: StringName = _enemy_family_ids[index]
+		var listed_family_resource: Resource = _enemy_families[index] as Resource
+		if (
+			listed_family_resource == null
+			or listed_family_resource.get_script() != EnemyFamilyDefinitionScript
+			or not _enemy_families_by_id.has(family_id)
+		):
+			return false
+		var listed_family: EnemyFamilyDefinitionScript = (
+			listed_family_resource as EnemyFamilyDefinitionScript
+		)
+		var mapped_family_resource: Resource = (
+			_enemy_families_by_id[family_id] as Resource
+		)
+		if (
+			mapped_family_resource == null
+			or mapped_family_resource.get_script() != EnemyFamilyDefinitionScript
+		):
+			return false
+		var mapped_family: EnemyFamilyDefinitionScript = (
+			mapped_family_resource as EnemyFamilyDefinitionScript
+		)
+		if (
+			listed_family.family_id != family_id
+			or not listed_family.is_equal_to(mapped_family)
+		):
+			return false
+		enemy_families.append(listed_family)
+	var enemy_profiles: Array[EnemyProfileDefinitionScript] = []
+	for index: int in range(_enemy_profile_ids.size()):
+		var enemy_profile_id: StringName = _enemy_profile_ids[index]
+		var listed_enemy_profile_resource: Resource = _enemy_profiles[index] as Resource
+		if (
+			listed_enemy_profile_resource == null
+			or (
+				listed_enemy_profile_resource.get_script()
+				!= EnemyProfileDefinitionScript
+			)
+			or not _enemy_profiles_by_id.has(enemy_profile_id)
+		):
+			return false
+		var listed_enemy_profile: EnemyProfileDefinitionScript = (
+			listed_enemy_profile_resource as EnemyProfileDefinitionScript
+		)
+		var mapped_enemy_profile_resource: Resource = (
+			_enemy_profiles_by_id[enemy_profile_id] as Resource
+		)
+		if (
+			mapped_enemy_profile_resource == null
+			or (
+				mapped_enemy_profile_resource.get_script()
+				!= EnemyProfileDefinitionScript
+			)
+		):
+			return false
+		var mapped_enemy_profile: EnemyProfileDefinitionScript = (
+			mapped_enemy_profile_resource as EnemyProfileDefinitionScript
+		)
+		if (
+			listed_enemy_profile.profile_id != enemy_profile_id
+			or not listed_enemy_profile.is_equal_to(mapped_enemy_profile)
+			or not _enemy_families_by_id.has(listed_enemy_profile.family_id)
+			or not _representative_route_contracts_by_id.has(
+				listed_enemy_profile.balance_contract_id
+			)
+		):
+			return false
+		var ordered_trait_ids: Array[StringName] = _copy_ids(
+			listed_enemy_profile.combat_trait_ids
+		)
+		ordered_trait_ids.sort_custom(_content_id_less_than)
+		if listed_enemy_profile.combat_trait_ids != ordered_trait_ids:
+			return false
+		enemy_profiles.append(listed_enemy_profile)
 	var progression_catalog := GlobalProgressionCatalogScript.new()
 	progression_catalog.catalog_id = _progression_catalog_id
 	progression_catalog.initial_stats = _initial_player_stats
@@ -913,6 +1180,12 @@ func _has_valid_contract() -> bool:
 	route_catalog.catalog_id = _route_contract_catalog_id
 	for contract: RepresentativeRouteContractScript in route_contracts:
 		route_catalog.contracts.append(contract)
+	var enemy_catalog := EnemyProfileCatalogScript.new()
+	enemy_catalog.catalog_id = _enemy_profile_catalog_id
+	for family: EnemyFamilyDefinitionScript in enemy_families:
+		enemy_catalog.families.append(family)
+	for enemy_profile: EnemyProfileDefinitionScript in enemy_profiles:
+		enemy_catalog.profiles.append(enemy_profile)
 	return ContentContractFingerprintScript.matches(
 		_schema_version,
 		_content_version,
@@ -920,6 +1193,7 @@ func _has_valid_contract() -> bool:
 		recipes,
 		progression_catalog,
 		route_catalog,
+		enemy_catalog,
 	)
 
 
@@ -972,3 +1246,17 @@ static func _representative_route_contract_less_than(
 	right: RepresentativeRouteContractScript,
 ) -> bool:
 	return String(left.contract_id) < String(right.contract_id)
+
+
+static func _enemy_family_less_than(
+	left: EnemyFamilyDefinitionScript,
+	right: EnemyFamilyDefinitionScript,
+) -> bool:
+	return String(left.family_id) < String(right.family_id)
+
+
+static func _enemy_profile_less_than(
+	left: EnemyProfileDefinitionScript,
+	right: EnemyProfileDefinitionScript,
+) -> bool:
+	return String(left.profile_id) < String(right.profile_id)

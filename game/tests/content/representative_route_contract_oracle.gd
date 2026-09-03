@@ -1,7 +1,8 @@
 extends RefCounted
 
-const FROZEN_V4_FINGERPRINT: String = (
-	"bdbf394eb9e74a95eb5dc9fa789d99e0662a266a098706fc1d5f8a997687cad5"
+# Filled after all v5 content domains are integrated and the independent digest is reviewed.
+const FROZEN_V5_FINGERPRINT: String = (
+	"bb06ce6fb51cfd82b40be73cc008a317d966cb344118fe6e4befcee5fc55e33f"
 )
 const PLAYER_PROFILE_ID: StringName = &"progression.player.loer"
 const TRADEOFF_DIMENSION_IDS: Array[StringName] = [
