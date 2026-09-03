@@ -51,9 +51,11 @@ const ALLOWED_TRAIT_IDS: Array[StringName] = [
 	&"enemy.trait.shield",
 	&"enemy.trait.support_link",
 ]
-const SHIELD_TRAIT_ID: StringName = &"enemy.trait.shield"
+const SHIELD_TRAIT_ID: StringName = EnemyProfileDefinitionScript.SHIELD_TRAIT_ID
 const SUPPORT_LINK_TRAIT_ID: StringName = &"enemy.trait.support_link"
-const PHASE_ALTERNATION_TRAIT_ID: StringName = &"enemy.trait.phase_alternation"
+const PHASE_ALTERNATION_TRAIT_ID: StringName = (
+	EnemyProfileDefinitionScript.PHASE_ALTERNATION_TRAIT_ID
+)
 const SHIELD_BEHAVIOR_ID: StringName = &"enemy.behavior.shield"
 const SUPPORT_LINK_BEHAVIOR_ID: StringName = &"enemy.behavior.support_link"
 const PHASE_ALTERNATION_BEHAVIOR_ID: StringName = &"enemy.behavior.phase_alternation"
@@ -591,7 +593,10 @@ static func _validate_profile_traits(
 	issues: Array[ContentValidationIssueScript],
 ) -> void:
 	var seen: Dictionary[StringName, bool] = {}
-	if profile.combat_trait_ids.size() > 2:
+	if (
+		profile.combat_trait_ids.size()
+		> EnemyProfileDefinitionScript.MAXIMUM_COMBAT_TRAIT_COUNT
+	):
 		_add_issue(
 			issues,
 			ContentValidationIssueScript.ENEMY_PROFILE_TRAIT_ID_INVALID,
@@ -829,7 +834,10 @@ static func _validate_balance_state(
 	if evaluated_initiator_count == 0:
 		return
 	var maximum_loss_percent: int
-	if profile.combat_trait_ids.size() >= 2:
+	if (
+		profile.combat_trait_ids.size()
+		>= EnemyProfileDefinitionScript.MAXIMUM_COMBAT_TRAIT_COUNT
+	):
 		maximum_loss_percent = 30
 	elif not profile.combat_trait_ids.is_empty():
 		maximum_loss_percent = 25
