@@ -13,6 +13,7 @@ const PortableInventoryStackScript := preload(
 const PortableInventoryStateScript := preload(
 	"res://src/rules/portable_inventory_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum FailureReason {
 	NONE = 0,
@@ -52,6 +53,14 @@ var _integrity_failed_stack_id: StringName = &""
 var _failed_content_id: StringName = &""
 var _integrity_failed_content_id: StringName = &""
 
+# 平字段镜像声明（walker 统一处理）；嵌套镜像 _integrity_read_snapshot 为
+# 深拷贝捕获 + is_equal_to 值比较，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"failure_reason",
+	&"failed_stack_id",
+	&"failed_content_id",
+]
+
 
 func _init(
 	state_candidate: RefCounted,
@@ -70,7 +79,6 @@ func _init(
 		and failed_content_id == &""
 	):
 		_read_snapshot = read_snapshot
-		_integrity_read_snapshot = read_snapshot.copy()
 		_set_failure_state(FailureReason.NONE, &"", &"")
 		return
 	if (
@@ -294,24 +302,26 @@ static func _failure_metadata_is_valid(
 	return false
 
 
+func _capture_integrity() -> void:
+	if _read_snapshot != null:
+		_integrity_read_snapshot = _read_snapshot.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _set_failure_state(
 	failure_reason: int,
 	failed_stack_id: StringName,
 	failed_content_id: StringName,
 ) -> void:
 	_failure_reason = failure_reason
-	_integrity_failure_reason = failure_reason
 	_failed_stack_id = failed_stack_id
-	_integrity_failed_stack_id = failed_stack_id
 	_failed_content_id = failed_content_id
-	_integrity_failed_content_id = failed_content_id
+	_capture_integrity()
 
 
 func _failure_state_is_intact() -> bool:
 	return (
-		_failure_reason == _integrity_failure_reason
-		and _failed_stack_id == _integrity_failed_stack_id
-		and _failed_content_id == _integrity_failed_content_id
+		ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		and _failure_metadata_is_valid(
 			_failure_reason,
 			_failed_stack_id,

@@ -43,6 +43,20 @@ var _integrity_resolution: ContactCombatResolutionScript
 var _initialized: bool = false
 var _integrity_initialized: bool = false
 
+# 平字段镜像声明（walker 统一处理，含数组镜像 _integrity_supporting_instance_ids
+# 的内容相等比对）；嵌套镜像 _integrity_contact_address 与 _integrity_resolution 为
+# 深拷贝捕获 + is_equal_to 值比较，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"kind",
+	&"target_instance_id",
+	&"supporting_instance_ids",
+	&"world_step",
+	&"previous_inventory_revision",
+	&"next_inventory_revision",
+	&"consumed_stack_id",
+	&"initialized",
+]
+
 
 func _init() -> void:
 	_supporting_instance_ids.make_read_only()
@@ -52,35 +66,23 @@ func _init() -> void:
 func copy() -> ContactCombatTransactionEvent:
 	var copied_event := new()
 	copied_event._kind = _kind
-	copied_event._integrity_kind = _integrity_kind
 	copied_event._target_instance_id = _target_instance_id
-	copied_event._integrity_target_instance_id = _integrity_target_instance_id
 	if _is_exact_address(_contact_address):
 		copied_event._contact_address = _contact_address.copy()
 	if _is_exact_address(_integrity_contact_address):
 		copied_event._integrity_contact_address = _integrity_contact_address.copy()
 	copied_event._supporting_instance_ids = _copy_ids(_supporting_instance_ids)
 	copied_event._supporting_instance_ids.make_read_only()
-	copied_event._integrity_supporting_instance_ids = _copy_ids(
-		_integrity_supporting_instance_ids
-	)
-	copied_event._integrity_supporting_instance_ids.make_read_only()
 	copied_event._world_step = _world_step
-	copied_event._integrity_world_step = _integrity_world_step
 	copied_event._previous_inventory_revision = _previous_inventory_revision
-	copied_event._integrity_previous_inventory_revision = (
-		_integrity_previous_inventory_revision
-	)
 	copied_event._next_inventory_revision = _next_inventory_revision
-	copied_event._integrity_next_inventory_revision = _integrity_next_inventory_revision
 	copied_event._consumed_stack_id = _consumed_stack_id
-	copied_event._integrity_consumed_stack_id = _integrity_consumed_stack_id
 	if _is_exact_resolution(_resolution):
 		copied_event._resolution = _resolution.copy()
 	if _is_exact_resolution(_integrity_resolution):
 		copied_event._integrity_resolution = _integrity_resolution.copy()
 	copied_event._initialized = _initialized
-	copied_event._integrity_initialized = _integrity_initialized
+	ValidationSupportScript.copy_field_integrity(self, copied_event, _INTEGRITY_FIELD_NAMES)
 	return copied_event
 
 
@@ -183,18 +185,16 @@ func is_equal_to(other: ContactCombatTransactionEvent) -> bool:
 	)
 
 
+func _capture_integrity() -> void:
+	if _is_exact_address(_contact_address):
+		_integrity_contact_address = _contact_address.copy()
+	if _is_exact_resolution(_resolution):
+		_integrity_resolution = _resolution.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _integrity_fields_match() -> bool:
-	return (
-		_initialized == _integrity_initialized
-		and _kind == _integrity_kind
-		and _target_instance_id == _integrity_target_instance_id
-		and _supporting_instance_ids == _integrity_supporting_instance_ids
-		and _world_step == _integrity_world_step
-		and _previous_inventory_revision
-		== _integrity_previous_inventory_revision
-		and _next_inventory_revision == _integrity_next_inventory_revision
-		and _consumed_stack_id == _integrity_consumed_stack_id
-	)
+	return ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 
 
 func _supporting_ids_are_valid() -> bool:

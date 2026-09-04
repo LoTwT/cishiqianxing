@@ -346,35 +346,22 @@ static func _build_contact_lock(
 ) -> WorldStepContactLockScript:
 	var contact_lock := WorldStepContactLockScript.new()
 	contact_lock._space_id = command.space_id()
-	contact_lock._integrity_space_id = contact_lock._space_id
 	contact_lock._world_step = command.expected_world_step()
-	contact_lock._integrity_world_step = contact_lock._world_step
 	contact_lock._player_actor_id = (
 		WorldStepContactCommandScript.AUTHORITATIVE_PLAYER_ACTOR_ID
 	)
-	contact_lock._integrity_player_actor_id = contact_lock._player_actor_id
 	contact_lock._target_enemy_instance_id = target_enemy_instance_id
-	contact_lock._integrity_target_enemy_instance_id = (
-		contact_lock._target_enemy_instance_id
-	)
 	contact_lock._player_cell = grid_state.actor_position(
 		contact_lock._player_actor_id
 	)
-	contact_lock._integrity_player_cell = contact_lock._player_cell
 	contact_lock._target_enemy_cell = grid_state.actor_position(
 		target_enemy_instance_id
 	)
-	contact_lock._integrity_target_enemy_cell = contact_lock._target_enemy_cell
 	contact_lock._moving_actor_id = command.moving_actor_id()
-	contact_lock._integrity_moving_actor_id = contact_lock._moving_actor_id
 	contact_lock._attempted_destination_cell = attempted_destination
-	contact_lock._integrity_attempted_destination_cell = (
-		contact_lock._attempted_destination_cell
-	)
 	contact_lock._initiator_side = initiator_side
-	contact_lock._integrity_initiator_side = contact_lock._initiator_side
 	contact_lock._initialized = true
-	contact_lock._integrity_initialized = true
+	contact_lock._capture_integrity()
 	return contact_lock
 
 
@@ -421,15 +408,12 @@ static func _actor_at_cell(
 static func _no_contact() -> WorldStepContactResultScript:
 	var result := WorldStepContactResultScript.new()
 	result._status = WorldStepContactResultScript.Status.NO_CONTACT
-	result._integrity_status = result._status
 	result._cancellation_reason = (
 		WorldStepContactResultScript.CancellationReason.NONE
 	)
-	result._integrity_cancellation_reason = result._cancellation_reason
 	result._rejection_reason = WorldStepContactResultScript.RejectionReason.NONE
-	result._integrity_rejection_reason = result._rejection_reason
 	result._registry_validation_passed = true
-	result._integrity_registry_validation_passed = true
+	result._capture_integrity()
 	return (
 		result
 		if result.has_no_contact()
@@ -444,17 +428,13 @@ static func _locked(
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_RESULT)
 	var result := WorldStepContactResultScript.new()
 	result._status = WorldStepContactResultScript.Status.LOCKED
-	result._integrity_status = result._status
 	result._cancellation_reason = (
 		WorldStepContactResultScript.CancellationReason.NONE
 	)
-	result._integrity_cancellation_reason = result._cancellation_reason
 	result._rejection_reason = WorldStepContactResultScript.RejectionReason.NONE
-	result._integrity_rejection_reason = result._rejection_reason
 	result._contact_lock = contact_lock.copy()
-	result._integrity_contact_lock = result._contact_lock.copy()
 	result._registry_validation_passed = true
-	result._integrity_registry_validation_passed = true
+	result._capture_integrity()
 	return (
 		result
 		if result.is_locked()
@@ -470,15 +450,11 @@ static func _cancelled(
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_RESULT)
 	var result := WorldStepContactResultScript.new()
 	result._status = WorldStepContactResultScript.Status.CANCELLED
-	result._integrity_status = result._status
 	result._cancellation_reason = cancellation_reason
-	result._integrity_cancellation_reason = result._cancellation_reason
 	result._rejection_reason = WorldStepContactResultScript.RejectionReason.NONE
-	result._integrity_rejection_reason = result._rejection_reason
 	result._contact_lock = contact_lock.copy()
-	result._integrity_contact_lock = result._contact_lock.copy()
 	result._registry_validation_passed = true
-	result._integrity_registry_validation_passed = true
+	result._capture_integrity()
 	return (
 		result
 		if result.was_cancelled()

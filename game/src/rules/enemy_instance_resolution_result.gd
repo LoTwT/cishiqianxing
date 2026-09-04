@@ -49,7 +49,6 @@ func _init(
 		)
 		if snapshot.is_valid():
 			_snapshot = snapshot
-			_integrity_snapshot = snapshot.copy()
 			_failure_reason = FailureReason.NONE
 		else:
 			_failure_reason = FailureReason.INVALID_RESULT
@@ -60,6 +59,7 @@ func _init(
 		_failure_reason = failure_reason
 	else:
 		_failure_reason = FailureReason.INVALID_RESULT
+	_capture_integrity()
 
 
 static func success(
@@ -127,3 +127,10 @@ func contact_combat_opponent_state() -> ContactCombatOpponentStateScript:
 
 func is_commit_boundary() -> bool:
 	return false
+
+
+# 仅嵌套对象镜像 _integrity_snapshot（无平字段镜像）：深拷贝捕获与
+# is_equal_to 值比较保留手写，无 schema 声明。
+func _capture_integrity() -> void:
+	if _snapshot != null:
+		_integrity_snapshot = _snapshot.copy()

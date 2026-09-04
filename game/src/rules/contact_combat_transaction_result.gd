@@ -23,6 +23,7 @@ const PlayerProgressionStateScript := preload(
 const PortableInventoryStateScript := preload(
 	"res://src/rules/portable_inventory_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Status {
 	PREPARED = 1,
@@ -78,6 +79,16 @@ var _integrity_committed_inventory_state: PortableInventoryStateScript
 var _registry_validation_passed: bool = false
 var _integrity_registry_validation_passed: bool = false
 
+# 标量平字段镜像声明（子集比对 _integrity_scalar_fields_match 只覆盖这些字段，
+# walker 统一处理）；嵌套镜像（_integrity_candidate 等）为深拷贝捕获 +
+# is_equal_to 值比较，保留手写。
+const _SCALAR_INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"status",
+	&"rejection_reason",
+	&"combat_rejection_reason",
+	&"registry_validation_passed",
+]
+
 
 static func blocked(
 	resolution_value: RefCounted,
@@ -87,19 +98,13 @@ static func blocked(
 	if not _is_exact_resolution(resolution_value):
 		return result
 	result._status = Status.BLOCKED
-	result._integrity_status = result._status
 	result._rejection_reason = RejectionReason.NONE
-	result._integrity_rejection_reason = result._rejection_reason
 	result._combat_rejection_reason = ContactCombatResultScript.RejectionReason.NONE
-	result._integrity_combat_rejection_reason = result._combat_rejection_reason
 	result._blocked_resolution = (
 		resolution_value as ContactCombatResolutionScript
 	).copy()
-	result._integrity_blocked_resolution = result._blocked_resolution.copy()
 	result._registry_validation_passed = ContentRegistryScript.is_exact_initialized_instance(registry)
-	result._integrity_registry_validation_passed = (
-		result._registry_validation_passed
-	)
+	result._capture_integrity()
 	return result
 
 
@@ -111,11 +116,9 @@ static func rejected(
 ) -> ContactCombatTransactionResult:
 	var result := new()
 	result._status = Status.REJECTED
-	result._integrity_status = result._status
 	result._rejection_reason = rejection_reason_value
-	result._integrity_rejection_reason = result._rejection_reason
 	result._combat_rejection_reason = combat_rejection_reason_value
-	result._integrity_combat_rejection_reason = result._combat_rejection_reason
+	result._capture_integrity()
 	return result
 
 
@@ -291,13 +294,25 @@ func _is_well_formed() -> bool:
 	return false
 
 
+func _capture_integrity() -> void:
+	if _is_exact_candidate(_candidate):
+		_integrity_candidate = _candidate.copy()
+	if _is_exact_resolution(_blocked_resolution):
+		_integrity_blocked_resolution = _blocked_resolution.copy()
+	if _is_exact_event(_domain_event):
+		_integrity_domain_event = _domain_event.copy()
+	if _is_exact_player_state(_committed_player_state):
+		_integrity_committed_player_state = _committed_player_state.copy()
+	if _is_exact_enemy_world_state(_committed_enemy_world_state):
+		_integrity_committed_enemy_world_state = _committed_enemy_world_state.copy()
+	if _is_exact_inventory_state(_committed_inventory_state):
+		_integrity_committed_inventory_state = _committed_inventory_state.copy()
+	ValidationSupportScript.capture_field_integrity(self, _SCALAR_INTEGRITY_FIELD_NAMES)
+
+
 func _integrity_scalar_fields_match() -> bool:
-	return (
-		_status == _integrity_status
-		and _rejection_reason == _integrity_rejection_reason
-		and _combat_rejection_reason == _integrity_combat_rejection_reason
-		and _registry_validation_passed
-		== _integrity_registry_validation_passed
+	return ValidationSupportScript.field_integrity_matches(
+		self, _SCALAR_INTEGRITY_FIELD_NAMES
 	)
 
 
