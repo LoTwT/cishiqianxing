@@ -19,6 +19,9 @@ const ContentValidationIssueScript := preload(
 const ContentValidationSupportScript := preload(
 	"res://src/content/content_validation_support.gd"
 )
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"route.contract.catalog.main"
 const EXPECTED_CONTRACT_IDS: Array[StringName] = [
@@ -39,6 +42,26 @@ const EXPECTED_TRADEOFF_DIMENSION_IDS: Array[StringName] = [
 	&"route.cost.one_time_node",
 	&"route.cost.optional_reward",
 ]
+# 冻结的代表性路线合同参数值（每个合同资源必须声明的硬性数值边界）：
+# - 主线遇敌组目标 8-12 个、硬上限 14 个；
+# - 低损路线接触 3-5 次、直觉路线接触 5-7 次；
+# - 出图血量下限：低损 40%、直觉 25%；
+# - 固定恢复点恰好 2 个、每个恢复 50 点生命；
+# - 合同声明的合法路线与配装数量下限各 2 个、至少 2 个独立取舍维度。
+const EXPECTED_ENCOUNTER_GROUP_MINIMUM: int = 8
+const EXPECTED_ENCOUNTER_GROUP_MAXIMUM: int = 12
+const EXPECTED_ENCOUNTER_GROUP_HARD_CAP: int = 14
+const EXPECTED_LOW_LOSS_CONTACT_MINIMUM: int = 3
+const EXPECTED_LOW_LOSS_CONTACT_MAXIMUM: int = 5
+const EXPECTED_INTUITIVE_CONTACT_MINIMUM: int = 5
+const EXPECTED_INTUITIVE_CONTACT_MAXIMUM: int = 7
+const EXPECTED_LOW_LOSS_MINIMUM_EXIT_HEALTH_PERCENT: int = 40
+const EXPECTED_INTUITIVE_MINIMUM_EXIT_HEALTH_PERCENT: int = 25
+const EXPECTED_FIXED_RECOVERY_POINT_COUNT: int = 2
+const EXPECTED_FIXED_RECOVERY_HEALTH_AMOUNT: int = 50
+const EXPECTED_MINIMUM_LEGAL_ROUTE_COUNT: int = 2
+const EXPECTED_MINIMUM_LEGAL_LOADOUT_COUNT: int = 2
+const EXPECTED_MINIMUM_DISTINCT_TRADEOFF_DIMENSIONS: int = 2
 
 
 static func snapshot_and_validate(
@@ -152,7 +175,8 @@ static func _validate_contracts(
 		_validate_contract_fields(contract, blueprints, progression_catalog, issues)
 		if (
 			contract.stage_start_chapter >= 1
-			and contract.stage_end_chapter <= 9
+			and contract.stage_end_chapter
+			<= ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
 			and contract.stage_start_chapter <= contract.stage_end_chapter
 		):
 			for chapter: int in range(
@@ -168,7 +192,9 @@ static func _validate_contracts(
 		"Route contract ID",
 		issues,
 	)
-	for chapter: int in range(1, 10):
+	for chapter: int in range(
+		1, ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER + 1
+	):
 		if chapter_counts.get(chapter, 0) != 1:
 			ContentValidationSupportScript.add_issue(
 				issues,
@@ -207,7 +233,8 @@ static func _validate_contract_fields(
 		)
 	if (
 		contract.stage_start_chapter < 1
-		or contract.stage_end_chapter > 9
+		or contract.stage_end_chapter
+		> ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
 		or contract.stage_start_chapter > contract.stage_end_chapter
 	):
 		ContentValidationSupportScript.add_issue(
@@ -244,9 +271,9 @@ static func _validate_contract_fields(
 
 	_validate_cross_domain_references(contract, blueprints, progression_catalog, issues)
 	if (
-		contract.encounter_group_minimum != 8
-		or contract.encounter_group_maximum != 12
-		or contract.encounter_group_hard_cap != 14
+		contract.encounter_group_minimum != EXPECTED_ENCOUNTER_GROUP_MINIMUM
+		or contract.encounter_group_maximum != EXPECTED_ENCOUNTER_GROUP_MAXIMUM
+		or contract.encounter_group_hard_cap != EXPECTED_ENCOUNTER_GROUP_HARD_CAP
 		or contract.encounter_group_minimum > contract.encounter_group_maximum
 		or contract.encounter_group_maximum > contract.encounter_group_hard_cap
 	):
@@ -258,10 +285,12 @@ static func _validate_contract_fields(
 			"Mainline route encounter targets must be 8 through 12 with hard cap 14.",
 		)
 	if (
-		contract.low_loss_contact_minimum != 3
-		or contract.low_loss_contact_maximum != 5
-		or contract.intuitive_contact_minimum != 5
-		or contract.intuitive_contact_maximum != 7
+		contract.low_loss_contact_minimum != EXPECTED_LOW_LOSS_CONTACT_MINIMUM
+		or contract.low_loss_contact_maximum != EXPECTED_LOW_LOSS_CONTACT_MAXIMUM
+		or contract.intuitive_contact_minimum
+		!= EXPECTED_INTUITIVE_CONTACT_MINIMUM
+		or contract.intuitive_contact_maximum
+		!= EXPECTED_INTUITIVE_CONTACT_MAXIMUM
 		or contract.low_loss_contact_minimum > contract.low_loss_contact_maximum
 		or contract.intuitive_contact_minimum > contract.intuitive_contact_maximum
 	):
@@ -273,8 +302,10 @@ static func _validate_contract_fields(
 			"Low-loss contacts must be 3 through 5 and intuitive contacts 5 through 7.",
 		)
 	if (
-		contract.low_loss_minimum_exit_health_percent != 40
-		or contract.intuitive_minimum_exit_health_percent != 25
+		contract.low_loss_minimum_exit_health_percent
+		!= EXPECTED_LOW_LOSS_MINIMUM_EXIT_HEALTH_PERCENT
+		or contract.intuitive_minimum_exit_health_percent
+		!= EXPECTED_INTUITIVE_MINIMUM_EXIT_HEALTH_PERCENT
 	):
 		ContentValidationSupportScript.add_issue(
 			issues,
@@ -284,8 +315,10 @@ static func _validate_contract_fields(
 			"Minimum exit health must be 40 percent for low-loss and 25 percent for intuitive routes.",
 		)
 	if (
-		contract.minimum_fixed_recovery_points != 2
-		or contract.fixed_recovery_amount != 50
+		contract.minimum_fixed_recovery_points
+		!= EXPECTED_FIXED_RECOVERY_POINT_COUNT
+		or contract.fixed_recovery_amount
+		!= EXPECTED_FIXED_RECOVERY_HEALTH_AMOUNT
 	):
 		ContentValidationSupportScript.add_issue(
 			issues,
@@ -295,8 +328,9 @@ static func _validate_contract_fields(
 			"Mainline route contracts require at least two fixed 50-health recovery points.",
 		)
 	if (
-		contract.minimum_legal_route_count != 2
-		or contract.minimum_legal_loadout_count != 2
+		contract.minimum_legal_route_count != EXPECTED_MINIMUM_LEGAL_ROUTE_COUNT
+		or contract.minimum_legal_loadout_count
+		!= EXPECTED_MINIMUM_LEGAL_LOADOUT_COUNT
 	):
 		ContentValidationSupportScript.add_issue(
 			issues,
@@ -307,7 +341,8 @@ static func _validate_contract_fields(
 		)
 	if (
 		contract.tradeoff_dimension_ids != EXPECTED_TRADEOFF_DIMENSION_IDS
-		or contract.minimum_distinct_tradeoff_dimensions != 2
+		or contract.minimum_distinct_tradeoff_dimensions
+		!= EXPECTED_MINIMUM_DISTINCT_TRADEOFF_DIMENSIONS
 	):
 		ContentValidationSupportScript.add_issue(
 			issues,

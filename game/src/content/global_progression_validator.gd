@@ -25,12 +25,23 @@ const ContentValidationSupportScript := preload(
 const PermanentGrowthArithmeticScript := preload(
 	"res://src/rules/permanent_growth_arithmetic.gd"
 )
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"progression.global"
 const EXPECTED_PROFILE_ID: StringName = &"progression.player.loer"
-const EXPECTED_MAINLINE_COUNT: int = 9
-const EXPECTED_OPTIONAL_COUNT: int = 4
-const EXPECTED_REWARD_COUNT: int = 30
+# 冻结内容合同期望计数的再导出：权威数值只在 content_contract_constants.gd
+# 定义一次，此处保留原常量名以维持调用点稳定。
+const EXPECTED_MAINLINE_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_MAINLINE_PROGRESSION_COUNT
+)
+const EXPECTED_OPTIONAL_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_OPTIONAL_PROGRESSION_COUNT
+)
+const EXPECTED_REWARD_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
+)
 const EXPECTED_INITIAL_STATS: Array[int] = [100, 10, 5, 10]
 const EXPECTED_MAINLINE_IDS: Array[StringName] = [
 	&"progression.main.chapter.01",
@@ -43,6 +54,9 @@ const EXPECTED_MAINLINE_IDS: Array[StringName] = [
 	&"progression.main.chapter.08",
 	&"progression.main.chapter.09",
 ]
+# 逐章累计属性 oracle。与 EXPECTED_MAINLINE_FINAL_STATS（其值等于本表最后一行）
+# 是刻意独立的双重编码：两处各自单独声明，一处改动而另一处不动时测试失败，
+# 这是交叉校验强度而非冗余，不得改写为推导生成。
 const EXPECTED_MAINLINE_TOTALS: Array[int] = [
 	110, 11, 5, 10,
 	120, 11, 6, 10,
@@ -124,6 +138,14 @@ const EXPECTED_REWARD_INCREASES: Array[int] = [
 	10, 1,
 	1, 1,
 ]
+# 聚合合同交叉校验 oracle：奖励计数按 stat_kind 1-4（生命/攻击/防御/速度）
+# 排序；终值为完成主线九章（不含支线）与全内容通关时的四维属性终值。
+# EXPECTED_MAINLINE_FINAL_STATS 与上方 EXPECTED_MAINLINE_TOTALS 最后一行
+# 刻意独立编码：一处改动而另一处不动时测试失败，这是交叉校验强度而非冗余。
+const EXPECTED_MAINLINE_REWARD_COUNTS_BY_STAT_KIND: Array[int] = [8, 6, 6, 4]
+const EXPECTED_MAINLINE_FINAL_STATS: Array[int] = [180, 16, 11, 14]
+const EXPECTED_OPTIONAL_REWARD_COUNTS_BY_STAT_KIND: Array[int] = [2, 2, 2, 0]
+const EXPECTED_FULL_COMPLETION_STATS: Array[int] = [200, 18, 13, 14]
 
 
 static func snapshot_and_validate(
@@ -496,7 +518,11 @@ static func _validate_mainline_progression(
 				"mainline_progression.content_id",
 				"Mainline progression content ID is not in the frozen whitelist.",
 			)
-		if definition.chapter < 1 or definition.chapter > 9:
+		if (
+			definition.chapter < 1
+			or definition.chapter
+			> ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
+		):
 			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_INVALID,
@@ -573,7 +599,8 @@ static func _validate_optional_progression(
 			)
 		if (
 			definition.available_after_chapter < 1
-			or definition.available_after_chapter > 9
+			or definition.available_after_chapter
+			> ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
 		):
 			ContentValidationSupportScript.add_issue(
 				issues,
@@ -856,7 +883,7 @@ static func _validate_aggregate_contract(
 				"mainline_progression.chapter_total",
 				"Mainline cumulative stats do not match the frozen chapter total.",
 			)
-	if mainline_counts != [8, 6, 6, 4]:
+	if mainline_counts != EXPECTED_MAINLINE_REWARD_COUNTS_BY_STAT_KIND:
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_ATOMIC_COUNT_MISMATCH,
@@ -864,7 +891,7 @@ static func _validate_aggregate_contract(
 			"mainline_progression.atomic_counts",
 			"Expected mainline reward counts 8/6/6/4 (24 total).",
 		)
-	if current != [180, 16, 11, 14]:
+	if current != EXPECTED_MAINLINE_FINAL_STATS:
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_FINAL_STATS_MISMATCH,
@@ -883,7 +910,7 @@ static func _validate_aggregate_contract(
 			var reward: PermanentGrowthRewardDefinitionScript = rewards_by_id[reward_id]
 			PermanentGrowthArithmeticScript.apply_reward_to_stat_values(current, reward)
 			optional_counts[reward.stat_kind - 1] += 1
-	if optional_counts != [2, 2, 2, 0]:
+	if optional_counts != EXPECTED_OPTIONAL_REWARD_COUNTS_BY_STAT_KIND:
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_OPTIONAL_ATOMIC_COUNT_MISMATCH,
@@ -891,7 +918,7 @@ static func _validate_aggregate_contract(
 			"optional_progression.atomic_counts",
 			"Expected optional reward counts 2/2/2/0 (6 total).",
 		)
-	if current != [200, 18, 13, 14]:
+	if current != EXPECTED_FULL_COMPLETION_STATS:
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_FULL_COMPLETION_STATS_MISMATCH,

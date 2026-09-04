@@ -35,12 +35,34 @@ const ContactCombatResolutionScript := preload(
 const PlayerProgressionStateScript := preload(
 	"res://src/rules/player_progression_state.gd"
 )
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"enemy.profile.catalog.main"
-const EXPECTED_FAMILY_COUNT: int = 12
-const EXPECTED_PROFILE_COUNT: int = 24
+# 冻结内容合同期望计数的再导出：权威数值只在 content_contract_constants.gd
+# 定义一次，此处保留原常量名以维持调用点稳定。
+const EXPECTED_FAMILY_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_ENEMY_FAMILY_COUNT
+)
+const EXPECTED_PROFILE_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_ENEMY_PROFILE_COUNT
+)
 const EXPECTED_SOURCE_FAMILY_COUNTS: Array[int] = [4, 4, 2, 2]
 const EXPECTED_PROFILES_PER_BEHAVIOR: int = 4
+# 冻结的敌人家族平衡校验边界（战斗模拟的硬性范围，改动即平衡合同变更）：
+# - 玩家击破敌人状态所需攻击次数按档位限定：基础档 2-5 次、强化档 3-6 次；
+# - 每次攻击的玩家伤害下限，防止出现零伤害死局；
+# - 单场战斗最坏玩家血量损失按特性配置与档位封顶百分比。
+const BASE_TIER_MINIMUM_PLAYER_ATTACKS_TO_CLEAR: int = 2
+const BASE_TIER_MAXIMUM_PLAYER_ATTACKS_TO_CLEAR: int = 5
+const ENHANCED_TIER_MINIMUM_PLAYER_ATTACKS_TO_CLEAR: int = 3
+const ENHANCED_TIER_MAXIMUM_PLAYER_ATTACKS_TO_CLEAR: int = 6
+const MINIMUM_PLAYER_DAMAGE_PER_ATTACK: int = 3
+const FULL_TRAIT_LOADOUT_HEALTH_LOSS_CAP_PERCENT: int = 30
+const PARTIAL_TRAIT_LOADOUT_HEALTH_LOSS_CAP_PERCENT: int = 25
+const NO_TRAIT_ENHANCED_TIER_HEALTH_LOSS_CAP_PERCENT: int = 20
+const NO_TRAIT_BASE_TIER_HEALTH_LOSS_CAP_PERCENT: int = 15
 const ALLOWED_BEHAVIOR_IDS: Array[StringName] = [
 	&"enemy.behavior.construct_response",
 	&"enemy.behavior.environment_movement",
@@ -748,12 +770,16 @@ static func _validate_balance_state(
 	var support_count: int = 2 if profile.combat_trait_ids.has(
 		SUPPORT_LINK_TRAIT_ID
 	) else 0
-	var minimum_attack_count: int = 2 if (
-		profile.tier == EnemyProfileDefinitionScript.Tier.BASE
-	) else 3
-	var maximum_attack_count: int = 5 if (
-		profile.tier == EnemyProfileDefinitionScript.Tier.BASE
-	) else 6
+	var minimum_attack_count: int = (
+		BASE_TIER_MINIMUM_PLAYER_ATTACKS_TO_CLEAR
+		if profile.tier == EnemyProfileDefinitionScript.Tier.BASE
+		else ENHANCED_TIER_MINIMUM_PLAYER_ATTACKS_TO_CLEAR
+	)
+	var maximum_attack_count: int = (
+		BASE_TIER_MAXIMUM_PLAYER_ATTACKS_TO_CLEAR
+		if profile.tier == EnemyProfileDefinitionScript.Tier.BASE
+		else ENHANCED_TIER_MAXIMUM_PLAYER_ATTACKS_TO_CLEAR
+	)
 	var worst_health_loss: int = 0
 	var evaluated_initiator_count: int = 0
 	for initiator_side: int in [
@@ -777,14 +803,17 @@ static func _validate_balance_state(
 		if no_shield_resolution == null:
 			continue
 		evaluated_initiator_count += 1
-		if no_shield_resolution.player_damage_per_attack() < 3:
+		if no_shield_resolution.player_damage_per_attack() < MINIMUM_PLAYER_DAMAGE_PER_ATTACK:
 			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ENEMY_PROFILE_PLAYER_DAMAGE_TOO_LOW,
 				profile.profile_id,
 				"%s.defense" % state_name,
-				"Player damage per attack must be at least 3; got %d."
-				% no_shield_resolution.player_damage_per_attack(),
+				"Player damage per attack must be at least %d; got %d."
+				% [
+					MINIMUM_PLAYER_DAMAGE_PER_ATTACK,
+					no_shield_resolution.player_damage_per_attack(),
+				],
 			)
 		var attack_count: int = no_shield_resolution.player_attacks_required_to_clear()
 		if attack_count < minimum_attack_count or attack_count > maximum_attack_count:
@@ -846,13 +875,13 @@ static func _validate_balance_state(
 		profile.combat_trait_ids.size()
 		>= EnemyProfileDefinitionScript.MAXIMUM_COMBAT_TRAIT_COUNT
 	):
-		maximum_loss_percent = 30
+		maximum_loss_percent = FULL_TRAIT_LOADOUT_HEALTH_LOSS_CAP_PERCENT
 	elif not profile.combat_trait_ids.is_empty():
-		maximum_loss_percent = 25
+		maximum_loss_percent = PARTIAL_TRAIT_LOADOUT_HEALTH_LOSS_CAP_PERCENT
 	elif profile.tier == EnemyProfileDefinitionScript.Tier.ENHANCED:
-		maximum_loss_percent = 20
+		maximum_loss_percent = NO_TRAIT_ENHANCED_TIER_HEALTH_LOSS_CAP_PERCENT
 	else:
-		maximum_loss_percent = 15
+		maximum_loss_percent = NO_TRAIT_BASE_TIER_HEALTH_LOSS_CAP_PERCENT
 	if worst_health_loss * 100 > player_maximum_health * maximum_loss_percent:
 		ContentValidationSupportScript.add_issue(
 			issues,
