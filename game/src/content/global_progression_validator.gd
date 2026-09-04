@@ -22,6 +22,9 @@ const ContentValidationIssueScript := preload(
 const ContentValidationSupportScript := preload(
 	"res://src/content/content_validation_support.gd"
 )
+const PermanentGrowthArithmeticScript := preload(
+	"res://src/rules/permanent_growth_arithmetic.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"progression.global"
 const EXPECTED_PROFILE_ID: StringName = &"progression.player.loer"
@@ -843,7 +846,7 @@ static func _validate_aggregate_contract(
 	for index: int in range(ordered_mainline.size()):
 		for reward_id: StringName in ordered_mainline[index].reward_ids:
 			var reward: PermanentGrowthRewardDefinitionScript = rewards_by_id[reward_id]
-			_apply_reward_to_values(current, reward)
+			PermanentGrowthArithmeticScript.apply_reward_to_stat_values(current, reward)
 			mainline_counts[reward.stat_kind - 1] += 1
 		if current != _quad_at(EXPECTED_MAINLINE_TOTALS, index):
 			ContentValidationSupportScript.add_issue(
@@ -878,7 +881,7 @@ static func _validate_aggregate_contract(
 	for definition: OptionalProgressionDefinitionScript in ordered_optional:
 		for reward_id: StringName in definition.reward_ids:
 			var reward: PermanentGrowthRewardDefinitionScript = rewards_by_id[reward_id]
-			_apply_reward_to_values(current, reward)
+			PermanentGrowthArithmeticScript.apply_reward_to_stat_values(current, reward)
 			optional_counts[reward.stat_kind - 1] += 1
 	if optional_counts != [2, 2, 2, 0]:
 		ContentValidationSupportScript.add_issue(
@@ -927,13 +930,6 @@ static func _expected_reward_ids_for_group(group_id: StringName) -> Array[String
 		&"progression.optional.m04":
 			return [&"progression.reward.optional.m04.attack", &"progression.reward.optional.m04.defense"]
 	return []
-
-
-static func _apply_reward_to_values(
-	values: Array[int],
-	reward: PermanentGrowthRewardDefinitionScript,
-) -> void:
-	values[reward.stat_kind - 1] += reward.increase
 
 
 static func _is_valid_stat_kind(value: int) -> bool:
