@@ -16,6 +16,9 @@ const RepresentativeRouteCatalogScript := preload(
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"route.contract.catalog.main"
 const EXPECTED_CONTRACT_IDS: Array[StringName] = [
@@ -46,7 +49,7 @@ static func snapshot_and_validate(
 ) -> RepresentativeRouteCatalogScript:
 	var issue_count_before: int = issues.size()
 	if raw_catalog == null:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_ROUTE_CONTRACT_CATALOG_NULL,
 			&"",
@@ -55,7 +58,7 @@ static func snapshot_and_validate(
 		)
 		return null
 	if raw_catalog.get_script() != RepresentativeRouteCatalogScript:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CATALOG_INVALID_SCRIPT,
 			&"",
@@ -68,7 +71,7 @@ static func snapshot_and_validate(
 		raw_catalog as RepresentativeRouteCatalogScript
 	)
 	if exact_catalog.contracts.size() != EXPECTED_CONTRACT_IDS.size():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CONTRACT_COUNT_INVALID,
 			exact_catalog.catalog_id,
@@ -78,7 +81,7 @@ static func snapshot_and_validate(
 		)
 		return null
 	if exact_catalog.catalog_id != EXPECTED_CATALOG_ID:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CATALOG_ID_INVALID,
 			exact_catalog.catalog_id,
@@ -92,7 +95,7 @@ static func snapshot_and_validate(
 		var contract: RepresentativeRouteContractScript = exact_catalog.contracts[index]
 		var field_path: String = "contracts[%d]" % index
 		if contract == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ROUTE_CONTRACT_ENTRY_NULL,
 				&"",
@@ -101,7 +104,7 @@ static func snapshot_and_validate(
 			)
 			continue
 		if contract.get_script() != RepresentativeRouteContractScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ROUTE_CONTRACT_ENTRY_INVALID_SCRIPT,
 				contract.contract_id,
@@ -113,12 +116,14 @@ static func snapshot_and_validate(
 			RepresentativeRouteContractScript.snapshot(contract)
 		)
 		snapshot.mainline_progression_reference_ids.sort_custom(
-			_string_name_less_than
+			ContentValidationSupportScript.string_name_less_than
 		)
 		snapshot.available_blueprint_reference_ids.sort_custom(
-			_string_name_less_than
+			ContentValidationSupportScript.string_name_less_than
 		)
-		snapshot.tradeoff_dimension_ids.sort_custom(_string_name_less_than)
+		snapshot.tradeoff_dimension_ids.sort_custom(
+			ContentValidationSupportScript.string_name_less_than
+		)
 		snapshots.append(snapshot)
 
 	_validate_contracts(snapshots, blueprints, progression_catalog, issues)
@@ -141,7 +146,9 @@ static func _validate_contracts(
 	var id_counts: Dictionary[StringName, int] = {}
 	var chapter_counts: Dictionary[int, int] = {}
 	for contract: RepresentativeRouteContractScript in contracts:
-		id_counts[contract.contract_id] = id_counts.get(contract.contract_id, 0) + 1
+		ContentValidationSupportScript.increment_string_name_count(
+			id_counts, contract.contract_id
+		)
 		_validate_contract_fields(contract, blueprints, progression_catalog, issues)
 		if (
 			contract.stage_start_chapter >= 1
@@ -154,23 +161,16 @@ static func _validate_contracts(
 			):
 				chapter_counts[chapter] = chapter_counts.get(chapter, 0) + 1
 
-	var ordered_ids: Array[StringName] = []
-	for contract_id: StringName in id_counts:
-		ordered_ids.append(contract_id)
-	ordered_ids.sort_custom(_string_name_less_than)
-	for contract_id: StringName in ordered_ids:
-		if id_counts[contract_id] > 1:
-			_add_issue(
-				issues,
-				ContentValidationIssueScript.ROUTE_CONTRACT_ID_DUPLICATE,
-				contract_id,
-				"contract_id",
-				"Route contract ID '%s' occurs %d times."
-				% [String(contract_id), id_counts[contract_id]],
-			)
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
+		id_counts,
+		ContentValidationIssueScript.ROUTE_CONTRACT_ID_DUPLICATE,
+		"contract_id",
+		"Route contract ID",
+		issues,
+	)
 	for chapter: int in range(1, 10):
 		if chapter_counts.get(chapter, 0) != 1:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ROUTE_CHAPTER_COVERAGE_INVALID,
 				StringName(str(chapter)),
@@ -188,7 +188,7 @@ static func _validate_contract_fields(
 ) -> void:
 	var contract_id: StringName = contract.contract_id
 	if contract_id == &"":
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CONTRACT_ID_EMPTY,
 			contract_id,
@@ -197,7 +197,7 @@ static func _validate_contract_fields(
 		)
 	var expected_index: int = EXPECTED_CONTRACT_IDS.find(contract_id)
 	if expected_index < 0:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CONTRACT_ID_INVALID,
 			contract_id,
@@ -210,7 +210,7 @@ static func _validate_contract_fields(
 		or contract.stage_end_chapter > 9
 		or contract.stage_start_chapter > contract.stage_end_chapter
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_STAGE_RANGE_INVALID,
 			contract_id,
@@ -222,7 +222,7 @@ static func _validate_contract_fields(
 			contract.stage_start_chapter != EXPECTED_STAGE_STARTS[expected_index]
 			or contract.stage_end_chapter != EXPECTED_STAGE_ENDS[expected_index]
 		):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ROUTE_CONTRACT_ID_STAGE_MISMATCH,
 				contract_id,
@@ -230,7 +230,7 @@ static func _validate_contract_fields(
 				"Route contract ID does not match its frozen inclusive stage range.",
 			)
 		if contract.backpack_slot_capacity != EXPECTED_BACKPACK_CAPACITIES[expected_index]:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.ROUTE_BACKPACK_CAPACITY_INVALID,
 				contract_id,
@@ -250,7 +250,7 @@ static func _validate_contract_fields(
 		or contract.encounter_group_minimum > contract.encounter_group_maximum
 		or contract.encounter_group_maximum > contract.encounter_group_hard_cap
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_ENCOUNTER_RANGE_INVALID,
 			contract_id,
@@ -265,7 +265,7 @@ static func _validate_contract_fields(
 		or contract.low_loss_contact_minimum > contract.low_loss_contact_maximum
 		or contract.intuitive_contact_minimum > contract.intuitive_contact_maximum
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_CONTACT_RANGE_INVALID,
 			contract_id,
@@ -276,7 +276,7 @@ static func _validate_contract_fields(
 		contract.low_loss_minimum_exit_health_percent != 40
 		or contract.intuitive_minimum_exit_health_percent != 25
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_EXIT_HEALTH_THRESHOLD_INVALID,
 			contract_id,
@@ -287,7 +287,7 @@ static func _validate_contract_fields(
 		contract.minimum_fixed_recovery_points != 2
 		or contract.fixed_recovery_amount != 50
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_RECOVERY_POINT_COUNT_INVALID,
 			contract_id,
@@ -298,7 +298,7 @@ static func _validate_contract_fields(
 		contract.minimum_legal_route_count != 2
 		or contract.minimum_legal_loadout_count != 2
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_LEGAL_ALTERNATIVE_COUNT_INVALID,
 			contract_id,
@@ -309,7 +309,7 @@ static func _validate_contract_fields(
 		contract.tradeoff_dimension_ids != EXPECTED_TRADEOFF_DIMENSION_IDS
 		or contract.minimum_distinct_tradeoff_dimensions != 2
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_TRADEOFF_DIMENSION_INVALID,
 			contract_id,
@@ -317,7 +317,7 @@ static func _validate_contract_fields(
 			"Route tradeoffs must use all six frozen dimensions and require at least two distinct dimensions.",
 		)
 	if not contract.requires_non_dominated_route_set:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_DOMINANCE_POLICY_INVALID,
 			contract_id,
@@ -335,7 +335,7 @@ static func _validate_cross_domain_references(
 	if progression_catalog == null:
 		return
 	if contract.player_profile_id != progression_catalog.initial_stats.profile_id:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_PLAYER_PROFILE_REFERENCE_INVALID,
 			contract.contract_id,
@@ -346,9 +346,11 @@ static func _validate_cross_domain_references(
 	for definition in progression_catalog.mainline_progression:
 		if definition != null and definition.chapter <= contract.stage_end_chapter:
 			expected_progression_ids.append(definition.content_id)
-	expected_progression_ids.sort_custom(_string_name_less_than)
+	expected_progression_ids.sort_custom(
+		ContentValidationSupportScript.string_name_less_than
+	)
 	if contract.mainline_progression_reference_ids != expected_progression_ids:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_PROGRESSION_REFERENCE_INVALID,
 			contract.contract_id,
@@ -359,9 +361,11 @@ static func _validate_cross_domain_references(
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		if blueprint != null and blueprint.unlock_chapter <= contract.stage_end_chapter:
 			expected_blueprint_ids.append(blueprint.content_id)
-	expected_blueprint_ids.sort_custom(_string_name_less_than)
+	expected_blueprint_ids.sort_custom(
+		ContentValidationSupportScript.string_name_less_than
+	)
 	if contract.available_blueprint_reference_ids != expected_blueprint_ids:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.ROUTE_BLUEPRINT_REFERENCE_INVALID,
 			contract.contract_id,
@@ -370,22 +374,8 @@ static func _validate_cross_domain_references(
 		)
 
 
-static func _add_issue(
-	issues: Array[ContentValidationIssueScript],
-	code: StringName,
-	content_id: StringName,
-	field_path: String,
-	message: String,
-) -> void:
-	issues.append(ContentValidationIssueScript.new(code, content_id, field_path, message))
-
-
 static func _contract_less_than(
 	left: RepresentativeRouteContractScript,
 	right: RepresentativeRouteContractScript,
 ) -> bool:
 	return String(left.contract_id) < String(right.contract_id)
-
-
-static func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

@@ -1,12 +1,12 @@
 extends RefCounted
 
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
+)
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
-)
 const EnemyInstanceStateScript := preload(
 	"res://src/rules/enemy_instance_state.gd"
 )
@@ -54,8 +54,6 @@ const PLAYER_CELL: Vector3i = Vector3i.ZERO
 const TARGET_CELL: Vector3i = Vector3i.RIGHT
 const BLOCKED_CELL: Vector3i = Vector3i.BACK
 const WORLD_STEP: int = 41
-
-var _cached_registry: ContentRegistryScript
 
 
 class DerivedGridRuleState extends GridRuleStateScript:
@@ -490,7 +488,7 @@ func _rejects_stale_and_illegal_entry(
 func _rejects_invalid_inputs_and_inactive_player(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "World-step contact")
 	var valid_command: WorldStepContactCommandScript = _player_entry_command()
 	_expect_rejected(
 		context,
@@ -616,7 +614,7 @@ func _revalidates_unchanged_lock(
 			grid_state,
 			player_state,
 			world_state,
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	_expect_locked(context, revalidated, "Unchanged lock")
@@ -641,7 +639,7 @@ func _cancels_inactive_participants(
 			_default_grid_state(),
 			_player_state(0),
 			_active_world(),
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	_expect_cancelled(
@@ -661,7 +659,7 @@ func _cancels_inactive_participants(
 			resolved_grid,
 			_player_state(),
 			resolved_world,
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	_expect_cancelled(
@@ -686,7 +684,7 @@ func _cancels_inactive_participants(
 			resolved_grid,
 			_player_state(0),
 			resolved_world,
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	context.expect_equal(
@@ -822,7 +820,7 @@ func _isolates_outputs_and_fails_closed(
 			_default_grid_state(),
 			_player_state(),
 			_active_world(),
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		),
 		WorldStepContactResultScript.RejectionReason.INVALID_LOCKED_RESULT,
 		"Derived locked result",
@@ -859,7 +857,7 @@ func _replays_deterministically(
 			_default_grid_state(),
 			_player_state(),
 			_active_world(),
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	var second_revalidated: WorldStepContactResultScript = (
@@ -868,7 +866,7 @@ func _replays_deterministically(
 			_default_grid_state(),
 			_player_state(),
 			_active_world(),
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		)
 	)
 	context.expect_true(
@@ -888,7 +886,7 @@ func _prepare(
 		player_state,
 		world_state,
 		command,
-		_canonical_registry_for_helpers(),
+		CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 	)
 
 
@@ -924,7 +922,7 @@ func _expect_revalidation_rejection(
 			grid_state,
 			player_state,
 			world_state,
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		),
 		expected_reason,
 		label,
@@ -1159,29 +1157,3 @@ func _script_declares_method(script: Script, method_name: StringName) -> bool:
 		if StringName(method_data.get("name", "")) == method_name:
 			return true
 	return false
-
-
-func _canonical_registry(
-	context: HeadlessTestContextScript,
-) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	var build_result = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		build_result.succeeded(),
-		"World-step contact tests need the canonical sealed Registry.",
-	)
-	_cached_registry = build_result.registry()
-	context.expect_true(
-		_cached_registry != null and _cached_registry.is_initialized(),
-		"World-step contact test Registry must be initialized.",
-	)
-	return _cached_registry
-
-
-func _canonical_registry_for_helpers() -> ContentRegistryScript:
-	if _cached_registry == null:
-		var build_result = ContentRegistryBuilderScript.build_canonical()
-		if build_result.succeeded():
-			_cached_registry = build_result.registry()
-	return _cached_registry

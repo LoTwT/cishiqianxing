@@ -1,10 +1,13 @@
 class_name ContactCombatResolution
 extends RefCounted
 
+const ContactCombatArithmeticScript := preload(
+	"res://src/rules/contact_combat_arithmetic.gd"
+)
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
-const MAX_INT: int = 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Outcome {
 	NONE = 0,
@@ -366,8 +369,8 @@ func _common_fields_are_valid() -> bool:
 		and _content_schema_version > 0
 		and _content_version > 0
 		and not String(_opponent_instance_id).is_empty()
-		and _is_side(_initiator_side)
-		and _is_side(_first_attacker_side)
+		and ContactCombatArithmeticScript.is_side(_initiator_side)
+		and ContactCombatArithmeticScript.is_side(_first_attacker_side)
 		and _is_temporary_effect(_temporary_effect)
 		and _supporting_opponents_alive >= 0
 		and _supporting_opponents_alive <= 2
@@ -415,7 +418,7 @@ func _candidate_fields_are_valid() -> bool:
 		)
 	):
 		return false
-	var damaging_attacks_required: int = _ceil_positive(
+	var damaging_attacks_required: int = ContactCombatArithmeticScript.ceil_positive(
 		_previous_opponent_durability,
 		_player_damage_per_attack,
 	)
@@ -423,7 +426,7 @@ func _candidate_fields_are_valid() -> bool:
 		damaging_attacks_required <= 0
 		or (
 			_opponent_shield_intact_before
-			and damaging_attacks_required == MAX_INT
+			and damaging_attacks_required == ValidationSupportScript.MAX_INT
 		)
 	):
 		return false
@@ -462,13 +465,13 @@ func _candidate_fields_are_valid() -> bool:
 		damaging_player_attacks -= 1
 	return (
 		_next_player_health
-		== _remaining_after_attacks(
+		== ContactCombatArithmeticScript.remaining_after_attacks(
 			_previous_player_health,
 			_opponent_damage_per_attack,
 			_opponent_attacks_executed,
 		)
 		and _next_opponent_durability
-		== _remaining_after_attacks(
+		== ContactCombatArithmeticScript.remaining_after_attacks(
 			_previous_opponent_durability,
 			_player_damage_per_attack,
 			damaging_player_attacks,
@@ -509,11 +512,11 @@ func _blocked_fields_are_valid() -> bool:
 
 
 func _expected_first_attacker() -> int:
-	if _effective_player_speed > _effective_opponent_speed:
-		return ContactCombatCommandScript.Side.PLAYER
-	if _effective_opponent_speed > _effective_player_speed:
-		return ContactCombatCommandScript.Side.OPPONENT
-	return _initiator_side
+	return ContactCombatArithmeticScript.first_attacker_side(
+		_effective_player_speed,
+		_effective_opponent_speed,
+		_initiator_side
+	)
 
 
 func _expected_executed_counts(
@@ -531,7 +534,7 @@ func _expected_executed_counts(
 			player_attacks_required,
 			Outcome.OPPONENT_CLEARED,
 		]
-	var opponent_attacks_required: int = _ceil_positive(
+	var opponent_attacks_required: int = ContactCombatArithmeticScript.ceil_positive(
 		_previous_player_health,
 		_opponent_damage_per_attack,
 	)
@@ -560,36 +563,6 @@ func _expected_executed_counts(
 		opponent_attacks_required,
 		Outcome.PLAYER_INCAPACITATED,
 	]
-
-
-func _remaining_after_attacks(
-	starting_value: int,
-	damage: int,
-	attack_count: int,
-) -> int:
-	if damage == 0 or attack_count == 0:
-		return starting_value
-	var attacks_to_zero: int = _ceil_positive(starting_value, damage)
-	if attacks_to_zero <= 0:
-		return -1
-	if attack_count >= attacks_to_zero:
-		return 0
-	return starting_value - damage * attack_count
-
-
-func _ceil_positive(value: int, divisor: int) -> int:
-	if value <= 0 or divisor <= 0:
-		return 0
-	@warning_ignore("integer_division")
-	var quotient: int = (value - 1) / divisor
-	return quotient + 1
-
-
-func _is_side(value: int) -> bool:
-	return (
-		value == ContactCombatCommandScript.Side.PLAYER
-		or value == ContactCombatCommandScript.Side.OPPONENT
-	)
 
 
 func _is_temporary_effect(value: int) -> bool:

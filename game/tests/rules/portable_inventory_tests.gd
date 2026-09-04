@@ -1,9 +1,9 @@
 extends RefCounted
 
-const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
 )
+const ContentRegistryScript := preload("res://src/content/content_registry.gd")
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
@@ -41,8 +41,6 @@ const HeadlessTestContextScript := preload(
 
 const CONTENT_SCHEMA_VERSION: int = 5
 const CONTENT_VERSION: int = 5
-
-var _cached_registry: ContentRegistryScript
 
 
 class StatefulPortableInventoryState extends PortableInventoryStateScript:
@@ -304,7 +302,7 @@ func _rejects_structural_invariants_in_stable_priority(
 		context,
 		PortableInventoryResolverScript.resolve(
 			PortableInventoryStateScript.new(),
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		),
 		PortableInventoryResolutionResultScript.FailureReason.INVALID_INVENTORY_STATE,
 		"Uninitialized state",
@@ -613,7 +611,7 @@ func _selects_effect_without_consuming_inventory(
 		TemporaryEffectSelectionKernelScript.execute(
 			initial_state,
 			command,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(result.was_selected(), "First temporary effect is selected.")
@@ -680,7 +678,7 @@ func _requires_explicit_replacement_confirmation(
 		TemporaryEffectSelectionKernelScript.execute(
 			state,
 			unconfirmed_command,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(
@@ -708,7 +706,7 @@ func _requires_explicit_replacement_confirmation(
 		TemporaryEffectSelectionKernelScript.execute(
 			state,
 			confirmed_command,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(replaced.was_selected(), "Confirmed replacement is selected.")
@@ -731,7 +729,7 @@ func _requires_explicit_replacement_confirmation(
 		TemporaryEffectSelectionKernelScript.execute(
 			replaced.next_state(),
 			TemporaryEffectSelectionCommandScript.select(&"stack.defense", 21),
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(unchanged.was_unchanged(), "Selecting the same stack is idempotent.")
@@ -745,7 +743,7 @@ func _requires_explicit_replacement_confirmation(
 func _rejects_selection_command_failures(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory")
 	var state: PortableInventoryStateScript = _state(
 		[
 			_gift(&"stack.attack", &"blueprint.20", 1),
@@ -897,7 +895,7 @@ func _rejects_selection_command_failures(
 func _rejects_derived_inputs_without_reads(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory")
 	var derived_state := StatefulPortableInventoryState.new()
 	_expect_resolution_failure(
 		context,
@@ -1022,7 +1020,7 @@ func _isolates_inputs_outputs_and_integrity(
 		TemporaryEffectSelectionKernelScript.execute(
 			state,
 			TemporaryEffectSelectionCommandScript.select(&"stack.attack", 4),
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(selection.was_selected(), "Integrity test selection succeeds first.")
@@ -1081,14 +1079,14 @@ func _matches_exact_prestates_and_replays(
 		TemporaryEffectSelectionKernelScript.execute(
 			state,
 			command,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	var second_selection: TemporaryEffectSelectionResultScript = (
 		TemporaryEffectSelectionKernelScript.execute(
 			state.copy(),
 			command.copy(),
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Portable inventory"),
 		)
 	)
 	context.expect_true(
@@ -1316,7 +1314,7 @@ func _resolve(
 ) -> PortableInventoryResolutionResultScript:
 	return PortableInventoryResolverScript.resolve(
 		state,
-		_canonical_registry_for_helpers(),
+		CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 	)
 
 
@@ -1429,29 +1427,3 @@ func _expect_selection_rejection(
 		not result.is_commit_boundary(),
 		"%s is not a commit boundary." % label,
 	)
-
-
-func _canonical_registry(
-	context: HeadlessTestContextScript,
-) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	var build_result = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		build_result.succeeded(),
-		"Portable inventory tests need the canonical sealed Registry.",
-	)
-	_cached_registry = build_result.registry()
-	context.expect_true(
-		_cached_registry != null and _cached_registry.is_initialized(),
-		"Portable inventory test Registry must be initialized.",
-	)
-	return _cached_registry
-
-
-func _canonical_registry_for_helpers() -> ContentRegistryScript:
-	if _cached_registry == null:
-		var build_result = ContentRegistryBuilderScript.build_canonical()
-		if build_result.succeeded():
-			_cached_registry = build_result.registry()
-	return _cached_registry

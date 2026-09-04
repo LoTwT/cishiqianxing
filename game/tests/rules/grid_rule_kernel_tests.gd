@@ -13,6 +13,7 @@ const StatefulGridRuleCommandScript := preload(
 	"res://tests/support/stateful_grid_rule_command.gd"
 )
 const StatefulGridRuleStateScript := preload("res://tests/support/stateful_grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 
 func cases() -> Array[HeadlessTestCaseScript]:
@@ -583,7 +584,7 @@ func _rejects_world_step_overflow(context: HeadlessTestContextScript) -> void:
 	var state: GridRuleStateScript = MinimalGridFixture.create_state(
 		MinimalGridFixture.DEFAULT_ACTOR_POSITION,
 		false,
-		GridRuleStateScript.MAX_WORLD_STEP,
+		ValidationSupportScript.MAX_WORLD_STEP,
 	)
 	var before: GridRuleStateScript = state.copy()
 	context.expect_true(state.is_valid(), "The maximum representable world step remains a valid state.")

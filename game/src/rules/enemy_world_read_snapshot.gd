@@ -13,6 +13,7 @@ const EnemyWorldRecordScript := preload(
 const EnemyWorldStateScript := preload(
 	"res://src/rules/enemy_world_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 var _state: EnemyWorldStateScript
 var _integrity_state: EnemyWorldStateScript
@@ -89,7 +90,7 @@ func address_snapshots() -> Dictionary[StringName, EnemyWorldAddressScript]:
 	var instance_ids: Array[StringName] = []
 	for instance_id: StringName in _state._addresses_by_instance_id:
 		instance_ids.append(instance_id)
-	instance_ids.sort_custom(_id_less_than)
+	instance_ids.sort_custom(ValidationSupportScript.id_less_than)
 	for instance_id: StringName in instance_ids:
 		copied_addresses[instance_id] = (
 			_state._addresses_by_instance_id[instance_id].copy()
@@ -138,5 +139,3 @@ static func _is_exact_state(candidate: RefCounted) -> bool:
 	)
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

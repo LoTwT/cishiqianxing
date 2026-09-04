@@ -10,7 +10,7 @@ const EnemyWorldAddressScript := preload(
 const EnemyWorldReadSnapshotScript := preload(
 	"res://src/rules/enemy_world_read_snapshot.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum FailureReason {
 	NONE = 0,
@@ -49,7 +49,7 @@ func _init(
 		var world_step: int = read_snapshot.world_step()
 		if (
 			world_step >= 0
-			and world_step <= GridRuleStateScript.MAX_WORLD_STEP
+			and world_step <= ValidationSupportScript.MAX_WORLD_STEP
 			and _positions_are_valid(actor_positions)
 		):
 			_space_id = space_id
@@ -95,7 +95,7 @@ func succeeded() -> bool:
 		and EnemyWorldAddressScript.is_valid_space_id(_space_id)
 		and _space_id == _integrity_space_id
 		and _world_step >= 0
-		and _world_step <= GridRuleStateScript.MAX_WORLD_STEP
+		and _world_step <= ValidationSupportScript.MAX_WORLD_STEP
 		and _world_step == _integrity_world_step
 		and _positions_are_valid(_actor_positions)
 		and _positions_are_valid(_integrity_actor_positions)
@@ -129,7 +129,7 @@ func actor_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for actor_id: StringName in _actor_positions:
 		ids.append(actor_id)
-	ids.sort_custom(_id_less_than)
+	ids.sort_custom(ValidationSupportScript.id_less_than)
 	return ids
 
 
@@ -165,7 +165,7 @@ static func _copy_actor_positions(
 	var actor_ids: Array[StringName] = []
 	for actor_id: StringName in actor_positions:
 		actor_ids.append(actor_id)
-	actor_ids.sort_custom(_id_less_than)
+	actor_ids.sort_custom(ValidationSupportScript.id_less_than)
 	for actor_id: StringName in actor_ids:
 		copied_positions[actor_id] = actor_positions[actor_id]
 	return copied_positions
@@ -194,5 +194,3 @@ static func _project_actor_positions(
 	return projected_positions
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

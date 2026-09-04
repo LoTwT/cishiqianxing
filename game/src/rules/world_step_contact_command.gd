@@ -7,7 +7,7 @@ const EnemyInstanceStateScript := preload(
 const EnemyWorldAddressScript := preload(
 	"res://src/rules/enemy_world_address.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const AUTHORITATIVE_PLAYER_ACTOR_ID: StringName = &"actor.loer"
 
@@ -60,9 +60,9 @@ func is_valid() -> bool:
 		and _kind == Kind.ATTEMPT_ENTRY
 		and EnemyWorldAddressScript.is_valid_space_id(_space_id)
 		and EnemyInstanceStateScript.is_valid_instance_id(_moving_actor_id)
-		and _is_horizontal_unit_direction(_direction)
+		and ValidationSupportScript.is_horizontal_unit_direction(_direction)
 		and _expected_world_step >= 0
-		and _expected_world_step <= GridRuleStateScript.MAX_WORLD_STEP
+		and _expected_world_step <= ValidationSupportScript.MAX_WORLD_STEP
 	)
 
 
@@ -103,7 +103,3 @@ func is_equal_to(other: WorldStepContactCommand) -> bool:
 		and other._direction == _direction
 		and other._expected_world_step == _expected_world_step
 	)
-
-
-static func _is_horizontal_unit_direction(direction: Vector3i) -> bool:
-	return direction.y == 0 and absi(direction.x) + absi(direction.z) == 1

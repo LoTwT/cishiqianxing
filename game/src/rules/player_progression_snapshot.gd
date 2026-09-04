@@ -1,6 +1,7 @@
 class_name PlayerProgressionSnapshot
 extends RefCounted
 
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const MAX_CLAIMED_REWARD_COUNT: int = 30
 
 var _profile_id: StringName = &""
@@ -80,7 +81,7 @@ func is_valid() -> bool:
 		and _defense > 0
 		and _speed > 0
 		and _claimed_reward_ids.size() <= MAX_CLAIMED_REWARD_COUNT
-		and _ids_are_canonical_and_unique(_claimed_reward_ids)
+		and ValidationSupportScript.ids_are_canonical_and_unique(_claimed_reward_ids)
 	)
 
 
@@ -146,15 +147,3 @@ static func _copy_ids(
 		if copied_ids.size() >= maximum_count:
 			break
 	return copied_ids
-
-
-static func _ids_are_canonical_and_unique(ids: Array[StringName]) -> bool:
-	var seen_ids: Dictionary[StringName, bool] = {}
-	for index: int in range(ids.size()):
-		var content_id: StringName = ids[index]
-		if String(content_id).is_empty() or seen_ids.has(content_id):
-			return false
-		seen_ids[content_id] = true
-		if index > 0 and String(content_id) < String(ids[index - 1]):
-			return false
-	return true

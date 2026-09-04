@@ -96,7 +96,7 @@ static func blocked(
 		resolution_value as ContactCombatResolutionScript
 	).copy()
 	result._integrity_blocked_resolution = result._blocked_resolution.copy()
-	result._registry_validation_passed = _is_exact_initialized_registry(registry)
+	result._registry_validation_passed = ContentRegistryScript.is_exact_initialized_instance(registry)
 	result._integrity_registry_validation_passed = (
 		result._registry_validation_passed
 	)
@@ -420,10 +420,3 @@ static func _is_exact_inventory_state(candidate_value: RefCounted) -> bool:
 	)
 
 
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
-	)

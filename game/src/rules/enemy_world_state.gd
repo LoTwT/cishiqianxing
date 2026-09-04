@@ -14,7 +14,7 @@ const EnemyWorldAddressScript := preload(
 const EnemyWorldRecordScript := preload(
 	"res://src/rules/enemy_world_record.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 var _records: Array[EnemyWorldRecordScript] = []
 var _addresses_by_instance_id: Dictionary[StringName, EnemyWorldAddressScript] = {}
@@ -79,7 +79,7 @@ func is_valid() -> bool:
 		or not _record_input_types_valid
 		or not _address_input_types_valid
 		or _world_step < 0
-		or _world_step > GridRuleStateScript.MAX_WORLD_STEP
+		or _world_step > ValidationSupportScript.MAX_WORLD_STEP
 		or not _records_use_canonical_order()
 	):
 		return false
@@ -211,7 +211,7 @@ func _copy_address_candidates(
 			_address_input_types_valid = false
 			continue
 		instance_ids.append(instance_id)
-	instance_ids.sort_custom(_id_less_than)
+	instance_ids.sort_custom(ValidationSupportScript.id_less_than)
 	for instance_id: StringName in instance_ids:
 		copied_addresses[instance_id] = (
 			address_candidates[instance_id] as EnemyWorldAddressScript
@@ -228,7 +228,7 @@ func _sorted_address_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for instance_id: StringName in _addresses_by_instance_id:
 		ids.append(instance_id)
-	ids.sort_custom(_id_less_than)
+	ids.sort_custom(ValidationSupportScript.id_less_than)
 	return ids
 
 
@@ -260,5 +260,3 @@ static func _is_exact_address(candidate: RefCounted) -> bool:
 	)
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

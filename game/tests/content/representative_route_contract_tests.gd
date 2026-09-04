@@ -6,6 +6,9 @@ const BlueprintDefinitionScript := preload(
 const ContentManifestScript := preload(
 	"res://src/content/definitions/content_manifest_resource.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 const RepresentativeRouteContractScript := preload(
 	"res://src/content/definitions/representative_route_contract_resource.gd"
 )
@@ -692,7 +695,7 @@ func _expected_contract_ids() -> Array[StringName]:
 	var result: Array[StringName] = []
 	for row in RepresentativeRouteContractOracle.rows():
 		result.append(row.contract_id)
-	result.sort_custom(_string_name_less_than)
+	result.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	return result
 
 
@@ -701,7 +704,7 @@ func _blueprint_ids_through(chapter: int) -> Array[StringName]:
 	for row in ContentCatalogOracle.blueprint_rows():
 		if row.unlock_chapter <= chapter:
 			result.append(row.content_id)
-	result.sort_custom(_string_name_less_than)
+	result.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	return result
 
 
@@ -809,7 +812,3 @@ func _diagnostics(result: ContentRegistryBuildResultScript) -> String:
 	if result == null:
 		return "Build result is null."
 	return "issues=%s" % str(result.validation_report().signatures())
-
-
-func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

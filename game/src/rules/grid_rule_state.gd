@@ -1,7 +1,7 @@
 class_name GridRuleState
 extends RefCounted
 
-const MAX_WORLD_STEP := 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 var _grid_cells: Array[Vector3i] = []
 var _blocked_cells: Array[Vector3i] = []
@@ -70,7 +70,7 @@ func actor_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for actor_id: StringName in _actor_positions:
 		ids.append(actor_id)
-	ids.sort_custom(_actor_id_less_than)
+	ids.sort_custom(ValidationSupportScript.id_less_than)
 	return ids
 
 
@@ -199,7 +199,7 @@ static func _copy_actor_positions(
 	var ids: Array[StringName] = []
 	for actor_id: StringName in actor_positions:
 		ids.append(actor_id)
-	ids.sort_custom(_actor_id_less_than)
+	ids.sort_custom(ValidationSupportScript.id_less_than)
 	for actor_id: StringName in ids:
 		copied_positions[actor_id] = actor_positions[actor_id]
 	return copied_positions
@@ -211,10 +211,6 @@ static func _cell_less_than(left: Vector3i, right: Vector3i) -> bool:
 	if left.y != right.y:
 		return left.y < right.y
 	return left.z < right.z
-
-
-static func _actor_id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)
 
 
 static func _cells_have_duplicates(cells: Array[Vector3i]) -> bool:

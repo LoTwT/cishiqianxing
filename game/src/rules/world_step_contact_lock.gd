@@ -10,7 +10,7 @@ const EnemyInstanceStateScript := preload(
 const EnemyWorldAddressScript := preload(
 	"res://src/rules/enemy_world_address.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const WorldStepContactCommandScript := preload(
 	"res://src/rules/world_step_contact_command.gd"
 )
@@ -72,7 +72,7 @@ func is_valid() -> bool:
 		and _initialized
 		and EnemyWorldAddressScript.is_valid_space_id(_space_id)
 		and _world_step >= 0
-		and _world_step <= GridRuleStateScript.MAX_WORLD_STEP
+		and _world_step <= ValidationSupportScript.MAX_WORLD_STEP
 		and _player_actor_id
 		== WorldStepContactCommandScript.AUTHORITATIVE_PLAYER_ACTOR_ID
 		and EnemyInstanceStateScript.is_valid_instance_id(
@@ -135,7 +135,7 @@ func locked_actor_ids() -> Array[StringName]:
 		_player_actor_id,
 		_target_enemy_instance_id,
 	]
-	actor_ids.sort_custom(_id_less_than)
+	actor_ids.sort_custom(ValidationSupportScript.id_less_than)
 	return actor_ids
 
 
@@ -213,5 +213,3 @@ static func _cells_are_orthogonally_adjacent(
 	)
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

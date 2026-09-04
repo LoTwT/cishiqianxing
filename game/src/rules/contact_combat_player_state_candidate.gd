@@ -4,6 +4,7 @@ extends RefCounted
 const PlayerProgressionStateScript := preload(
 	"res://src/rules/player_progression_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 var _profile_id: StringName = &""
 var _content_schema_version: int = 0
@@ -65,7 +66,7 @@ func is_valid() -> bool:
 		and _current_health >= 0
 		and _claimed_reward_ids.size()
 		<= PlayerProgressionStateScript.MAX_CLAIMED_REWARD_COUNT
-		and _ids_are_canonical_and_unique(_claimed_reward_ids)
+		and ValidationSupportScript.ids_are_canonical_and_unique(_claimed_reward_ids)
 	)
 
 
@@ -100,18 +101,6 @@ func is_equal_to(other: ContactCombatPlayerStateCandidate) -> bool:
 		and other.current_health() == _current_health
 		and other.claimed_reward_ids() == _claimed_reward_ids
 	)
-
-
-static func _ids_are_canonical_and_unique(ids: Array[StringName]) -> bool:
-	var seen_ids: Dictionary[StringName, bool] = {}
-	for index: int in range(ids.size()):
-		var reward_id: StringName = ids[index]
-		if String(reward_id).is_empty() or seen_ids.has(reward_id):
-			return false
-		seen_ids[reward_id] = true
-		if index > 0 and String(reward_id) < String(ids[index - 1]):
-			return false
-	return true
 
 
 static func _copy_ids(ids: Array[StringName]) -> Array[StringName]:

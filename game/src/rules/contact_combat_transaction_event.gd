@@ -10,7 +10,7 @@ const EnemyInstanceStateScript := preload(
 const EnemyWorldAddressScript := preload(
 	"res://src/rules/enemy_world_address.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const PortableInventoryStackScript := preload(
 	"res://src/rules/portable_inventory_stack.gd"
 )
@@ -96,7 +96,7 @@ func is_valid() -> bool:
 		or not _contact_address.is_equal_to(_integrity_contact_address)
 		or not _supporting_ids_are_valid()
 		or _world_step < 0
-		or _world_step > GridRuleStateScript.MAX_WORLD_STEP
+		or _world_step > ValidationSupportScript.MAX_WORLD_STEP
 		or _previous_inventory_revision < 0
 		or _previous_inventory_revision
 		> PortableInventoryStateScript.MAXIMUM_REVISION

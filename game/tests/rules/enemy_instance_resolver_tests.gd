@@ -1,9 +1,9 @@
 extends RefCounted
 
-const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
 )
+const ContentRegistryScript := preload("res://src/content/content_registry.gd")
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
@@ -55,8 +55,6 @@ const EXPECTED_ALTERNATE_PROJECTION_COUNT: int = 4
 const EXPECTED_TOTAL_PROJECTION_COUNT: int = 28
 const EXPECTED_SHIELD_PROFILE_COUNT: int = 5
 const EXPECTED_NON_ALTERNATE_PROFILE_COUNT: int = 20
-
-var _cached_registry: ContentRegistryScript
 
 
 class StatefulEnemyInstance extends EnemyInstanceStateScript:
@@ -169,7 +167,7 @@ func _freezes_literal_runtime_oracle(context: HeadlessTestContextScript) -> void
 		EXPECTED_SHIELD_PROFILE_COUNT,
 		"The oracle must retain exactly five shield-capable profiles.",
 	)
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	context.expect_equal(
 		registry.schema_version(),
 		CONTENT_SCHEMA_VERSION,
@@ -216,7 +214,7 @@ func _freezes_literal_runtime_oracle(context: HeadlessTestContextScript) -> void
 func _creates_all_canonical_primary_instances(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var created_count: int = 0
 	var rows: Array[EnemyProfileCatalogOracle.ProfileRow] = (
 		EnemyProfileCatalogOracle.profile_rows()
@@ -318,7 +316,7 @@ func _creates_all_canonical_primary_instances(
 func _resolves_all_primary_and_alternate_projections(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var resolved_count: int = 0
 	var rejected_alternate_count: int = 0
 	var rows: Array[EnemyProfileCatalogOracle.ProfileRow] = (
@@ -383,7 +381,7 @@ func _resolves_all_primary_and_alternate_projections(
 
 
 func _rehydrates_dynamic_state_matrix(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var shield_row: EnemyProfileCatalogOracle.ProfileRow = _row(
 		&"enemy.profile.f03.base"
 	)
@@ -456,7 +454,7 @@ func _rehydrates_dynamic_state_matrix(context: HeadlessTestContextScript) -> voi
 func _rejects_invalid_inputs_in_stable_priority(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var base_state: EnemyInstanceStateScript = _state(
 		&"enemy.instance.invalid-matrix",
 		&"enemy.profile.f01.base",
@@ -689,7 +687,7 @@ func _rejects_invalid_inputs_in_stable_priority(
 		"Initial creation rejects unknown profile",
 	)
 
-	var tampered_registry: ContentRegistryScript = _fresh_registry(context)
+	var tampered_registry: ContentRegistryScript = CanonicalRegistryFixtureScript.fresh_canonical_registry(context, "Enemy runtime")
 	tampered_registry._enemy_profiles_by_id[&"enemy.profile.f01.base"].attack = 999
 	_expect_failure(
 		context,
@@ -780,7 +778,7 @@ func _rejects_invalid_inputs_in_stable_priority(
 func _rejects_derived_inputs_without_reads(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var derived_state := StatefulEnemyInstance.new()
 	var derived_registry := StatefulContentRegistryScript.new()
 	_expect_failure(
@@ -899,7 +897,7 @@ func _rejects_derived_inputs_without_reads(
 func _isolates_inputs_outputs_and_registry_truth(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _fresh_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.fresh_canonical_registry(context, "Enemy runtime")
 	var input_state: EnemyInstanceStateScript = _state(
 		&"enemy.instance.isolation",
 		&"enemy.profile.f12.enhanced",
@@ -1018,7 +1016,7 @@ func _isolates_inputs_outputs_and_registry_truth(
 				EnemyInstanceStateScript.StateKind.PRIMARY,
 				false,
 			),
-			_fresh_registry(context),
+			CanonicalRegistryFixtureScript.fresh_canonical_registry(context, "Enemy runtime"),
 		)
 	)
 	context.expect_true(self_invalidating.succeeded(), "Self-invalidating fixture.")
@@ -1034,7 +1032,7 @@ func _isolates_inputs_outputs_and_registry_truth(
 func _bridges_every_profile_to_h43_kernel(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var bridge_count: int = 0
 	var rows: Array[EnemyProfileCatalogOracle.ProfileRow] = (
 		EnemyProfileCatalogOracle.profile_rows()
@@ -1088,7 +1086,7 @@ func _bridges_every_profile_to_h43_kernel(
 
 
 func _replays_deterministically(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy runtime")
 	var first_create: EnemyInstanceResolutionResultScript = (
 		EnemyInstanceResolverScript.create_initial(
 			&"enemy.instance.replay-create",
@@ -1543,24 +1541,3 @@ func _encode_result(result: EnemyInstanceResolutionResultScript) -> Array:
 		opponent.speed(),
 		opponent.shield_intact(),
 	]
-
-
-func _canonical_registry(context: HeadlessTestContextScript) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	_cached_registry = _fresh_registry(context)
-	return _cached_registry
-
-
-func _fresh_registry(context: HeadlessTestContextScript) -> ContentRegistryScript:
-	var build_result = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		build_result.succeeded(),
-		"Enemy runtime tests need the canonical sealed Registry.",
-	)
-	var registry: ContentRegistryScript = build_result.registry()
-	context.expect_true(
-		registry != null and registry.is_initialized(),
-		"Enemy runtime test Registry must be initialized.",
-	)
-	return registry

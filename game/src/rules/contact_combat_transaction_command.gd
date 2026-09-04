@@ -10,6 +10,7 @@ const EnemyInstanceStateScript := preload(
 const EnemyWorldAddressScript := preload(
 	"res://src/rules/enemy_world_address.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Kind {
 	RESOLVE_CONTACT = 1,
@@ -46,7 +47,7 @@ static func resolve_contact(
 	command._supporting_instance_ids = command._copy_supporting_instance_ids(
 		supporting_instance_id_candidates
 	)
-	command._supporting_instance_ids.sort_custom(_id_less_than)
+	command._supporting_instance_ids.sort_custom(ValidationSupportScript.id_less_than)
 	command._supporting_instance_ids.make_read_only()
 	command._initiator_side = initiator_side
 	command._initialized = true
@@ -171,5 +172,3 @@ static func _is_exact_address(candidate: RefCounted) -> bool:
 	)
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

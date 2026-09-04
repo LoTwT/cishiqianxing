@@ -19,6 +19,9 @@ const GlobalProgressionCatalogScript := preload(
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 
 const EXPECTED_CATALOG_ID: StringName = &"progression.global"
 const EXPECTED_PROFILE_ID: StringName = &"progression.player.loer"
@@ -126,7 +129,7 @@ static func snapshot_and_validate(
 ) -> GlobalProgressionCatalogScript:
 	var initial_issue_count: int = issues.size()
 	if catalog_resource == null:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_PROGRESSION_CATALOG_NULL,
 			&"",
@@ -135,7 +138,7 @@ static func snapshot_and_validate(
 		)
 		return null
 	if catalog_resource.get_script() != GlobalProgressionCatalogScript:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_CATALOG_INVALID_SCRIPT,
 			&"",
@@ -165,7 +168,7 @@ static func snapshot_and_validate(
 		return null
 
 	if catalog.catalog_id != EXPECTED_CATALOG_ID:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_CATALOG_ID_INVALID,
 			catalog.catalog_id,
@@ -213,9 +216,9 @@ static func snapshot_and_validate(
 	optional_progression.sort_custom(_optional_less_than)
 	rewards.sort_custom(_reward_less_than)
 	for definition: MainlineProgressionDefinitionScript in mainline_progression:
-		definition.reward_ids.sort_custom(_string_name_less_than)
+		definition.reward_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	for definition: OptionalProgressionDefinitionScript in optional_progression:
-		definition.reward_ids.sort_custom(_string_name_less_than)
+		definition.reward_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	var snapshot := GlobalProgressionCatalogScript.new()
 	snapshot.catalog_id = catalog.catalog_id
 	snapshot.initial_stats = PlayerStatProfileScript.snapshot(initial_stats)
@@ -242,7 +245,7 @@ static func _validate_bounded_counts(
 	issues: Array[ContentValidationIssueScript],
 ) -> void:
 	if mainline_count != EXPECTED_MAINLINE_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_COUNT_INVALID,
 			catalog_id,
@@ -251,7 +254,7 @@ static func _validate_bounded_counts(
 			% [EXPECTED_MAINLINE_COUNT, mainline_count],
 		)
 	if optional_count != EXPECTED_OPTIONAL_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_OPTIONAL_COUNT_INVALID,
 			catalog_id,
@@ -260,7 +263,7 @@ static func _validate_bounded_counts(
 			% [EXPECTED_OPTIONAL_COUNT, optional_count],
 		)
 	if reward_count != EXPECTED_REWARD_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_REWARD_COUNT_INVALID,
 			catalog_id,
@@ -275,7 +278,7 @@ static func _snapshot_initial_stats(
 	issues: Array[ContentValidationIssueScript],
 ) -> PlayerStatProfileScript:
 	if profile_resource == null:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_INITIAL_STATS_NULL,
 			&"",
@@ -284,7 +287,7 @@ static func _snapshot_initial_stats(
 		)
 		return null
 	if profile_resource.get_script() != PlayerStatProfileScript:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_INITIAL_STATS_INVALID_SCRIPT,
 			&"",
@@ -308,7 +311,7 @@ static func _snapshot_mainline_progression(
 			"global_progression_catalog.mainline_progression[%d]" % index
 		)
 		if definition_resource == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_NULL,
 				&"",
@@ -317,7 +320,7 @@ static func _snapshot_mainline_progression(
 			)
 			continue
 		if definition_resource.get_script() != MainlineProgressionDefinitionScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_ENTRY_INVALID_SCRIPT,
 				&"",
@@ -326,7 +329,7 @@ static func _snapshot_mainline_progression(
 			)
 			continue
 		if definitions[index].reward_ids.size() > 8:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
 				definitions[index].content_id,
@@ -351,7 +354,7 @@ static func _snapshot_optional_progression(
 			"global_progression_catalog.optional_progression[%d]" % index
 		)
 		if definition_resource == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_NULL,
 				&"",
@@ -360,7 +363,7 @@ static func _snapshot_optional_progression(
 			)
 			continue
 		if definition_resource.get_script() != OptionalProgressionDefinitionScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_ENTRY_INVALID_SCRIPT,
 				&"",
@@ -369,7 +372,7 @@ static func _snapshot_optional_progression(
 			)
 			continue
 		if definitions[index].reward_ids.size() > 8:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
 				definitions[index].content_id,
@@ -394,7 +397,7 @@ static func _snapshot_rewards(
 			"global_progression_catalog.permanent_growth_rewards[%d]" % index
 		)
 		if reward_resource == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_ENTRY_NULL,
 				&"",
@@ -403,7 +406,7 @@ static func _snapshot_rewards(
 			)
 			continue
 		if reward_resource.get_script() != PermanentGrowthRewardDefinitionScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_ENTRY_INVALID_SCRIPT,
 				&"",
@@ -422,7 +425,7 @@ static func _validate_initial_stats(
 	issues: Array[ContentValidationIssueScript],
 ) -> void:
 	if profile.profile_id != EXPECTED_PROFILE_ID:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_PROFILE_ID_INVALID,
 			profile.profile_id,
@@ -471,11 +474,11 @@ static func _validate_mainline_progression(
 	var content_id_counts: Dictionary[StringName, int] = {}
 	var chapter_counts: Dictionary[int, int] = {}
 	for definition: MainlineProgressionDefinitionScript in definitions:
-		_increment_string_name_count(content_id_counts, definition.content_id)
-		_increment_int_count(chapter_counts, definition.chapter)
+		ContentValidationSupportScript.increment_string_name_count(content_id_counts, definition.content_id)
+		ContentValidationSupportScript.increment_int_count(chapter_counts, definition.chapter)
 		var expected_index: int = EXPECTED_MAINLINE_IDS.find(definition.content_id)
 		if definition.content_id == &"":
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_EMPTY,
 				definition.content_id,
@@ -483,7 +486,7 @@ static func _validate_mainline_progression(
 				"Mainline progression content ID cannot be empty.",
 			)
 		elif expected_index < 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_INVALID,
 				definition.content_id,
@@ -491,7 +494,7 @@ static func _validate_mainline_progression(
 				"Mainline progression content ID is not in the frozen whitelist.",
 			)
 		if definition.chapter < 1 or definition.chapter > 9:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_INVALID,
 				definition.content_id,
@@ -514,16 +517,19 @@ static func _validate_mainline_progression(
 			_expected_reward_ids_for_group(definition.content_id),
 			issues,
 		)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		content_id_counts,
 		ContentValidationIssueScript.PROGRESSION_MAINLINE_CONTENT_ID_DUPLICATE,
 		"mainline_progression.content_id",
+		"Mainline content ID",
 		issues,
 	)
-	_add_duplicate_int_issues(
+	ContentValidationSupportScript.add_duplicate_int_issues(
 		chapter_counts,
 		ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_DUPLICATE,
 		"mainline_progression.chapter",
+		"Mainline chapter",
+		ContentValidationSupportScript.string_name_from_int,
 		issues,
 	)
 
@@ -535,11 +541,11 @@ static func _validate_optional_progression(
 	var content_id_counts: Dictionary[StringName, int] = {}
 	var map_id_counts: Dictionary[StringName, int] = {}
 	for definition: OptionalProgressionDefinitionScript in definitions:
-		_increment_string_name_count(content_id_counts, definition.content_id)
-		_increment_string_name_count(map_id_counts, definition.optional_map_id)
+		ContentValidationSupportScript.increment_string_name_count(content_id_counts, definition.content_id)
+		ContentValidationSupportScript.increment_string_name_count(map_id_counts, definition.optional_map_id)
 		var expected_index: int = EXPECTED_OPTIONAL_IDS.find(definition.content_id)
 		if definition.content_id == &"":
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_EMPTY,
 				definition.content_id,
@@ -547,7 +553,7 @@ static func _validate_optional_progression(
 				"Optional progression content ID cannot be empty.",
 			)
 		elif expected_index < 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_INVALID,
 				definition.content_id,
@@ -555,7 +561,7 @@ static func _validate_optional_progression(
 				"Optional progression content ID is not in the frozen whitelist.",
 			)
 		if not EXPECTED_OPTIONAL_MAP_IDS.has(definition.optional_map_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_INVALID,
 				definition.content_id,
@@ -566,7 +572,7 @@ static func _validate_optional_progression(
 			definition.available_after_chapter < 1
 			or definition.available_after_chapter > 9
 		):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_OPTIONAL_AVAILABLE_CHAPTER_INVALID,
 				definition.content_id,
@@ -575,7 +581,7 @@ static func _validate_optional_progression(
 			)
 		if expected_index >= 0:
 			if definition.optional_map_id != EXPECTED_OPTIONAL_MAP_IDS[expected_index]:
-				_add_issue(
+				ContentValidationSupportScript.add_issue(
 					issues,
 					ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_INVALID,
 					definition.content_id,
@@ -597,16 +603,18 @@ static func _validate_optional_progression(
 			_expected_reward_ids_for_group(definition.content_id),
 			issues,
 		)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		content_id_counts,
 		ContentValidationIssueScript.PROGRESSION_OPTIONAL_CONTENT_ID_DUPLICATE,
 		"optional_progression.content_id",
+		"Optional content ID",
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		map_id_counts,
 		ContentValidationIssueScript.PROGRESSION_OPTIONAL_MAP_ID_DUPLICATE,
 		"optional_progression.optional_map_id",
+		"Optional map ID",
 		issues,
 	)
 
@@ -621,7 +629,7 @@ static func _validate_group_reward_ids(
 	# Frozen groups contain at most four rewards. Reject hostile oversized arrays
 	# before walking them so invalid input cannot create unbounded diagnostics.
 	if reward_ids.size() > 8:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
 			group_id,
@@ -631,9 +639,9 @@ static func _validate_group_reward_ids(
 		return
 	var counts: Dictionary[StringName, int] = {}
 	for reward_id: StringName in reward_ids:
-		_increment_string_name_count(counts, reward_id)
+		ContentValidationSupportScript.increment_string_name_count(counts, reward_id)
 		if reward_id.is_empty():
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_EMPTY,
 				group_id,
@@ -641,7 +649,7 @@ static func _validate_group_reward_ids(
 				"Progression group reward IDs cannot be empty.",
 			)
 		elif not EXPECTED_REWARD_IDS.has(reward_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_UNKNOWN,
 				reward_id,
@@ -649,10 +657,10 @@ static func _validate_group_reward_ids(
 				"Progression group references an unknown permanent growth reward.",
 			)
 	var duplicated_ids: Array[StringName] = counts.keys()
-	duplicated_ids.sort_custom(_string_name_less_than)
+	duplicated_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	for reward_id: StringName in duplicated_ids:
 		if not reward_id.is_empty() and counts[reward_id] > 1:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_ID_DUPLICATE,
 				reward_id,
@@ -662,10 +670,10 @@ static func _validate_group_reward_ids(
 			)
 	var ordered_actual: Array[StringName] = _copy_ids(reward_ids)
 	var ordered_expected: Array[StringName] = _copy_ids(expected_reward_ids)
-	ordered_actual.sort_custom(_string_name_less_than)
-	ordered_expected.sort_custom(_string_name_less_than)
+	ordered_actual.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_expected.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	if ordered_actual != ordered_expected:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_GROUP_REWARD_MEMBERSHIP_MISMATCH,
 			group_id,
@@ -680,10 +688,10 @@ static func _validate_rewards(
 ) -> void:
 	var reward_id_counts: Dictionary[StringName, int] = {}
 	for reward: PermanentGrowthRewardDefinitionScript in rewards:
-		_increment_string_name_count(reward_id_counts, reward.reward_id)
+		ContentValidationSupportScript.increment_string_name_count(reward_id_counts, reward.reward_id)
 		var expected_index: int = EXPECTED_REWARD_IDS.find(reward.reward_id)
 		if reward.reward_id.is_empty():
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_ID_EMPTY,
 				reward.reward_id,
@@ -691,7 +699,7 @@ static func _validate_rewards(
 				"Permanent growth reward ID cannot be empty.",
 			)
 		elif expected_index < 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_ID_INVALID,
 				reward.reward_id,
@@ -699,7 +707,7 @@ static func _validate_rewards(
 				"Permanent growth reward ID is not in the frozen whitelist.",
 			)
 		if not _is_valid_stat_kind(reward.stat_kind):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_STAT_KIND_INVALID,
 				reward.reward_id,
@@ -707,7 +715,7 @@ static func _validate_rewards(
 				"Permanent growth reward stat kind must be one of the four supported values.",
 			)
 		if reward.increase <= 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_INCREASE_INVALID,
 				reward.reward_id,
@@ -731,15 +739,16 @@ static func _validate_rewards(
 				ContentValidationIssueScript.PROGRESSION_REWARD_INCREASE_MISMATCH,
 				issues,
 			)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		reward_id_counts,
 		ContentValidationIssueScript.PROGRESSION_REWARD_ID_DUPLICATE,
 		"permanent_growth_rewards.reward_id",
+		"Permanent growth reward ID",
 		issues,
 	)
 	for reward_id: StringName in EXPECTED_REWARD_IDS:
 		if reward_id_counts.get(reward_id, 0) == 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_ID_MISSING,
 				reward_id,
@@ -757,7 +766,7 @@ static func _validate_reward_references(
 	var reward_counts: Dictionary[StringName, int] = {}
 	var rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
 	for reward: PermanentGrowthRewardDefinitionScript in rewards:
-		_increment_string_name_count(reward_counts, reward.reward_id)
+		ContentValidationSupportScript.increment_string_name_count(reward_counts, reward.reward_id)
 	for reward: PermanentGrowthRewardDefinitionScript in rewards:
 		if reward_counts.get(reward.reward_id, 0) == 1:
 			rewards_by_id[reward.reward_id] = reward
@@ -768,21 +777,21 @@ static func _validate_reward_references(
 		for reward_id: StringName in definition.reward_ids:
 			if not seen_in_group.has(reward_id):
 				seen_in_group[reward_id] = true
-				_increment_string_name_count(reference_group_counts, reward_id)
+				ContentValidationSupportScript.increment_string_name_count(reference_group_counts, reward_id)
 	for definition: OptionalProgressionDefinitionScript in optional_progression:
 		var seen_in_group: Dictionary[StringName, bool] = {}
 		for reward_id: StringName in definition.reward_ids:
 			if seen_in_group.has(reward_id):
 				continue
 			seen_in_group[reward_id] = true
-			_increment_string_name_count(reference_group_counts, reward_id)
+			ContentValidationSupportScript.increment_string_name_count(reference_group_counts, reward_id)
 			if not rewards_by_id.has(reward_id):
 				continue
 			if (
 				rewards_by_id[reward_id].stat_kind
 				== PermanentGrowthRewardDefinitionScript.StatKind.SPEED
 			):
-				_add_issue(
+				ContentValidationSupportScript.add_issue(
 					issues,
 					ContentValidationIssueScript.PROGRESSION_OPTIONAL_SPEED_FORBIDDEN,
 					reward_id,
@@ -792,7 +801,7 @@ static func _validate_reward_references(
 	for reward_id: StringName in EXPECTED_REWARD_IDS:
 		var reference_count: int = reference_group_counts.get(reward_id, 0)
 		if reference_count == 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_UNREFERENCED,
 				reward_id,
@@ -800,7 +809,7 @@ static func _validate_reward_references(
 				"Permanent growth reward must be referenced by exactly one group.",
 			)
 		elif reference_count > 1:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_REWARD_REFERENCED_MULTIPLE,
 				reward_id,
@@ -837,7 +846,7 @@ static func _validate_aggregate_contract(
 			_apply_reward_to_values(current, reward)
 			mainline_counts[reward.stat_kind - 1] += 1
 		if current != _quad_at(EXPECTED_MAINLINE_TOTALS, index):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.PROGRESSION_MAINLINE_CHAPTER_TOTAL_MISMATCH,
 				ordered_mainline[index].content_id,
@@ -845,7 +854,7 @@ static func _validate_aggregate_contract(
 				"Mainline cumulative stats do not match the frozen chapter total.",
 			)
 	if mainline_counts != [8, 6, 6, 4]:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_ATOMIC_COUNT_MISMATCH,
 			EXPECTED_CATALOG_ID,
@@ -853,7 +862,7 @@ static func _validate_aggregate_contract(
 			"Expected mainline reward counts 8/6/6/4 (24 total).",
 		)
 	if current != [180, 16, 11, 14]:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_MAINLINE_FINAL_STATS_MISMATCH,
 			EXPECTED_PROFILE_ID,
@@ -872,7 +881,7 @@ static func _validate_aggregate_contract(
 			_apply_reward_to_values(current, reward)
 			optional_counts[reward.stat_kind - 1] += 1
 	if optional_counts != [2, 2, 2, 0]:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_OPTIONAL_ATOMIC_COUNT_MISMATCH,
 			EXPECTED_CATALOG_ID,
@@ -880,7 +889,7 @@ static func _validate_aggregate_contract(
 			"Expected optional reward counts 2/2/2/0 (6 total).",
 		)
 	if current != [200, 18, 13, 14]:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.PROGRESSION_FULL_COMPLETION_STATS_MISMATCH,
 			EXPECTED_PROFILE_ID,
@@ -956,7 +965,7 @@ static func _validate_exact_int(
 ) -> void:
 	if actual == expected:
 		return
-	_add_issue(
+	ContentValidationSupportScript.add_issue(
 		issues,
 		issue_code,
 		content_id,
@@ -965,72 +974,11 @@ static func _validate_exact_int(
 	)
 
 
-static func _add_duplicate_string_name_issues(
-	counts: Dictionary[StringName, int],
-	issue_code: StringName,
-	field_path: String,
-	issues: Array[ContentValidationIssueScript],
-) -> void:
-	var values: Array[StringName] = counts.keys()
-	values.sort_custom(_string_name_less_than)
-	for value: StringName in values:
-		if counts[value] > 1:
-			_add_issue(
-				issues,
-				issue_code,
-				value,
-				field_path,
-				"Value '%s' appears %d times." % [String(value), counts[value]],
-			)
-
-
-static func _add_duplicate_int_issues(
-	counts: Dictionary[int, int],
-	issue_code: StringName,
-	field_path: String,
-	issues: Array[ContentValidationIssueScript],
-) -> void:
-	var values: Array[int] = counts.keys()
-	values.sort()
-	for value: int in values:
-		if counts[value] > 1:
-			_add_issue(
-				issues,
-				issue_code,
-				StringName(str(value)),
-				field_path,
-				"Value %d appears %d times." % [value, counts[value]],
-			)
-
-
-static func _increment_string_name_count(
-	counts: Dictionary[StringName, int],
-	value: StringName,
-) -> void:
-	counts[value] = counts.get(value, 0) + 1
-
-
-static func _increment_int_count(counts: Dictionary[int, int], value: int) -> void:
-	counts[value] = counts.get(value, 0) + 1
-
-
 static func _copy_ids(source: Array[StringName]) -> Array[StringName]:
 	var result: Array[StringName] = []
 	for value: StringName in source:
 		result.append(value)
 	return result
-
-
-static func _add_issue(
-	issues: Array[ContentValidationIssueScript],
-	code: StringName,
-	content_id: StringName,
-	field_path: String,
-	message: String,
-) -> void:
-	issues.append(
-		ContentValidationIssueScript.new(code, content_id, field_path, message)
-	)
 
 
 static func _mainline_less_than(
@@ -1052,7 +1000,3 @@ static func _reward_less_than(
 	right: PermanentGrowthRewardDefinitionScript,
 ) -> bool:
 	return String(left.reward_id) < String(right.reward_id)
-
-
-static func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

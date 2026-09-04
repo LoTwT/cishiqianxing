@@ -29,9 +29,9 @@ const PermanentGrowthClaimEventScript := preload(
 const PermanentGrowthClaimResultScript := preload(
 	"res://src/rules/permanent_growth_claim_result.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
-const MAX_INT: int = 9_223_372_036_854_775_807
 
 
 class RegistryProjection extends RefCounted:
@@ -119,7 +119,7 @@ static func _derive_snapshot_from_projection(
 		var increase: int = projection.reward_increases[reward_id]
 		match stat_kind:
 			PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH:
-				if _would_add_overflow(maximum_health, increase):
+				if ValidationSupportScript.would_add_overflow(maximum_health, increase):
 					return PlayerProgressionDerivationResultScript.failure(
 						(
 							PlayerProgressionDerivationResultScript
@@ -129,7 +129,7 @@ static func _derive_snapshot_from_projection(
 					)
 				maximum_health += increase
 			PermanentGrowthRewardDefinitionScript.StatKind.ATTACK:
-				if _would_add_overflow(attack, increase):
+				if ValidationSupportScript.would_add_overflow(attack, increase):
 					return PlayerProgressionDerivationResultScript.failure(
 						(
 							PlayerProgressionDerivationResultScript
@@ -139,7 +139,7 @@ static func _derive_snapshot_from_projection(
 					)
 				attack += increase
 			PermanentGrowthRewardDefinitionScript.StatKind.DEFENSE:
-				if _would_add_overflow(defense, increase):
+				if ValidationSupportScript.would_add_overflow(defense, increase):
 					return PlayerProgressionDerivationResultScript.failure(
 						(
 							PlayerProgressionDerivationResultScript
@@ -149,7 +149,7 @@ static func _derive_snapshot_from_projection(
 					)
 				defense += increase
 			PermanentGrowthRewardDefinitionScript.StatKind.SPEED:
-				if _would_add_overflow(speed, increase):
+				if ValidationSupportScript.would_add_overflow(speed, increase):
 					return PlayerProgressionDerivationResultScript.failure(
 						(
 							PlayerProgressionDerivationResultScript
@@ -268,7 +268,7 @@ static func execute(
 		reward_stat_kind
 		== PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH
 	):
-		if _would_add_overflow(next_current_health, reward_increase):
+		if ValidationSupportScript.would_add_overflow(next_current_health, reward_increase):
 			return PermanentGrowthClaimResultScript.rejected(
 				requested_reward_id,
 				unchanged_state,
@@ -399,7 +399,7 @@ static func _capture_registry_projection(registry: RefCounted) -> RegistryProjec
 		projection.reward_increases[reward.reward_id] = reward.increase
 	if (
 		projection.reward_ids.size() != EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
-		or not _ids_are_canonical_and_unique(projection.reward_ids)
+		or not ValidationSupportScript.ids_are_canonical_and_unique(projection.reward_ids)
 		or projection.reward_stat_kinds.size() != EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
 		or projection.reward_increases.size() != EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
 	):
@@ -532,19 +532,3 @@ static func _is_valid_reward(
 		and exact_reward.stat_kind <= PermanentGrowthRewardDefinitionScript.StatKind.SPEED
 		and exact_reward.increase > 0
 	)
-
-
-static func _would_add_overflow(left: int, right: int) -> bool:
-	return right > 0 and left > MAX_INT - right
-
-
-static func _ids_are_canonical_and_unique(ids: Array[StringName]) -> bool:
-	var seen_ids: Dictionary[StringName, bool] = {}
-	for index: int in range(ids.size()):
-		var content_id: StringName = ids[index]
-		if String(content_id).is_empty() or seen_ids.has(content_id):
-			return false
-		seen_ids[content_id] = true
-		if index > 0 and String(content_id) < String(ids[index - 1]):
-			return false
-	return true

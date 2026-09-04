@@ -4,6 +4,9 @@ extends RefCounted
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 
 var _issues: Array[ContentValidationIssueScript] = []
 
@@ -35,14 +38,10 @@ func signatures() -> Array[String]:
 		result.append(
 			"%s%s%s%s"
 			% [
-				_encode_string(String(issue.code())),
-				_encode_string(String(issue.content_id())),
-				_encode_string(issue.field_path()),
-				_encode_string(issue.message()),
+				ContentValidationSupportScript.encode_string(String(issue.code())),
+				ContentValidationSupportScript.encode_string(String(issue.content_id())),
+				ContentValidationSupportScript.encode_string(issue.field_path()),
+				ContentValidationSupportScript.encode_string(issue.message()),
 			]
 		)
 	return result
-
-
-static func _encode_string(value: String) -> String:
-	return "%d:%s" % [value.to_utf8_buffer().size(), value]

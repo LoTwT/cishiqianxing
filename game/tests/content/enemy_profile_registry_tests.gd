@@ -1,5 +1,8 @@
 extends RefCounted
 
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 const EnemyFamilyDefinitionScript := preload(
 	"res://src/content/definitions/enemy_family_definition_resource.gd"
 )
@@ -1308,7 +1311,7 @@ func _expected_family_ids() -> Array[StringName]:
 	var result: Array[StringName] = []
 	for row in EnemyProfileCatalogOracle.family_rows():
 		result.append(row.family_id)
-	result.sort_custom(_string_name_less_than)
+	result.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	return result
 
 
@@ -1316,7 +1319,7 @@ func _expected_profile_ids() -> Array[StringName]:
 	var result: Array[StringName] = []
 	for row in EnemyProfileCatalogOracle.profile_rows():
 		result.append(row.profile_id)
-	result.sort_custom(_string_name_less_than)
+	result.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	return result
 
 
@@ -1584,7 +1587,3 @@ func _diagnostics(result: ContentRegistryBuildResultScript) -> String:
 	if result == null:
 		return "Build result is null."
 	return "issues=%s" % str(result.validation_report().signatures())
-
-
-func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)
