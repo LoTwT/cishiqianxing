@@ -26,6 +26,9 @@ const ContactCombatKernelTests := preload(
 const ContactCombatTransactionTests := preload(
 	"res://tests/rules/contact_combat_transaction_tests.gd"
 )
+const WorldStepContactKernelTests := preload(
+	"res://tests/rules/world_step_contact_kernel_tests.gd"
+)
 const PortableInventoryTests := preload(
 	"res://tests/rules/portable_inventory_tests.gd"
 )
@@ -138,6 +141,16 @@ func _initialize() -> void:
 		_fail_empty_suite("contact_transaction")
 		return
 
+	var world_step_contact_test_suite: WorldStepContactKernelTests = (
+		WorldStepContactKernelTests.new()
+	)
+	var world_step_contact_test_cases: Array[HeadlessTestCaseScript] = (
+		world_step_contact_test_suite.cases()
+	)
+	if world_step_contact_test_cases.is_empty():
+		_fail_empty_suite("world_step_contact")
+		return
+
 	var portable_inventory_test_suite: PortableInventoryTests = (
 		PortableInventoryTests.new()
 	)
@@ -159,6 +172,7 @@ func _initialize() -> void:
 	test_cases.append_array(permanent_growth_claim_test_cases)
 	test_cases.append_array(contact_combat_test_cases)
 	test_cases.append_array(contact_transaction_test_cases)
+	test_cases.append_array(world_step_contact_test_cases)
 	test_cases.append_array(portable_inventory_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
