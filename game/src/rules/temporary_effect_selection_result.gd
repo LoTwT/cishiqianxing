@@ -19,6 +19,7 @@ const PortableInventoryStateScript := preload(
 const TemporaryEffectSelectionCommandScript := preload(
 	"res://src/rules/temporary_effect_selection_command.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Status {
 	SELECTED = 1,
@@ -59,6 +60,16 @@ var _integrity_command: TemporaryEffectSelectionCommandScript
 var _previous_read_snapshot: PortableInventoryReadSnapshotScript
 var _read_snapshot: PortableInventoryReadSnapshotScript
 
+# 平字段镜像声明（walker 统一处理）；嵌套镜像 _integrity_command 为深拷贝
+# 捕获 + _commands_are_equal 值比较，保留手写。_previous_read_snapshot 与
+# _read_snapshot 本身不设镜像。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"status",
+	&"rejection_reason",
+	&"inventory_failure_reason",
+	&"requested_stack_id",
+]
+
 
 func _init(
 	status: int,
@@ -70,22 +81,18 @@ func _init(
 	resolution: PortableInventoryResolutionResultScript,
 ) -> void:
 	_status = status
-	_integrity_status = status
 	_rejection_reason = rejection_reason
-	_integrity_rejection_reason = rejection_reason
 	_inventory_failure_reason = inventory_failure_reason
-	_integrity_inventory_failure_reason = inventory_failure_reason
 	_requested_stack_id = requested_stack_id
-	_integrity_requested_stack_id = requested_stack_id
 	if _is_exact_command(command_candidate):
 		_command = (
 			command_candidate as TemporaryEffectSelectionCommandScript
 		).copy()
-		_integrity_command = _command.copy()
 	if _is_successful_resolution(previous_resolution):
 		_previous_read_snapshot = previous_resolution.read_snapshot()
 	if _is_successful_resolution(resolution):
 		_read_snapshot = resolution.read_snapshot()
+	_capture_integrity()
 
 
 static func selected(
@@ -395,13 +402,14 @@ func _requested_stack_is_temporary_effect(
 	)
 
 
+func _capture_integrity() -> void:
+	if _is_exact_command(_command):
+		_integrity_command = _command.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _integrity_fields_match() -> bool:
-	return (
-		_status == _integrity_status
-		and _rejection_reason == _integrity_rejection_reason
-		and _inventory_failure_reason == _integrity_inventory_failure_reason
-		and _requested_stack_id == _integrity_requested_stack_id
-	)
+	return ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 
 
 static func _commands_are_equal(

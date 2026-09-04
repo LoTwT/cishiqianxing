@@ -1,6 +1,7 @@
 class_name WorldStepContactResult
 extends RefCounted
 
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const WorldStepContactLockScript := preload(
 	"res://src/rules/world_step_contact_lock.gd"
 )
@@ -51,13 +52,21 @@ var _integrity_contact_lock: WorldStepContactLockScript
 var _registry_validation_passed: bool = false
 var _integrity_registry_validation_passed: bool = false
 
+# 平字段镜像声明（walker 统一处理）；嵌套镜像 _integrity_contact_lock 为
+# 深拷贝捕获 + is_equal_to 值比较，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"status",
+	&"cancellation_reason",
+	&"rejection_reason",
+	&"registry_validation_passed",
+]
+
 
 static func rejected(rejection_reason_value: int) -> WorldStepContactResult:
 	var result := new()
 	result._status = Status.REJECTED
-	result._integrity_status = result._status
 	result._rejection_reason = rejection_reason_value
-	result._integrity_rejection_reason = result._rejection_reason
+	result._capture_integrity()
 	return result
 
 
@@ -135,13 +144,7 @@ func is_equal_to(other: WorldStepContactResult) -> bool:
 
 
 func _is_well_formed() -> bool:
-	if (
-		_status != _integrity_status
-		or _cancellation_reason != _integrity_cancellation_reason
-		or _rejection_reason != _integrity_rejection_reason
-		or _registry_validation_passed
-		!= _integrity_registry_validation_passed
-	):
+	if not ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES):
 		return false
 	if _status == Status.REJECTED:
 		return (
@@ -186,3 +189,9 @@ static func _is_exact_contact_lock(candidate: RefCounted) -> bool:
 		and is_instance_valid(candidate)
 		and candidate.get_script() == WorldStepContactLockScript
 	)
+
+
+func _capture_integrity() -> void:
+	if _is_exact_contact_lock(_contact_lock):
+		_integrity_contact_lock = _contact_lock.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)

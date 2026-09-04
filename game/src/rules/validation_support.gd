@@ -1,7 +1,8 @@
 class_name ValidationSupport
 extends RefCounted
 
-# 规则层共享的确定性校验原语：整数上界、标识符校验、规范排序与溢出谓词。
+# 规则层共享的确定性校验原语：整数上界、标识符校验、规范排序、溢出谓词，
+# 以及值对象镜像字段（_integrity_*）的声明式捕获/比对/复制 walker。
 # 本模块零依赖（不 preload 任何业务类型），可被所有规则内核与内容校验器引用。
 
 const MAX_INT: int = 9_223_372_036_854_775_807
@@ -63,3 +64,46 @@ static func would_overflow_target(from_cell: Vector3i, direction: Vector3i) -> b
 		or (direction.z > 0 and from_cell.z == VECTOR3I_COMPONENT_MAX)
 		or (direction.z < 0 and from_cell.z == VECTOR3I_COMPONENT_MIN)
 	)
+
+
+# 镜像字段 walker：以「基础字段名」列表（如 [&"space_id"]）为单一声明点，
+# 驱动值对象的 _<name> 与 _integrity_<name> 镜像对的捕获、比对与复制。
+# 比对使用 Variant ==，与既有手写镜像比对语义一致。
+
+
+# 把 field_names 对应的 _<name> 当前值写入 _integrity_<name>（捕获镜像）。
+static func capture_field_integrity(
+	object: Object,
+	field_names: Array[StringName],
+) -> void:
+	for field_name: StringName in field_names:
+		object.set(
+			StringName("_integrity_" + String(field_name)),
+			object.get(StringName("_" + String(field_name))),
+		)
+
+
+# 逐字段比较 _<name> 与 _integrity_<name>，任一字段不等即返回 false。
+static func field_integrity_matches(
+	object: Object,
+	field_names: Array[StringName],
+) -> bool:
+	for field_name: StringName in field_names:
+		if object.get(StringName("_" + String(field_name))) != object.get(
+			StringName("_integrity_" + String(field_name))
+		):
+			return false
+	return true
+
+
+# 把 source 的 _integrity_<name> 复制到 destination 的同名镜像（供 copy() 用）。
+static func copy_field_integrity(
+	source: Object,
+	destination: Object,
+	field_names: Array[StringName],
+) -> void:
+	for field_name: StringName in field_names:
+		destination.set(
+			StringName("_integrity_" + String(field_name)),
+			source.get(StringName("_integrity_" + String(field_name))),
+		)

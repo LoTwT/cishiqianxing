@@ -36,33 +36,35 @@ var _integrity_initiator_side: int = 0
 var _initialized: bool = false
 var _integrity_initialized: bool = false
 
+# 防篡改镜像的全部基础字段名；镜像 _integrity_<name> 的捕获/比对/复制
+# 由 ValidationSupportScript 的 walker 按此单一声明驱动。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"space_id",
+	&"world_step",
+	&"player_actor_id",
+	&"target_enemy_instance_id",
+	&"player_cell",
+	&"target_enemy_cell",
+	&"moving_actor_id",
+	&"attempted_destination_cell",
+	&"initiator_side",
+	&"initialized",
+]
+
 
 func copy() -> WorldStepContactLock:
 	var copied_lock := new()
 	copied_lock._space_id = _space_id
-	copied_lock._integrity_space_id = _integrity_space_id
 	copied_lock._world_step = _world_step
-	copied_lock._integrity_world_step = _integrity_world_step
 	copied_lock._player_actor_id = _player_actor_id
-	copied_lock._integrity_player_actor_id = _integrity_player_actor_id
 	copied_lock._target_enemy_instance_id = _target_enemy_instance_id
-	copied_lock._integrity_target_enemy_instance_id = (
-		_integrity_target_enemy_instance_id
-	)
 	copied_lock._player_cell = _player_cell
-	copied_lock._integrity_player_cell = _integrity_player_cell
 	copied_lock._target_enemy_cell = _target_enemy_cell
-	copied_lock._integrity_target_enemy_cell = _integrity_target_enemy_cell
 	copied_lock._moving_actor_id = _moving_actor_id
-	copied_lock._integrity_moving_actor_id = _integrity_moving_actor_id
 	copied_lock._attempted_destination_cell = _attempted_destination_cell
-	copied_lock._integrity_attempted_destination_cell = (
-		_integrity_attempted_destination_cell
-	)
 	copied_lock._initiator_side = _initiator_side
-	copied_lock._integrity_initiator_side = _integrity_initiator_side
 	copied_lock._initialized = _initialized
-	copied_lock._integrity_initialized = _integrity_initialized
+	ValidationSupportScript.copy_field_integrity(self, copied_lock, _INTEGRITY_FIELD_NAMES)
 	return copied_lock
 
 
@@ -166,20 +168,12 @@ func is_equal_to(other: WorldStepContactLock) -> bool:
 	)
 
 
+func _capture_integrity() -> void:
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _integrity_fields_match() -> bool:
-	return (
-		_initialized == _integrity_initialized
-		and _space_id == _integrity_space_id
-		and _world_step == _integrity_world_step
-		and _player_actor_id == _integrity_player_actor_id
-		and _target_enemy_instance_id == _integrity_target_enemy_instance_id
-		and _player_cell == _integrity_player_cell
-		and _target_enemy_cell == _integrity_target_enemy_cell
-		and _moving_actor_id == _integrity_moving_actor_id
-		and _attempted_destination_cell
-		== _integrity_attempted_destination_cell
-		and _initiator_side == _integrity_initiator_side
-	)
+	return ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 
 
 func _movement_metadata_is_valid() -> bool:

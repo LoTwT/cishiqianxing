@@ -50,6 +50,7 @@ const PortableInventoryResolutionResultScript := preload(
 const PortableInventoryStateScript := preload(
 	"res://src/rules/portable_inventory_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 var _command: ContactCombatTransactionCommandScript
 var _integrity_command: ContactCombatTransactionCommandScript
@@ -63,6 +64,10 @@ var _resolution: ContactCombatResolutionScript
 var _integrity_resolution: ContactCombatResolutionScript
 var _initialized: bool = false
 var _integrity_initialized: bool = false
+
+# 平字段镜像声明（walker 统一处理）；嵌套镜像（_integrity_command 等）为
+# 深拷贝捕获 + is_equal_to 值比较 + copy() 镜像深拷贝，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [&"initialized"]
 
 
 func copy() -> ContactCombatTransactionCandidate:
@@ -86,7 +91,7 @@ func copy() -> ContactCombatTransactionCandidate:
 	copied_candidate._resolution = _resolution.copy()
 	copied_candidate._integrity_resolution = _integrity_resolution.copy()
 	copied_candidate._initialized = _initialized
-	copied_candidate._integrity_initialized = _integrity_initialized
+	ValidationSupportScript.copy_field_integrity(self, copied_candidate, _INTEGRITY_FIELD_NAMES)
 	return copied_candidate
 
 
@@ -201,9 +206,23 @@ func _all_fields_have_exact_types() -> bool:
 	)
 
 
+func _capture_integrity() -> void:
+	if _is_exact_transaction_command(_command):
+		_integrity_command = _command.copy()
+	if _is_exact_player_state(_previous_player_state):
+		_integrity_previous_player_state = _previous_player_state.copy()
+	if _is_exact_enemy_world_state(_previous_enemy_world_state):
+		_integrity_previous_enemy_world_state = _previous_enemy_world_state.copy()
+	if _is_exact_inventory_state(_previous_inventory_state):
+		_integrity_previous_inventory_state = _previous_inventory_state.copy()
+	if _is_exact_resolution(_resolution):
+		_integrity_resolution = _resolution.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _integrity_copies_match() -> bool:
 	return (
-		_initialized == _integrity_initialized
+		ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		and _command.is_equal_to(_integrity_command)
 		and _previous_player_state.is_equal_to(_integrity_previous_player_state)
 		and _previous_enemy_world_state.is_equal_to(

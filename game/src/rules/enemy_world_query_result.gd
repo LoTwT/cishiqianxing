@@ -13,6 +13,7 @@ const EnemyWorldRecordScript := preload(
 const EnemyWorldReadSnapshotScript := preload(
 	"res://src/rules/enemy_world_read_snapshot.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum FailureReason {
 	NONE = 0,
@@ -28,6 +29,10 @@ var _address: EnemyWorldAddressScript
 var _integrity_address: EnemyWorldAddressScript
 var _failure_reason: int = FailureReason.NONE
 var _integrity_failure_reason: int = FailureReason.NONE
+
+# 平字段镜像声明（walker 统一处理）；嵌套镜像 _integrity_record 与
+# _integrity_address 为深拷贝捕获 + is_equal_to 值比较，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [&"failure_reason"]
 
 
 func _init(
@@ -66,24 +71,19 @@ func _init(
 			)
 		):
 			_record = record.copy()
-			_integrity_record = record.copy()
 			if address_is_exact:
 				_address = address.copy()
-				_integrity_address = _address.copy()
 			_failure_reason = FailureReason.NONE
-			_integrity_failure_reason = FailureReason.NONE
 		else:
 			_failure_reason = FailureReason.INVALID_RESULT
-			_integrity_failure_reason = FailureReason.INVALID_RESULT
 	elif (
 		failure_reason >= FailureReason.INVALID_WORLD_STATE
 		and failure_reason <= FailureReason.INVALID_RESULT
 	):
 		_failure_reason = failure_reason
-		_integrity_failure_reason = failure_reason
 	else:
 		_failure_reason = FailureReason.INVALID_RESULT
-		_integrity_failure_reason = FailureReason.INVALID_RESULT
+	_capture_integrity()
 
 
 static func success(
@@ -99,7 +99,7 @@ static func failure(failure_reason: int) -> EnemyWorldQueryResult:
 
 func succeeded() -> bool:
 	if (
-		_failure_reason != _integrity_failure_reason
+		not ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		or _failure_reason != FailureReason.NONE
 		or not _is_exact_record(_record)
 		or not _is_exact_record(_integrity_record)
@@ -123,7 +123,7 @@ func failure_reason() -> int:
 	if succeeded():
 		return FailureReason.NONE
 	if (
-		_failure_reason == _integrity_failure_reason
+		ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		and _failure_reason >= FailureReason.INVALID_WORLD_STATE
 		and _failure_reason <= FailureReason.INVALID_RESULT
 	):
@@ -151,6 +151,14 @@ func world_address() -> EnemyWorldAddressScript:
 	if not succeeded() or _address == null:
 		return null
 	return _address.copy()
+
+
+func _capture_integrity() -> void:
+	if _is_exact_record(_record):
+		_integrity_record = _record.copy()
+	if _is_exact_address(_address):
+		_integrity_address = _address.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
 
 
 static func _is_exact_record(candidate: RefCounted) -> bool:

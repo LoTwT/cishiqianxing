@@ -25,6 +25,7 @@ const EnemyWorldRecordScript := preload(
 const EnemyWorldStateScript := preload(
 	"res://src/rules/enemy_world_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum FailureReason {
 	NONE = 0,
@@ -59,6 +60,15 @@ var _integrity_enemy_instance_failure_reason: int = (
 	EnemyInstanceResolutionResultScript.FailureReason.NONE
 )
 
+# 平字段镜像声明（walker 统一处理）；嵌套镜像 _integrity_read_snapshot 为
+# 深拷贝捕获 + is_equal_to 值比较，保留手写。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"failure_reason",
+	&"failed_instance_id",
+	&"failed_space_id",
+	&"enemy_instance_failure_reason",
+]
+
 
 func _init(
 	snapshot_candidate: RefCounted,
@@ -80,7 +90,6 @@ func _init(
 		== EnemyInstanceResolutionResultScript.FailureReason.NONE
 	):
 		_read_snapshot = read_snapshot
-		_integrity_read_snapshot = read_snapshot.copy()
 		_set_failure_state(
 			FailureReason.NONE,
 			&"",
@@ -314,6 +323,12 @@ static func _failure_metadata_is_valid(
 	return false
 
 
+func _capture_integrity() -> void:
+	if _read_snapshot != null:
+		_integrity_read_snapshot = _read_snapshot.copy()
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
+
+
 func _set_failure_state(
 	failure_reason: int,
 	failed_instance_id: StringName,
@@ -321,22 +336,15 @@ func _set_failure_state(
 	enemy_instance_failure_reason: int,
 ) -> void:
 	_failure_reason = failure_reason
-	_integrity_failure_reason = failure_reason
 	_failed_instance_id = failed_instance_id
-	_integrity_failed_instance_id = failed_instance_id
 	_failed_space_id = failed_space_id
-	_integrity_failed_space_id = failed_space_id
 	_enemy_instance_failure_reason = enemy_instance_failure_reason
-	_integrity_enemy_instance_failure_reason = enemy_instance_failure_reason
+	_capture_integrity()
 
 
 func _failure_state_is_intact() -> bool:
 	return (
-		_failure_reason == _integrity_failure_reason
-		and _failed_instance_id == _integrity_failed_instance_id
-		and _failed_space_id == _integrity_failed_space_id
-		and _enemy_instance_failure_reason
-		== _integrity_enemy_instance_failure_reason
+		ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		and _failure_metadata_is_valid(
 			_failure_reason,
 			_failed_instance_id,

@@ -219,46 +219,27 @@ static func prepare(
 		)
 	var candidate := ContactCombatTransactionCandidateScript.new()
 	candidate._command = command.copy()
-	candidate._integrity_command = candidate._command.copy()
 	candidate._previous_player_state = player_state.copy()
-	candidate._integrity_previous_player_state = (
-		candidate._previous_player_state.copy()
-	)
 	candidate._previous_enemy_world_state = world_resolution.snapshot()
-	candidate._integrity_previous_enemy_world_state = (
-		candidate._previous_enemy_world_state.copy()
-	)
 	candidate._previous_inventory_state = inventory_state.copy()
-	candidate._integrity_previous_inventory_state = (
-		candidate._previous_inventory_state.copy()
-	)
 	candidate._resolution = resolution.copy()
-	candidate._integrity_resolution = candidate._resolution.copy()
 	candidate._initialized = true
-	candidate._integrity_initialized = true
+	candidate._capture_integrity()
 	if not candidate.is_resolved_against(registry):
 		return _rejected(
 			ContactCombatTransactionResultScript.RejectionReason.INVALID_RESULT
 		)
 	var prepared_result := ContactCombatTransactionResultScript.new()
 	prepared_result._status = ContactCombatTransactionResultScript.Status.PREPARED
-	prepared_result._integrity_status = prepared_result._status
 	prepared_result._rejection_reason = (
 		ContactCombatTransactionResultScript.RejectionReason.NONE
-	)
-	prepared_result._integrity_rejection_reason = (
-		prepared_result._rejection_reason
 	)
 	prepared_result._combat_rejection_reason = (
 		ContactCombatResultScript.RejectionReason.NONE
 	)
-	prepared_result._integrity_combat_rejection_reason = (
-		prepared_result._combat_rejection_reason
-	)
 	prepared_result._candidate = candidate.copy()
-	prepared_result._integrity_candidate = prepared_result._candidate.copy()
 	prepared_result._registry_validation_passed = true
-	prepared_result._integrity_registry_validation_passed = true
+	prepared_result._capture_integrity()
 	return (
 		prepared_result
 		if prepared_result.is_prepared()
@@ -507,71 +488,36 @@ static func commit(
 
 	var domain_event := ContactCombatTransactionEventScript.new()
 	domain_event._kind = ContactCombatTransactionEventScript.Kind.COMMITTED
-	domain_event._integrity_kind = domain_event._kind
 	domain_event._target_instance_id = transaction_command.target_instance_id()
-	domain_event._integrity_target_instance_id = domain_event._target_instance_id
 	domain_event._contact_address = transaction_command.contact_address()
-	domain_event._integrity_contact_address = domain_event._contact_address.copy()
 	domain_event._supporting_instance_ids = transaction_command.supporting_instance_ids()
 	domain_event._supporting_instance_ids.make_read_only()
-	var integrity_supporting_instance_ids: Array[StringName] = []
-	for supporting_instance_id: StringName in domain_event._supporting_instance_ids:
-		integrity_supporting_instance_ids.append(supporting_instance_id)
-	domain_event._integrity_supporting_instance_ids = integrity_supporting_instance_ids
-	domain_event._integrity_supporting_instance_ids.make_read_only()
 	domain_event._world_step = current_world_state.world_step()
-	domain_event._integrity_world_step = domain_event._world_step
 	domain_event._previous_inventory_revision = current_inventory_state.revision()
-	domain_event._integrity_previous_inventory_revision = (
-		domain_event._previous_inventory_revision
-	)
 	domain_event._next_inventory_revision = next_inventory_state.revision()
-	domain_event._integrity_next_inventory_revision = (
-		domain_event._next_inventory_revision
-	)
 	domain_event._consumed_stack_id = consumed_stack_id
-	domain_event._integrity_consumed_stack_id = domain_event._consumed_stack_id
 	domain_event._resolution = resolution.copy()
-	domain_event._integrity_resolution = domain_event._resolution.copy()
 	domain_event._initialized = true
-	domain_event._integrity_initialized = true
+	domain_event._capture_integrity()
 	if not domain_event.is_commit_boundary():
 		return _rejected(
 			ContactCombatTransactionResultScript.RejectionReason.INVALID_RESULT
 		)
 	var committed_result := ContactCombatTransactionResultScript.new()
 	committed_result._status = ContactCombatTransactionResultScript.Status.COMMITTED
-	committed_result._integrity_status = committed_result._status
 	committed_result._rejection_reason = (
 		ContactCombatTransactionResultScript.RejectionReason.NONE
-	)
-	committed_result._integrity_rejection_reason = (
-		committed_result._rejection_reason
 	)
 	committed_result._combat_rejection_reason = (
 		ContactCombatResultScript.RejectionReason.NONE
 	)
-	committed_result._integrity_combat_rejection_reason = (
-		committed_result._combat_rejection_reason
-	)
 	committed_result._candidate = candidate.copy()
-	committed_result._integrity_candidate = committed_result._candidate.copy()
 	committed_result._domain_event = domain_event.copy()
-	committed_result._integrity_domain_event = committed_result._domain_event.copy()
 	committed_result._committed_player_state = next_player_state.copy()
-	committed_result._integrity_committed_player_state = (
-		committed_result._committed_player_state.copy()
-	)
 	committed_result._committed_enemy_world_state = next_enemy_world_state.copy()
-	committed_result._integrity_committed_enemy_world_state = (
-		committed_result._committed_enemy_world_state.copy()
-	)
 	committed_result._committed_inventory_state = next_inventory_state.copy()
-	committed_result._integrity_committed_inventory_state = (
-		committed_result._committed_inventory_state.copy()
-	)
 	committed_result._registry_validation_passed = true
-	committed_result._integrity_registry_validation_passed = true
+	committed_result._capture_integrity()
 	return (
 		committed_result
 		if committed_result.was_committed()

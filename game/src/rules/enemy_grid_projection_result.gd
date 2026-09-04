@@ -28,6 +28,16 @@ var _integrity_actor_positions: Dictionary[StringName, Vector3i] = {}
 var _failure_reason: int = FailureReason.NONE
 var _integrity_failure_reason: int = FailureReason.NONE
 
+# 全部基础字段名的镜像声明（walker 统一处理）；字典镜像
+# _integrity_actor_positions 捕获后与业务字段共享同一只读字典，
+# == 内容比对语义不变（原实现为两份独立只读字典）。
+const _INTEGRITY_FIELD_NAMES: Array[StringName] = [
+	&"space_id",
+	&"world_step",
+	&"actor_positions",
+	&"failure_reason",
+]
+
 
 func _init(
 	read_snapshot_candidate: RefCounted,
@@ -53,16 +63,11 @@ func _init(
 			and _positions_are_valid(actor_positions)
 		):
 			_space_id = space_id
-			_integrity_space_id = space_id
 			_world_step = world_step
-			_integrity_world_step = world_step
 			_actor_positions = _copy_actor_positions(actor_positions)
-			_integrity_actor_positions = _copy_actor_positions(actor_positions)
 			_failure_reason = FailureReason.NONE
-			_integrity_failure_reason = FailureReason.NONE
 		else:
 			_failure_reason = FailureReason.INVALID_RESULT
-			_integrity_failure_reason = FailureReason.INVALID_RESULT
 	else:
 		_failure_reason = (
 			failure_reason
@@ -72,7 +77,7 @@ func _init(
 			)
 			else FailureReason.INVALID_RESULT
 		)
-		_integrity_failure_reason = _failure_reason
+	_capture_integrity()
 	_actor_positions.make_read_only()
 	_integrity_actor_positions.make_read_only()
 
@@ -90,16 +95,13 @@ static func failure(failure_reason: int) -> EnemyGridProjectionResult:
 
 func succeeded() -> bool:
 	return (
-		_failure_reason == _integrity_failure_reason
+		ValidationSupportScript.field_integrity_matches(self, _INTEGRITY_FIELD_NAMES)
 		and _failure_reason == FailureReason.NONE
 		and EnemyWorldAddressScript.is_valid_space_id(_space_id)
-		and _space_id == _integrity_space_id
 		and _world_step >= 0
 		and _world_step <= ValidationSupportScript.MAX_WORLD_STEP
-		and _world_step == _integrity_world_step
 		and _positions_are_valid(_actor_positions)
 		and _positions_are_valid(_integrity_actor_positions)
-		and _actor_positions == _integrity_actor_positions
 	)
 
 
@@ -142,6 +144,10 @@ func actor_positions() -> Dictionary[StringName, Vector3i]:
 
 func is_commit_boundary() -> bool:
 	return false
+
+
+func _capture_integrity() -> void:
+	ValidationSupportScript.capture_field_integrity(self, _INTEGRITY_FIELD_NAMES)
 
 
 static func _positions_are_valid(

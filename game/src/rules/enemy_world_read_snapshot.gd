@@ -32,8 +32,8 @@ static func create(
 		and (state_candidate as EnemyWorldStateScript).is_resolved_against(registry)
 	):
 		snapshot._state = (state_candidate as EnemyWorldStateScript).copy()
-		snapshot._integrity_state = snapshot._state.copy()
 		snapshot._initialized = true
+		snapshot._capture_integrity()
 	return snapshot
 
 
@@ -139,3 +139,8 @@ static func _is_exact_state(candidate: RefCounted) -> bool:
 	)
 
 
+# 仅嵌套对象镜像 _integrity_state（无平字段镜像）：深拷贝捕获、is_equal_to
+# 值比较与 copy() 镜像深拷贝保留手写，无 schema 声明。
+func _capture_integrity() -> void:
+	if _is_exact_state(_state):
+		_integrity_state = _state.copy()
