@@ -11,6 +11,7 @@ const EnemyProfileQueryResultScript := preload(
 	"res://src/content/enemy_profile_query_result.gd"
 )
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const MAXIMUM_COMBAT_TRAIT_COUNT: int = (
 	EnemyProfileDefinitionScript.MAXIMUM_COMBAT_TRAIT_COUNT
@@ -131,7 +132,8 @@ func is_valid() -> bool:
 		and _defense > 0
 		and _speed > 0
 		and not String(_behavior_id).is_empty()
-		and _ids_are_canonical_and_unique(_combat_trait_ids)
+		and _combat_trait_ids.size() <= MAXIMUM_COMBAT_TRAIT_COUNT
+		and ValidationSupportScript.ids_are_canonical_and_unique(_combat_trait_ids)
 		and not String(_visual_binding_id).is_empty()
 		and (
 			_has_alternate_state
@@ -239,7 +241,7 @@ func is_equal_to(other: EnemyInstanceSnapshot) -> bool:
 
 static func _copy_and_sort_ids(ids: Array[StringName]) -> Array[StringName]:
 	var copied_ids: Array[StringName] = _copy_ids(ids)
-	copied_ids.sort_custom(_id_less_than)
+	copied_ids.sort_custom(ValidationSupportScript.id_less_than)
 	return copied_ids
 
 
@@ -252,19 +254,3 @@ static func _copy_ids(ids: Array[StringName]) -> Array[StringName]:
 	return copied_ids
 
 
-static func _ids_are_canonical_and_unique(ids: Array[StringName]) -> bool:
-	if ids.size() > MAXIMUM_COMBAT_TRAIT_COUNT:
-		return false
-	var seen_ids: Dictionary[StringName, bool] = {}
-	for index: int in range(ids.size()):
-		var content_id: StringName = ids[index]
-		if String(content_id).is_empty() or seen_ids.has(content_id):
-			return false
-		seen_ids[content_id] = true
-		if index > 0 and String(content_id) < String(ids[index - 1]):
-			return false
-	return true
-
-
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

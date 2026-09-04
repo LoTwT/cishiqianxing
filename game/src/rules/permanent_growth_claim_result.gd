@@ -13,7 +13,7 @@ const PermanentGrowthRewardDefinitionScript := preload(
 const PermanentGrowthClaimEventScript := preload(
 	"res://src/rules/permanent_growth_claim_event.gd"
 )
-const MAX_INT: int = 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Status {
 	APPLIED = 1,
@@ -396,7 +396,7 @@ static func _claimed_ledger_adds_requested_id(
 static func _increases_by(previous_value: int, next_value: int, increase: int) -> bool:
 	return (
 		increase > 0
-		and previous_value <= MAX_INT - increase
+		and previous_value <= ValidationSupportScript.MAX_INT - increase
 		and next_value == previous_value + increase
 	)
 

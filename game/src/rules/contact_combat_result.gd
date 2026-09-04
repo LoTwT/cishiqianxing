@@ -29,7 +29,7 @@ const PlayerProgressionSnapshotScript := preload(
 const PlayerProgressionStateScript := preload(
 	"res://src/rules/player_progression_state.gd"
 )
-const MAX_INT: int = 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Status {
 	EVALUATED = 1,
@@ -497,19 +497,19 @@ func _resolution_matches_states() -> bool:
 	if effect_bonuses.is_empty():
 		return false
 	if (
-		_would_add_overflow(
+		ValidationSupportScript.would_add_overflow(
 			_previous_player_snapshot.attack(),
 			effect_bonuses[0],
 		)
-		or _would_add_overflow(
+		or ValidationSupportScript.would_add_overflow(
 			_previous_player_snapshot.defense(),
 			effect_bonuses[1],
 		)
-		or _would_add_overflow(
+		or ValidationSupportScript.would_add_overflow(
 			_previous_player_snapshot.speed(),
 			effect_bonuses[2],
 		)
-		or _would_add_overflow(
+		or ValidationSupportScript.would_add_overflow(
 			_previous_opponent_state.attack(),
 			_resolution.support_attack_bonus(),
 		)
@@ -631,10 +631,6 @@ func _registry_derivation_matches(registry: RefCounted) -> bool:
 
 func _temporary_effect_bonuses(temporary_effect: int) -> Array[int]:
 	return ContactCombatCommandScript.temporary_effect_bonuses(temporary_effect)
-
-
-func _would_add_overflow(left: int, right: int) -> bool:
-	return right > 0 and left > MAX_INT - right
 
 
 func _state_matches_snapshot(

@@ -1,12 +1,9 @@
 extends RefCounted
 
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
+)
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
-)
-const ContentRegistryBuildResultScript := preload(
-	"res://src/content/content_registry_build_result.gd"
-)
 const PlayerProgressionDerivationResultScript := preload(
 	"res://src/rules/player_progression_derivation_result.gd"
 )
@@ -249,7 +246,7 @@ func _freezes_literal_oracle(context: HeadlessTestContextScript) -> void:
 func _derives_restored_state_without_replay(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var claimed_ids: Array[StringName] = [
 		&"progression.reward.main.chapter.01.attack",
 	]
@@ -301,7 +298,7 @@ func _derives_restored_state_without_replay(
 func _applies_every_reward_from_full_health(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	for row: PermanentGrowthClaimOracle.RewardTransitionRow in (
 		PermanentGrowthClaimOracle.reward_rows()
 	):
@@ -332,7 +329,7 @@ func _applies_every_reward_from_full_health(
 func _applies_every_reward_from_damaged_health(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	for row: PermanentGrowthClaimOracle.RewardTransitionRow in (
 		PermanentGrowthClaimOracle.reward_rows()
 	):
@@ -356,7 +353,7 @@ func _applies_every_reward_from_damaged_health(
 func _keeps_m03_and_m04_rewards_atomic(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var m03_defense: StringName = &"progression.reward.optional.m03.defense"
 	var m03_health: StringName = &"progression.reward.optional.m03.maximum_health"
 	var m04_attack: StringName = &"progression.reward.optional.m04.attack"
@@ -405,7 +402,7 @@ func _keeps_m03_and_m04_rewards_atomic(
 func _is_idempotent_for_every_reward(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	for row: PermanentGrowthClaimOracle.RewardTransitionRow in (
 		PermanentGrowthClaimOracle.reward_rows()
 	):
@@ -431,7 +428,7 @@ func _is_idempotent_for_every_reward(
 
 
 func _rejects_nonadjacent_duplicate(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var attack_id: StringName = &"progression.reward.main.chapter.01.attack"
 	var health_id: StringName = &"progression.reward.main.chapter.01.maximum_health"
 	var state: PlayerProgressionStateScript = _apply_sequence(
@@ -455,7 +452,7 @@ func _rejects_nonadjacent_duplicate(context: HeadlessTestContextScript) -> void:
 
 
 func _distinguishes_equal_payload_ids(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var first_id: StringName = &"progression.reward.main.chapter.01.maximum_health"
 	var second_id: StringName = &"progression.reward.main.chapter.02.maximum_health"
 	var state: PlayerProgressionStateScript = _apply_sequence(
@@ -474,7 +471,7 @@ func _distinguishes_equal_payload_ids(context: HeadlessTestContextScript) -> voi
 func _prioritizes_duplicate_over_incapacitated(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	for row: PermanentGrowthClaimOracle.RewardTransitionRow in (
 		PermanentGrowthClaimOracle.reward_rows()
 	):
@@ -501,7 +498,7 @@ func _prioritizes_duplicate_over_incapacitated(
 func _rejects_every_new_reward_when_incapacitated(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var zero_state: PlayerProgressionStateScript = _state(0)
 	for reward_id: StringName in PermanentGrowthClaimOracle.all_reward_ids():
 		var result: PermanentGrowthClaimResultScript = (
@@ -524,7 +521,7 @@ func _rejects_every_new_reward_when_incapacitated(
 func _rejects_empty_unknown_and_group_ids(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var healthy_state: PlayerProgressionStateScript = _state(100)
 	var empty_result: PermanentGrowthClaimResultScript = (
 		PermanentGrowthClaimKernelScript.execute(
@@ -611,7 +608,7 @@ func _rejects_empty_unknown_and_group_ids(
 
 
 func _rejects_invalid_state_matrix(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var reward_id: StringName = &"progression.reward.main.chapter.01.attack"
 	var oversized_ids: Array[StringName] = []
 	for index: int in range(31):
@@ -667,7 +664,7 @@ func _rejects_invalid_state_matrix(context: HeadlessTestContextScript) -> void:
 func _rejects_invalid_restored_ledger_matrix(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var command: PermanentGrowthClaimCommandScript = PermanentGrowthClaimCommandScript.claim(
 		&"progression.reward.main.chapter.01.attack"
 	)
@@ -743,7 +740,7 @@ func _rejects_invalid_restored_ledger_matrix(
 func _fails_closed_for_registry_and_versions(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var reward_id: StringName = &"progression.reward.main.chapter.01.attack"
 	var command: PermanentGrowthClaimCommandScript = PermanentGrowthClaimCommandScript.claim(
 		reward_id
@@ -811,7 +808,7 @@ func _fails_closed_for_registry_and_versions(
 		_state(100),
 		"Uninitialized registry",
 	)
-	var tampered_registry: ContentRegistryScript = _canonical_registry(context)
+	var tampered_registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	tampered_registry._permanent_growth_rewards[0].increase = 99
 	context.expect_true(
 		not tampered_registry.is_initialized(),
@@ -871,7 +868,7 @@ func _fails_closed_for_registry_and_versions(
 func _rejects_null_wrong_and_derived_inputs(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var state: PlayerProgressionStateScript = _state(100)
 	var command: PermanentGrowthClaimCommandScript = PermanentGrowthClaimCommandScript.claim(
 		&"progression.reward.main.chapter.01.attack"
@@ -988,7 +985,7 @@ func _rejects_null_wrong_and_derived_inputs(
 
 
 func _applies_mainline_sequence(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var expected_ids: Array[StringName] = PermanentGrowthClaimOracle.mainline_reward_ids()
 	var state: PlayerProgressionStateScript = _apply_sequence(
 		context, registry, expected_ids, 100
@@ -1004,7 +1001,7 @@ func _applies_mainline_sequence(context: HeadlessTestContextScript) -> void:
 
 
 func _applies_optional_sequence(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var expected_ids: Array[StringName] = PermanentGrowthClaimOracle.optional_reward_ids()
 	var state: PlayerProgressionStateScript = _apply_sequence(
 		context, registry, expected_ids, 100
@@ -1020,7 +1017,7 @@ func _applies_optional_sequence(context: HeadlessTestContextScript) -> void:
 
 
 func _applies_full_sequence(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var expected_ids: Array[StringName] = PermanentGrowthClaimOracle.all_reward_ids()
 	var full_state: PlayerProgressionStateScript = _apply_sequence(
 		context, registry, expected_ids, 100
@@ -1047,7 +1044,7 @@ func _applies_full_sequence(context: HeadlessTestContextScript) -> void:
 
 
 func _replays_deterministically(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var forward_ids: Array[StringName] = PermanentGrowthClaimOracle.all_reward_ids()
 	var reverse_ids: Array[StringName] = forward_ids.duplicate()
 	reverse_ids.reverse()
@@ -1083,7 +1080,7 @@ func _replays_deterministically(context: HeadlessTestContextScript) -> void:
 func _isolates_inputs_and_result_snapshots(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var input_ids: Array[StringName] = []
 	var state: PlayerProgressionStateScript = _state(100, input_ids)
 	input_ids.append(&"progression.reward.optional.m04.defense")
@@ -1183,7 +1180,7 @@ func _isolates_inputs_and_result_snapshots(
 func _isolates_derivation_result_snapshot(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _fresh_canonical_registry_with_legacy_messages(context)
 	var claimed_ids: Array[StringName] = [
 		&"progression.reward.main.chapter.01.attack",
 		&"progression.reward.main.chapter.01.maximum_health",
@@ -1604,17 +1601,12 @@ func _rejects_inconsistent_public_result_deltas(
 	)
 
 
-func _canonical_registry(context: HeadlessTestContextScript) -> ContentRegistryScript:
-	var build_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(build_result.succeeded(), "The canonical registry fixture must build.")
-	var registry: ContentRegistryScript = build_result.registry()
-	context.expect_true(
-		registry != null and registry.is_initialized(),
+func _fresh_canonical_registry_with_legacy_messages(context: HeadlessTestContextScript) -> ContentRegistryScript:
+	return CanonicalRegistryFixtureScript.fresh_canonical_registry_with_failure_messages(
+		context,
+		"The canonical registry fixture must build.",
 		"The canonical registry fixture must be initialized and sealed.",
 	)
-	return registry
 
 
 func _state(

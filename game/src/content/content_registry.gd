@@ -53,6 +53,9 @@ const ContentContractFingerprintScript := preload(
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 
 const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
 const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
@@ -178,12 +181,12 @@ func _initialize_validated(
 			RepresentativeRouteContractScript.snapshot(contract)
 		)
 		stored_contract.mainline_progression_reference_ids.sort_custom(
-			_content_id_less_than
+			ContentValidationSupportScript.string_name_less_than
 		)
 		stored_contract.available_blueprint_reference_ids.sort_custom(
-			_content_id_less_than
+			ContentValidationSupportScript.string_name_less_than
 		)
-		stored_contract.tradeoff_dimension_ids.sort_custom(_content_id_less_than)
+		stored_contract.tradeoff_dimension_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		stored_route_contract_ids.append(stored_contract.contract_id)
 		stored_route_contracts.append(stored_contract)
 		stored_route_contracts_by_id[stored_contract.contract_id] = stored_contract
@@ -198,23 +201,23 @@ func _initialize_validated(
 		var stored_enemy_profile: EnemyProfileDefinitionScript = (
 			EnemyProfileDefinitionScript.snapshot(profile)
 		)
-		stored_enemy_profile.combat_trait_ids.sort_custom(_content_id_less_than)
+		stored_enemy_profile.combat_trait_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		stored_enemy_profile_ids.append(stored_enemy_profile.profile_id)
 		stored_enemy_profiles.append(stored_enemy_profile)
 		stored_enemy_profiles_by_id[stored_enemy_profile.profile_id] = stored_enemy_profile
-	stored_blueprint_ids.sort_custom(_content_id_less_than)
-	stored_recipe_ids.sort_custom(_content_id_less_than)
-	stored_mainline_ids.sort_custom(_content_id_less_than)
-	stored_optional_ids.sort_custom(_content_id_less_than)
-	stored_reward_ids.sort_custom(_content_id_less_than)
+	stored_blueprint_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	stored_recipe_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	stored_mainline_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	stored_optional_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	stored_reward_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	stored_rewards.sort_custom(_permanent_growth_reward_less_than)
-	stored_route_contract_ids.sort_custom(_content_id_less_than)
+	stored_route_contract_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	stored_route_contracts.sort_custom(_representative_route_contract_less_than)
-	stored_enemy_family_ids.sort_custom(_content_id_less_than)
+	stored_enemy_family_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	stored_enemy_families.sort_custom(_enemy_family_less_than)
-	stored_enemy_profile_ids.sort_custom(_content_id_less_than)
+	stored_enemy_profile_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	stored_enemy_profiles.sort_custom(_enemy_profile_less_than)
-	stored_material_ids.sort_custom(_content_id_less_than)
+	stored_material_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	stored_material_ids.make_read_only()
 	stored_blueprint_ids.make_read_only()
 	stored_recipe_ids.make_read_only()
@@ -269,6 +272,18 @@ func _initialize_validated(
 
 func is_initialized() -> bool:
 	return _has_valid_contract()
+
+
+# 规则层各内核原先各自复制的注册表身份检查（精确脚本 + 已初始化状态），
+# 统一收敛到注册表自身的权威实现，供 portable_inventory / contact_combat /
+# world_step_contact 等消费者直接调用。
+static func is_exact_initialized_instance(candidate: RefCounted) -> bool:
+	return (
+		candidate != null
+		and is_instance_valid(candidate)
+		and candidate.get_script() == ContentRegistry
+		and (candidate as ContentRegistry).is_initialized()
+	)
 
 
 func schema_version() -> int:
@@ -810,7 +825,7 @@ func _has_valid_contract() -> bool:
 	var expected_material_ids: Array[StringName] = (
 		RecipeDefinitionScript.allowed_material_ids()
 	)
-	expected_material_ids.sort_custom(_content_id_less_than)
+	expected_material_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	if _material_ids != expected_material_ids:
 		return false
 	if (
@@ -869,14 +884,14 @@ func _has_valid_contract() -> bool:
 	var ordered_enemy_profile_ids: Array[StringName] = _copy_ids(
 		_enemy_profile_ids
 	)
-	ordered_blueprint_ids.sort_custom(_content_id_less_than)
-	ordered_recipe_ids.sort_custom(_content_id_less_than)
-	ordered_mainline_ids.sort_custom(_content_id_less_than)
-	ordered_optional_ids.sort_custom(_content_id_less_than)
-	ordered_reward_ids.sort_custom(_content_id_less_than)
-	ordered_route_contract_ids.sort_custom(_content_id_less_than)
-	ordered_enemy_family_ids.sort_custom(_content_id_less_than)
-	ordered_enemy_profile_ids.sort_custom(_content_id_less_than)
+	ordered_blueprint_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_recipe_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_mainline_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_optional_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_reward_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_route_contract_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_enemy_family_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	ordered_enemy_profile_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	if (
 		_blueprint_ids != ordered_blueprint_ids
 		or _recipe_ids != ordered_recipe_ids
@@ -945,7 +960,7 @@ func _has_valid_contract() -> bool:
 		var ordered_membership_ids: Array[StringName] = _copy_ids(
 			definition.reward_ids
 		)
-		ordered_membership_ids.sort_custom(_content_id_less_than)
+		ordered_membership_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		if definition.reward_ids != ordered_membership_ids:
 			return false
 		for reward_id: StringName in definition.reward_ids:
@@ -973,7 +988,7 @@ func _has_valid_contract() -> bool:
 		var ordered_membership_ids: Array[StringName] = _copy_ids(
 			definition.reward_ids
 		)
-		ordered_membership_ids.sort_custom(_content_id_less_than)
+		ordered_membership_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		if definition.reward_ids != ordered_membership_ids:
 			return false
 		for reward_id: StringName in definition.reward_ids:
@@ -981,7 +996,7 @@ func _has_valid_contract() -> bool:
 				return false
 			referenced_reward_ids.append(reward_id)
 		optional_progression.append(definition)
-	referenced_reward_ids.sort_custom(_content_id_less_than)
+	referenced_reward_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	if referenced_reward_ids != _permanent_growth_reward_ids:
 		return false
 	var rewards: Array[PermanentGrowthRewardDefinitionScript] = []
@@ -1071,9 +1086,9 @@ func _has_valid_contract() -> bool:
 		var ordered_tradeoff_ids: Array[StringName] = _copy_ids(
 			listed_contract.tradeoff_dimension_ids
 		)
-		ordered_progression_refs.sort_custom(_content_id_less_than)
-		ordered_blueprint_refs.sort_custom(_content_id_less_than)
-		ordered_tradeoff_ids.sort_custom(_content_id_less_than)
+		ordered_progression_refs.sort_custom(ContentValidationSupportScript.string_name_less_than)
+		ordered_blueprint_refs.sort_custom(ContentValidationSupportScript.string_name_less_than)
+		ordered_tradeoff_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		if (
 			listed_contract.mainline_progression_reference_ids
 			!= ordered_progression_refs
@@ -1163,7 +1178,7 @@ func _has_valid_contract() -> bool:
 		var ordered_trait_ids: Array[StringName] = _copy_ids(
 			listed_enemy_profile.combat_trait_ids
 		)
-		ordered_trait_ids.sort_custom(_content_id_less_than)
+		ordered_trait_ids.sort_custom(ContentValidationSupportScript.string_name_less_than)
 		if listed_enemy_profile.combat_trait_ids != ordered_trait_ids:
 			return false
 		enemy_profiles.append(listed_enemy_profile)
@@ -1228,10 +1243,6 @@ static func _copy_ids(source: Array[StringName]) -> Array[StringName]:
 	for content_id: StringName in source:
 		result.append(content_id)
 	return result
-
-
-static func _content_id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)
 
 
 static func _permanent_growth_reward_less_than(

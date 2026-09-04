@@ -171,7 +171,7 @@ static func resolve(
 			selected_stack_id,
 		)
 
-	if not _is_exact_initialized_registry(registry):
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return _failure(
 			PortableInventoryResolutionResultScript.FailureReason.INVALID_REGISTRY
 		)
@@ -362,15 +362,6 @@ static func _is_exact_stack(candidate: RefCounted) -> bool:
 		candidate != null
 		and is_instance_valid(candidate)
 		and candidate.get_script() == PortableInventoryStackScript
-	)
-
-
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
 	)
 
 

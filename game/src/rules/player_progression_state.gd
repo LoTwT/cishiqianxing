@@ -1,6 +1,7 @@
 class_name PlayerProgressionState
 extends RefCounted
 
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const MAX_CLAIMED_REWARD_COUNT: int = 30
 
 var _profile_id: StringName = &""
@@ -121,7 +122,7 @@ func is_equal_to(other: PlayerProgressionState) -> bool:
 
 static func _copy_and_sort_ids(ids: Array[StringName]) -> Array[StringName]:
 	var copied_ids: Array[StringName] = _copy_ids(ids, MAX_CLAIMED_REWARD_COUNT + 1)
-	copied_ids.sort_custom(_id_less_than)
+	copied_ids.sort_custom(ValidationSupportScript.id_less_than)
 	return copied_ids
 
 
@@ -137,12 +138,8 @@ static func _copy_ids(
 	return copied_ids
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)
-
-
 static func _ids_use_canonical_order(ids: Array[StringName]) -> bool:
 	for index: int in range(1, ids.size()):
-		if _id_less_than(ids[index], ids[index - 1]):
+		if ValidationSupportScript.id_less_than(ids[index], ids[index - 1]):
 			return false
 	return true

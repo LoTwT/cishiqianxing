@@ -1,9 +1,9 @@
 extends RefCounted
 
-const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
 )
+const ContentRegistryScript := preload("res://src/content/content_registry.gd")
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
@@ -74,8 +74,6 @@ const TARGET_CELL: Vector3i = Vector3i(4, 0, -3)
 const WORLD_STEP: int = 41
 const EFFECT_STACK_ID: StringName = &"stack.effect.attack"
 
-var _cached_registry: ContentRegistryScript
-
 
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
@@ -129,7 +127,7 @@ func cases() -> Array[HeadlessTestCaseScript]:
 func _prepares_without_publishing_authoritative_state(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _simple_world()
 	var inventory_state: PortableInventoryStateScript = _inventory([], 3)
@@ -213,7 +211,7 @@ func _keeps_commit_construction_internal(
 			_simple_world(),
 			_inventory([], 3),
 			_simple_command(),
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction"),
 		)
 	)
 	_expect_prepared(context, prepared, "Internal construction fixture")
@@ -244,7 +242,7 @@ func _keeps_commit_construction_internal(
 func _commits_world_player_and_inventory_atomically(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _support_world()
 	var inventory_state: PortableInventoryStateScript = _selected_inventory(2, 7)
@@ -368,7 +366,7 @@ func _commits_world_player_and_inventory_atomically(
 
 
 func _consumes_last_selected_stack(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _simple_world()
 	var inventory_state: PortableInventoryStateScript = _selected_inventory(1, 11)
@@ -410,7 +408,7 @@ func _consumes_last_selected_stack(context: HeadlessTestContextScript) -> void:
 
 
 func _keeps_surviving_target_active(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(9)
 	var world_state: EnemyWorldStateScript = _single_enemy_world(
 		SHIELD_PROFILE_ID,
@@ -497,7 +495,7 @@ func _keeps_surviving_target_active(context: HeadlessTestContextScript) -> void:
 func _blocks_zero_damage_without_consumption(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _single_enemy_world(
 		SUPPORT_PROFILE_ID,
@@ -565,7 +563,7 @@ func _blocks_zero_damage_without_consumption(
 func _rejects_each_stale_authoritative_prestate(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _simple_world()
 	var inventory_state: PortableInventoryStateScript = _inventory([], 5)
@@ -640,7 +638,7 @@ func _rejects_each_stale_authoritative_prestate(
 func _validates_contact_and_support_context(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _support_world()
 	var inventory_state: PortableInventoryStateScript = _selected_inventory(2, 4)
@@ -755,7 +753,7 @@ func _validates_contact_and_support_context(
 func _rejects_invalid_inputs_and_revision_overflow(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _simple_world()
 	var inventory_state: PortableInventoryStateScript = _inventory([], 2)
@@ -857,7 +855,7 @@ func _rejects_invalid_inputs_and_revision_overflow(
 func _isolates_outputs_and_fails_closed(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _simple_world()
 	var inventory_state: PortableInventoryStateScript = _inventory([], 1)
@@ -955,7 +953,7 @@ func _isolates_outputs_and_fails_closed(
 
 
 func _replays_deterministically(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
 	var player_state: PlayerProgressionStateScript = _player_state(100)
 	var world_state: EnemyWorldStateScript = _support_world()
 	var inventory_state: PortableInventoryStateScript = _selected_inventory(2, 13)
@@ -1118,7 +1116,7 @@ func _expect_prepare_rejection(
 			world_state,
 			inventory_state,
 			command,
-			_canonical_registry_for_helpers(),
+			CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 		),
 		expected_reason,
 		label,
@@ -1321,29 +1319,3 @@ func _object_declares_property(object: Object, property_name: StringName) -> boo
 		if StringName(property_data.get("name", "")) == property_name:
 			return true
 	return false
-
-
-func _canonical_registry(
-	context: HeadlessTestContextScript,
-) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	var build_result = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		build_result.succeeded(),
-		"Contact transaction tests need the canonical sealed Registry.",
-	)
-	_cached_registry = build_result.registry()
-	context.expect_true(
-		_cached_registry != null and _cached_registry.is_initialized(),
-		"Contact transaction test Registry must be initialized.",
-	)
-	return _cached_registry
-
-
-func _canonical_registry_for_helpers() -> ContentRegistryScript:
-	if _cached_registry == null:
-		var build_result = ContentRegistryBuilderScript.build_canonical()
-		if build_result.succeeded():
-			_cached_registry = build_result.registry()
-	return _cached_registry

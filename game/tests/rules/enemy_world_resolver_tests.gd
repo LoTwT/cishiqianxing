@@ -1,9 +1,9 @@
 extends RefCounted
 
-const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
 )
+const ContentRegistryScript := preload("res://src/content/content_registry.gd")
 const EnemyGridProjectionResultScript := preload(
 	"res://src/rules/enemy_grid_projection_result.gd"
 )
@@ -42,6 +42,7 @@ const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.
 const HeadlessTestContextScript := preload(
 	"res://tests/support/headless_test_context.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const CONTENT_SCHEMA_VERSION: int = 5
 const CONTENT_VERSION: int = 5
@@ -49,8 +50,6 @@ const PRIMARY_PROFILE_ID := &"enemy.profile.f01.base"
 const ALTERNATE_SHIELD_PROFILE_ID := &"enemy.profile.f12.enhanced"
 const PRIMARY_MAXIMUM_DURABILITY: int = 12
 const ALTERNATE_MAXIMUM_DURABILITY: int = 10
-
-var _cached_registry: ContentRegistryScript
 
 
 class StatefulEnemyWorldState extends EnemyWorldStateScript:
@@ -310,7 +309,7 @@ func _preserves_resolved_state_without_refresh(
 		return
 	var second: EnemyWorldResolutionResultScript = EnemyWorldResolverScript.resolve(
 		first.snapshot(),
-		_canonical_registry(context),
+		CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 	)
 	_expect_success(context, second, "Resolved state reconstruction")
 	if not second.succeeded():
@@ -461,7 +460,7 @@ func _projects_spaces_with_canonical_actor_ids(
 func _rejects_world_invariants_in_stable_priority(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world")
 	var valid_record: EnemyWorldRecordScript = _record(
 		&"enemy.instance.valid",
 		PRIMARY_PROFILE_ID,
@@ -542,7 +541,7 @@ func _rejects_world_invariants_in_stable_priority(
 		_resolve(
 			[valid_record],
 			{&"enemy.instance.valid": valid_address},
-			GridRuleStateScript.MAX_WORLD_STEP,
+			ValidationSupportScript.MAX_WORLD_STEP,
 		),
 		"Maximum world step remains representable",
 	)
@@ -866,7 +865,7 @@ func _reuses_instance_and_registry_validation(
 	var unresolved_read_snapshot: EnemyWorldReadSnapshotScript = (
 		EnemyWorldReadSnapshotScript.create(
 			unresolved_candidate,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 		)
 	)
 	context.expect_true(
@@ -901,7 +900,7 @@ func _reuses_instance_and_registry_validation(
 	var empty_read_snapshot: EnemyWorldReadSnapshotScript = (
 		EnemyWorldReadSnapshotScript.create(
 			empty_resolved_state,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 		)
 	)
 	context.expect_true(
@@ -982,7 +981,7 @@ func _reuses_instance_and_registry_validation(
 func _rejects_derived_inputs_without_reads(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world")
 	var derived_world := StatefulEnemyWorldState.new()
 	_expect_failure(
 		context,
@@ -1156,7 +1155,7 @@ func _isolates_inputs_outputs_and_integrity(
 	)
 	var result: EnemyWorldResolutionResultScript = EnemyWorldResolverScript.resolve(
 		candidate,
-		_canonical_registry(context),
+		CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 	)
 	_expect_success(context, result, "Isolation fixture")
 	if not result.succeeded():
@@ -1393,7 +1392,7 @@ func _isolates_inputs_outputs_and_integrity(
 	var forged_result: EnemyWorldResolutionResultScript = (
 		EnemyWorldResolutionResultScript.success(
 			forged_state,
-			_canonical_registry(context),
+			CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 		)
 	)
 	context.expect_true(
@@ -1542,7 +1541,7 @@ func _matches_exact_prestates_and_replays(
 			_encode_state(
 				EnemyWorldResolverScript.resolve(
 					first.snapshot(),
-					_canonical_registry(context),
+					CanonicalRegistryFixtureScript.canonical_registry(context, "Enemy world"),
 				)
 			),
 			_encode_state(first),
@@ -1782,7 +1781,7 @@ func _resolve(
 ) -> EnemyWorldResolutionResultScript:
 	return EnemyWorldResolverScript.resolve(
 		EnemyWorldStateScript.create(records, addresses, world_step),
-		_canonical_registry_for_helpers(),
+		CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 	)
 
 
@@ -1868,29 +1867,3 @@ func _encode_state(result: EnemyWorldResolutionResultScript) -> Array:
 			)
 	encoded.append(encoded_addresses)
 	return encoded
-
-
-func _canonical_registry(
-	context: HeadlessTestContextScript,
-) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	var build_result = ContentRegistryBuilderScript.build_canonical()
-	context.expect_true(
-		build_result.succeeded(),
-		"Enemy world tests need the canonical sealed Registry.",
-	)
-	_cached_registry = build_result.registry()
-	context.expect_true(
-		_cached_registry != null and _cached_registry.is_initialized(),
-		"Enemy world test Registry must be initialized.",
-	)
-	return _cached_registry
-
-
-func _canonical_registry_for_helpers() -> ContentRegistryScript:
-	if _cached_registry == null:
-		var build_result = ContentRegistryBuilderScript.build_canonical()
-		if build_result.succeeded():
-			_cached_registry = build_result.registry()
-	return _cached_registry

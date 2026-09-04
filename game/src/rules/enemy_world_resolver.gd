@@ -23,7 +23,7 @@ const EnemyWorldResolutionResultScript := preload(
 const EnemyWorldStateScript := preload(
 	"res://src/rules/enemy_world_state.gd"
 )
-const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 
 static func resolve(
@@ -63,7 +63,7 @@ static func resolve(
 		records.append(record.copy())
 	if (
 		candidate._world_step < 0
-		or candidate._world_step > GridRuleStateScript.MAX_WORLD_STEP
+		or candidate._world_step > ValidationSupportScript.MAX_WORLD_STEP
 	):
 		return _failure(
 			EnemyWorldResolutionResultScript.FailureReason.INVALID_WORLD_STEP
@@ -83,7 +83,7 @@ static func resolve(
 	var address_ids: Array[StringName] = []
 	for instance_id: StringName in candidate._addresses_by_instance_id:
 		address_ids.append(instance_id)
-	address_ids.sort_custom(_id_less_than)
+	address_ids.sort_custom(ValidationSupportScript.id_less_than)
 	for instance_id: StringName in address_ids:
 		var address: EnemyWorldAddressScript = (
 			candidate._addresses_by_instance_id[instance_id]
@@ -289,5 +289,3 @@ static func _record_less_than(
 	return String(left.instance_id()) < String(right.instance_id())
 
 
-static func _id_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

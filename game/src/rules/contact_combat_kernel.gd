@@ -1,6 +1,9 @@
 class_name ContactCombatKernel
 extends RefCounted
 
+const ContactCombatArithmeticScript := preload(
+	"res://src/rules/contact_combat_arithmetic.gd"
+)
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
@@ -29,7 +32,7 @@ const PlayerProgressionSnapshotScript := preload(
 const PlayerProgressionStateScript := preload(
 	"res://src/rules/player_progression_state.gd"
 )
-const MAX_INT: int = 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 
 static func evaluate(
@@ -105,7 +108,7 @@ static func evaluate(
 			unchanged_player_state,
 			unchanged_opponent_state,
 		)
-	if not _is_side(authoritative_command.initiator_side()):
+	if not ContactCombatArithmeticScript.is_side(authoritative_command.initiator_side()):
 		return ContactCombatResultScript.rejected(
 			ContactCombatResultScript.RejectionReason.INVALID_INITIATOR,
 			unchanged_player_state,
@@ -130,10 +133,10 @@ static func evaluate(
 			unchanged_opponent_state,
 		)
 	if (
-		_would_add_overflow(player_snapshot.attack(), effect_bonuses[0])
-		or _would_add_overflow(player_snapshot.defense(), effect_bonuses[1])
-		or _would_add_overflow(player_snapshot.speed(), effect_bonuses[2])
-		or _would_add_overflow(
+		ValidationSupportScript.would_add_overflow(player_snapshot.attack(), effect_bonuses[0])
+		or ValidationSupportScript.would_add_overflow(player_snapshot.defense(), effect_bonuses[1])
+		or ValidationSupportScript.would_add_overflow(player_snapshot.speed(), effect_bonuses[2])
+		or ValidationSupportScript.would_add_overflow(
 			unchanged_opponent_state.attack(),
 			authoritative_command.supporting_opponents_alive(),
 		)
@@ -159,7 +162,7 @@ static func evaluate(
 		effective_opponent_attack - effective_player_defense,
 		0,
 	)
-	var first_attacker_side: int = _first_attacker_side(
+	var first_attacker_side: int = ContactCombatArithmeticScript.first_attacker_side(
 		effective_player_speed,
 		unchanged_opponent_state.speed(),
 		authoritative_command.initiator_side(),
@@ -209,13 +212,13 @@ static func evaluate(
 			registry,
 		)
 
-	var damaging_player_attacks_required: int = _ceil_positive(
+	var damaging_player_attacks_required: int = ContactCombatArithmeticScript.ceil_positive(
 		unchanged_opponent_state.current_durability(),
 		player_damage,
 	)
 	if (
 		unchanged_opponent_state.shield_intact()
-		and damaging_player_attacks_required == MAX_INT
+		and damaging_player_attacks_required == ValidationSupportScript.MAX_INT
 	):
 		return ContactCombatResultScript.rejected(
 			ContactCombatResultScript.RejectionReason.INTEGER_OVERFLOW,
@@ -237,7 +240,7 @@ static func evaluate(
 		else:
 			opponent_attacks_executed = player_attacks_required
 	else:
-		var opponent_attacks_required: int = _ceil_positive(
+		var opponent_attacks_required: int = ContactCombatArithmeticScript.ceil_positive(
 			player_snapshot.current_health(),
 			opponent_damage,
 		)
@@ -269,14 +272,14 @@ static func evaluate(
 		damaging_player_attacks -= 1
 	var next_player_health: int = 0
 	if outcome == ContactCombatResolutionScript.Outcome.OPPONENT_CLEARED:
-		next_player_health = _remaining_after_attacks(
+		next_player_health = ContactCombatArithmeticScript.remaining_after_attacks(
 			player_snapshot.current_health(),
 			opponent_damage,
 			opponent_attacks_executed,
 		)
 	var next_opponent_durability: int = 0
 	if outcome == ContactCombatResolutionScript.Outcome.PLAYER_INCAPACITATED:
-		next_opponent_durability = _remaining_after_attacks(
+		next_opponent_durability = ContactCombatArithmeticScript.remaining_after_attacks(
 			unchanged_opponent_state.current_durability(),
 			player_damage,
 			damaging_player_attacks,
@@ -406,48 +409,6 @@ static func _copy_exact_command(command: RefCounted) -> ContactCombatCommandScri
 	):
 		return null
 	return (command as ContactCombatCommandScript).copy()
-
-
-static func _first_attacker_side(
-	player_speed: int,
-	opponent_speed: int,
-	initiator_side: int,
-) -> int:
-	if player_speed > opponent_speed:
-		return ContactCombatCommandScript.Side.PLAYER
-	if opponent_speed > player_speed:
-		return ContactCombatCommandScript.Side.OPPONENT
-	return initiator_side
-
-
-static func _ceil_positive(value: int, divisor: int) -> int:
-	@warning_ignore("integer_division")
-	var quotient: int = (value - 1) / divisor
-	return quotient + 1
-
-
-static func _remaining_after_attacks(
-	starting_value: int,
-	damage: int,
-	attack_count: int,
-) -> int:
-	if damage == 0 or attack_count == 0:
-		return starting_value
-	var attacks_to_zero: int = _ceil_positive(starting_value, damage)
-	if attack_count >= attacks_to_zero:
-		return 0
-	return starting_value - damage * attack_count
-
-
-static func _would_add_overflow(left: int, right: int) -> bool:
-	return right > 0 and left > MAX_INT - right
-
-
-static func _is_side(value: int) -> bool:
-	return (
-		value == ContactCombatCommandScript.Side.PLAYER
-		or value == ContactCombatCommandScript.Side.OPPONENT
-	)
 
 
 static func _map_derivation_failure(failure_reason: int) -> int:

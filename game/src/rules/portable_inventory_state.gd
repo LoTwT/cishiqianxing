@@ -227,7 +227,7 @@ static func temporary_effect_for_blueprint_id(blueprint_id: StringName) -> int:
 
 
 func is_resolved_against(registry: RefCounted) -> bool:
-	if not is_valid() or not _is_exact_initialized_registry(registry):
+	if not is_valid() or not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return false
 	var sealed_registry: ContentRegistryScript = registry as ContentRegistryScript
 	if (
@@ -358,15 +358,6 @@ static func is_valid_temporary_effect_definition(
 		and definition.mechanic_id == expected_contract[2]
 		and temporary_effect_for_blueprint_id(definition.content_id)
 		!= ContactCombatCommandScript.TemporaryEffect.NONE
-	)
-
-
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
 	)
 
 

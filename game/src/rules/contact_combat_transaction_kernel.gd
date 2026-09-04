@@ -79,7 +79,7 @@ static func prepare(
 	command_candidate: RefCounted,
 	registry: RefCounted,
 ) -> ContactCombatTransactionResultScript:
-	if not _is_exact_initialized_registry(registry):
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return _rejected(
 			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
 		)
@@ -291,7 +291,7 @@ static func commit(
 			.RejectionReason
 			.INVALID_PREPARED_RESULT
 		)
-	if not _is_exact_initialized_registry(registry):
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return _rejected(
 			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
 		)
@@ -663,10 +663,3 @@ static func _is_exact_command(candidate: RefCounted) -> bool:
 	)
 
 
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
-	)

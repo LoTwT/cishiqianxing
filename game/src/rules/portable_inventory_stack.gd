@@ -1,6 +1,7 @@
 class_name PortableInventoryStack
 extends RefCounted
 
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const MAXIMUM_STACK_ID_LENGTH: int = 128
 const MAXIMUM_QUANTITY: int = 9
 
@@ -62,23 +63,10 @@ func is_valid() -> bool:
 
 
 static func is_valid_stack_id(stack_id: StringName) -> bool:
-	var value: String = String(stack_id)
-	if value.is_empty() or value.length() > MAXIMUM_STACK_ID_LENGTH:
-		return false
-	var has_alphanumeric: bool = false
-	for index: int in range(value.length()):
-		var codepoint: int = value.unicode_at(index)
-		var is_alphanumeric: bool = (
-			(codepoint >= 48 and codepoint <= 57)
-			or (codepoint >= 65 and codepoint <= 90)
-			or (codepoint >= 97 and codepoint <= 122)
-		)
-		if is_alphanumeric:
-			has_alphanumeric = true
-			continue
-		if codepoint not in [45, 46, 58, 95]:
-			return false
-	return has_alphanumeric
+	return ValidationSupportScript.is_valid_identifier(
+		stack_id,
+		MAXIMUM_STACK_ID_LENGTH
+	)
 
 
 func stack_id() -> StringName:

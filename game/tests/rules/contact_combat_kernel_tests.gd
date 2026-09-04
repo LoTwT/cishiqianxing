@@ -1,12 +1,9 @@
 extends RefCounted
 
+const CanonicalRegistryFixtureScript := preload(
+	"res://tests/support/canonical_registry_fixture.gd"
+)
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const ContentRegistryBuilderScript := preload(
-	"res://src/content/content_registry_builder.gd"
-)
-const ContentRegistryBuildResultScript := preload(
-	"res://src/content/content_registry_build_result.gd"
-)
 const ContactCombatCommandScript := preload(
 	"res://src/rules/contact_combat_command.gd"
 )
@@ -56,6 +53,7 @@ const ContactCombatOracle := preload(
 const ContactCombatTestDoubles := preload(
 	"res://tests/support/contact_combat_test_doubles.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const PROFILE_ID: StringName = &"progression.player.loer"
 const CONTENT_SCHEMA_VERSION: int = 5
@@ -82,8 +80,6 @@ const SPEED_REWARD_IDS: Array[StringName] = [
 	&"progression.reward.main.chapter.04.speed",
 	&"progression.reward.main.chapter.06.speed",
 ]
-
-var _cached_registry: ContentRegistryScript
 
 
 func cases() -> Array[HeadlessTestCaseScript]:
@@ -194,7 +190,7 @@ func _freezes_literal_oracle(context: HeadlessTestContextScript) -> void:
 
 
 func _matches_teaching_fixture(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var player_state: PlayerProgressionStateScript = _state(100)
 	var opponent_state: ContactCombatOpponentStateScript = _opponent(
 		18, 7, 2, 8, false
@@ -305,7 +301,7 @@ func _matches_teaching_fixture(context: HeadlessTestContextScript) -> void:
 func _matches_30096_small_domain_oracle(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var totals: Array[int] = [0, 0, 0, 0]
 	var diagnostics: Array[String] = []
 	_run_oracle_matrix(
@@ -472,7 +468,7 @@ func _run_oracle_matrix(
 
 
 func _handles_zero_damage_matrix(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var player_state: PlayerProgressionStateScript = _state(20)
 	var blocked_command := ContactCombatCommandScript.evaluate(
 		ContactCombatCommandScript.Side.PLAYER,
@@ -577,7 +573,7 @@ func _handles_zero_damage_matrix(context: HeadlessTestContextScript) -> void:
 
 
 func _applies_shield_once(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var player_state: PlayerProgressionStateScript = _state(20)
 	var player_first: ContactCombatResultScript = ContactCombatKernelScript.evaluate(
 		player_state,
@@ -675,7 +671,7 @@ func _applies_shield_once(context: HeadlessTestContextScript) -> void:
 func _projects_temporary_effects_and_support(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	for row: Array in ContactCombatOracle.effect_rows():
 		var effect: int = row[0]
 		var result: ContactCombatResultScript = ContactCombatKernelScript.evaluate(
@@ -727,7 +723,7 @@ func _projects_temporary_effects_and_support(
 
 
 func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var valid_state: PlayerProgressionStateScript = _state(20)
 	var valid_opponent: ContactCombatOpponentStateScript = _opponent(8, 8, 6, 9)
 	var valid_command := ContactCombatCommandScript.evaluate(
@@ -924,7 +920,7 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 func _rejects_derived_inputs_without_reads(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var valid_state: PlayerProgressionStateScript = _state(20)
 	var valid_opponent: ContactCombatOpponentStateScript = _opponent(8, 8, 6, 9)
 	var valid_command := ContactCombatCommandScript.evaluate(1)
@@ -1010,9 +1006,9 @@ func _rejects_derived_inputs_without_reads(
 func _rejects_overflow_and_keeps_counts_compact(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	context.expect_true(
-		not ContactCombatKernelScript._would_add_overflow(MAX_INT - 2, 2),
+		not ValidationSupportScript.would_add_overflow(MAX_INT - 2, 2),
 		(
 			"The exact +2 overflow guard must allow MAX-2 + 2. Canonical v5 "
 			+ "player stats cannot reach this boundary through the public kernel."
@@ -1024,7 +1020,7 @@ func _rejects_overflow_and_keeps_counts_compact(
 		"The allowed +2 boundary must produce MAX exactly.",
 	)
 	context.expect_true(
-		ContactCombatKernelScript._would_add_overflow(MAX_INT - 1, 2),
+		ValidationSupportScript.would_add_overflow(MAX_INT - 1, 2),
 		(
 			"The exact +2 overflow guard must reject MAX-1 + 2 even though "
 			+ "canonical v5 player derivation cannot currently reach it."
@@ -1124,7 +1120,7 @@ func _rejects_overflow_and_keeps_counts_compact(
 
 
 func _isolates_inputs_and_outputs(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var player_state: PlayerProgressionStateScript = _state(20)
 	var opponent_state: ContactCombatOpponentStateScript = _opponent(8, 8, 6, 9)
 	var command := ContactCombatCommandScript.evaluate(1)
@@ -1310,7 +1306,7 @@ func _isolates_inputs_and_outputs(context: HeadlessTestContextScript) -> void:
 func _rejects_malformed_public_results(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var base: ContactCombatResultScript = _valid_candidate(registry)
 	context.expect_true(base.was_evaluated(), "The malformed-result base must evaluate.")
 	var base_resolution: ContactCombatResolutionScript = base.resolution()
@@ -1722,7 +1718,7 @@ func _rejects_malformed_public_results(
 
 
 func _replays_deterministically(context: HeadlessTestContextScript) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var first_trace: Array = _replay_trace(context, registry, "First replay")
 	var second_trace: Array = _replay_trace(context, registry, "Second replay")
 	context.expect_equal(
@@ -1769,7 +1765,7 @@ func _replays_deterministically(context: HeadlessTestContextScript) -> void:
 func _satisfies_metamorphic_invariants(
 	context: HeadlessTestContextScript,
 ) -> void:
-	var registry: ContentRegistryScript = _canonical_registry(context)
+	var registry: ContentRegistryScript = _canonical_registry_with_legacy_messages(context)
 	var attack_base := _evaluate_fixture(registry, 20, 0, 0, 0, 8, 8, 6, 9)
 	var attack_shifted := _evaluate_fixture(registry, 20, 1, 0, 0, 8, 8, 7, 9)
 	context.expect_equal(
@@ -1902,22 +1898,12 @@ func _satisfies_metamorphic_invariants(
 	)
 
 
-func _canonical_registry(context: HeadlessTestContextScript) -> ContentRegistryScript:
-	if _cached_registry != null:
-		return _cached_registry
-	var build_result: ContentRegistryBuildResultScript = (
-		ContentRegistryBuilderScript.build_canonical()
-	)
-	context.expect_true(
-		build_result.succeeded(),
+func _canonical_registry_with_legacy_messages(context: HeadlessTestContextScript) -> ContentRegistryScript:
+	return CanonicalRegistryFixtureScript.canonical_registry_with_failure_messages(
+		context,
 		"The contact-combat canonical registry fixture must build.",
-	)
-	_cached_registry = build_result.registry()
-	context.expect_true(
-		_cached_registry != null and _cached_registry.is_initialized(),
 		"The contact-combat registry fixture must be initialized and sealed.",
 	)
-	return _cached_registry
 
 
 func _state(
@@ -2156,7 +2142,7 @@ func _public_result_from_base(
 		base.opponent_state(),
 		resolution,
 		events,
-		_cached_registry,
+		CanonicalRegistryFixtureScript.canonical_registry_for_helpers(),
 	)
 
 

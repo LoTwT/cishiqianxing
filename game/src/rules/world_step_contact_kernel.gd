@@ -30,6 +30,7 @@ const PermanentGrowthClaimKernelScript := preload(
 const PlayerProgressionStateScript := preload(
 	"res://src/rules/player_progression_state.gd"
 )
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const WorldStepContactCommandScript := preload(
 	"res://src/rules/world_step_contact_command.gd"
 )
@@ -40,9 +41,6 @@ const WorldStepContactResultScript := preload(
 	"res://src/rules/world_step_contact_result.gd"
 )
 
-const VECTOR3I_COMPONENT_MIN := -2_147_483_648
-const VECTOR3I_COMPONENT_MAX := 2_147_483_647
-
 
 static func prepare(
 	grid_state_candidate: RefCounted,
@@ -51,7 +49,7 @@ static func prepare(
 	command_candidate: RefCounted,
 	registry: RefCounted,
 ) -> WorldStepContactResultScript:
-	if not _is_exact_initialized_registry(registry):
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_REGISTRY)
 	if not _is_exact_grid_state(grid_state_candidate):
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_GRID_STATE)
@@ -139,7 +137,9 @@ static func prepare(
 		return _rejected(
 			WorldStepContactResultScript.RejectionReason.FROM_CELL_MISMATCH
 		)
-	if _would_overflow_target(command.expected_from_cell(), command.direction()):
+	if ValidationSupportScript.would_overflow_target(
+		command.expected_from_cell(), command.direction()
+	):
 		return _rejected(
 			WorldStepContactResultScript.RejectionReason.COORDINATE_OVERFLOW
 		)
@@ -226,7 +226,7 @@ static func revalidate(
 		return _rejected(
 			WorldStepContactResultScript.RejectionReason.INVALID_LOCKED_RESULT
 		)
-	if not _is_exact_initialized_registry(registry):
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_REGISTRY)
 	if not _is_exact_grid_state(current_grid_state_candidate):
 		return _rejected(WorldStepContactResultScript.RejectionReason.INVALID_GRID_STATE)
@@ -418,18 +418,6 @@ static func _actor_at_cell(
 	return &""
 
 
-static func _would_overflow_target(
-	from_cell: Vector3i,
-	direction: Vector3i,
-) -> bool:
-	return (
-		(direction.x > 0 and from_cell.x == VECTOR3I_COMPONENT_MAX)
-		or (direction.x < 0 and from_cell.x == VECTOR3I_COMPONENT_MIN)
-		or (direction.z > 0 and from_cell.z == VECTOR3I_COMPONENT_MAX)
-		or (direction.z < 0 and from_cell.z == VECTOR3I_COMPONENT_MIN)
-	)
-
-
 static func _no_contact() -> WorldStepContactResultScript:
 	var result := WorldStepContactResultScript.new()
 	result._status = WorldStepContactResultScript.Status.NO_CONTACT
@@ -526,10 +514,3 @@ static func _is_exact_command(candidate: RefCounted) -> bool:
 	)
 
 
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
-	)

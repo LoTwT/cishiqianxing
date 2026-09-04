@@ -17,6 +17,9 @@ const ContentRegistryBuildResultScript := preload(
 	"res://src/content/content_registry_build_result.gd"
 )
 const ContentLookupResultScript := preload("res://src/content/content_lookup_result.gd")
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 const ContentValidationIssueScript := preload(
 	"res://src/content/content_validation_issue.gd"
 )
@@ -534,10 +537,10 @@ func _matches_aggregate_invariants(context: HeadlessTestContextScript) -> void:
 	var advanced_ordinals: Array[int] = []
 	var profile_counts: Dictionary[String, int] = {}
 	for blueprint: BlueprintDefinitionScript in registry.blueprints():
-		_increment_int_count(category_counts, blueprint.category)
-		_increment_int_count(tier_counts, blueprint.tier)
-		_increment_int_count(lifecycle_counts, blueprint.default_lifecycle)
-		_increment_int_count(unlock_counts, blueprint.unlock_chapter)
+		ContentValidationSupportScript.increment_int_count(category_counts, blueprint.category)
+		ContentValidationSupportScript.increment_int_count(tier_counts, blueprint.tier)
+		ContentValidationSupportScript.increment_int_count(lifecycle_counts, blueprint.default_lifecycle)
+		ContentValidationSupportScript.increment_int_count(unlock_counts, blueprint.unlock_chapter)
 		if blueprint.tier == BlueprintDefinitionScript.Tier.ADVANCED:
 			advanced_ordinals.append(blueprint.ordinal)
 		var profile_key: String = "%d:%d" % [blueprint.tier, blueprint.default_lifecycle]
@@ -1382,10 +1385,6 @@ func _corrupt_for_ordering(manifest: ContentManifestScript) -> void:
 	manifest.blueprints[1].mechanic_id = manifest.blueprints[0].mechanic_id
 	manifest.recipes[7].main_quantity = 0
 	manifest.recipes[8].output_blueprint_id = &"blueprint.unknown"
-
-
-func _increment_int_count(counts: Dictionary[int, int], value: int) -> void:
-	counts[value] = counts.get(value, 0) + 1
 
 
 func _swap_blueprint_category(

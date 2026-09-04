@@ -106,7 +106,7 @@ func is_valid() -> bool:
 
 
 func is_resolved_against(registry: RefCounted) -> bool:
-	if not is_valid() or not _is_exact_initialized_registry(registry):
+	if not is_valid() or not ContentRegistryScript.is_exact_initialized_instance(registry):
 		return false
 	var player_derivation = PermanentGrowthClaimKernelScript.derive_snapshot(
 		_previous_player_state,
@@ -369,10 +369,3 @@ static func _is_exact_resolution(candidate: RefCounted) -> bool:
 	)
 
 
-static func _is_exact_initialized_registry(registry: RefCounted) -> bool:
-	return (
-		registry != null
-		and is_instance_valid(registry)
-		and registry.get_script() == ContentRegistryScript
-		and (registry as ContentRegistryScript).is_initialized()
-	)

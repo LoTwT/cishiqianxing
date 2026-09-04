@@ -5,8 +5,7 @@ const GridRuleCommandScript := preload("res://src/rules/grid_rule_command.gd")
 const GridRuleEventScript := preload("res://src/rules/grid_rule_event.gd")
 const GridRuleResultScript := preload("res://src/rules/grid_rule_result.gd")
 const GridRuleStateScript := preload("res://src/rules/grid_rule_state.gd")
-const VECTOR3I_COMPONENT_MIN := -2_147_483_648
-const VECTOR3I_COMPONENT_MAX := 2_147_483_647
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 
 static func execute(
@@ -59,7 +58,7 @@ static func execute(
 	if authoritative_state.has_actor(actor_id):
 		from_cell = authoritative_state.actor_position(actor_id)
 	var direction: Vector3i = command.direction()
-	if not _is_horizontal_unit_direction(direction):
+	if not ValidationSupportScript.is_horizontal_unit_direction(direction):
 		return _rejected(
 			authoritative_state,
 			actor_id,
@@ -75,7 +74,7 @@ static func execute(
 			from_cell,
 			GridRuleEventScript.RejectionReason.UNKNOWN_ACTOR,
 		)
-	if authoritative_state.world_step() >= GridRuleStateScript.MAX_WORLD_STEP:
+	if authoritative_state.world_step() >= ValidationSupportScript.MAX_WORLD_STEP:
 		return _rejected(
 			authoritative_state,
 			actor_id,
@@ -83,7 +82,7 @@ static func execute(
 			from_cell,
 			GridRuleEventScript.RejectionReason.WORLD_STEP_LIMIT,
 		)
-	if _would_overflow_target(from_cell, direction):
+	if ValidationSupportScript.would_overflow_target(from_cell, direction):
 		return _rejected(
 			authoritative_state,
 			actor_id,
@@ -139,19 +138,6 @@ static func execute(
 	var domain_events: Array[GridRuleEventScript] = []
 	domain_events.append(GridRuleEventScript.actor_moved(actor_id, from_cell, to_cell))
 	return GridRuleResultScript.new(next_state, domain_events)
-
-
-static func _is_horizontal_unit_direction(direction: Vector3i) -> bool:
-	return direction.y == 0 and absi(direction.x) + absi(direction.z) == 1
-
-
-static func _would_overflow_target(from_cell: Vector3i, direction: Vector3i) -> bool:
-	return (
-		(direction.x > 0 and from_cell.x == VECTOR3I_COMPONENT_MAX)
-		or (direction.x < 0 and from_cell.x == VECTOR3I_COMPONENT_MIN)
-		or (direction.z > 0 and from_cell.z == VECTOR3I_COMPONENT_MAX)
-		or (direction.z < 0 and from_cell.z == VECTOR3I_COMPONENT_MIN)
-	)
 
 
 static func _rejected(

@@ -4,7 +4,7 @@ extends RefCounted
 const PermanentGrowthRewardDefinitionScript := preload(
 	"res://src/content/definitions/permanent_growth_reward_definition_resource.gd"
 )
-const MAX_INT: int = 9_223_372_036_854_775_807
+const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 enum Kind {
 	APPLIED = 1,
@@ -124,7 +124,7 @@ func is_valid() -> bool:
 		== PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH
 	):
 		return (
-			_previous_current_health <= MAX_INT - _increase
+			_previous_current_health <= ValidationSupportScript.MAX_INT - _increase
 			and _next_current_health == _previous_current_health + _increase
 		)
 	return _next_current_health == _previous_current_health

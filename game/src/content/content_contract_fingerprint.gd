@@ -4,6 +4,9 @@ extends RefCounted
 const BlueprintDefinitionScript := preload(
 	"res://src/content/definitions/blueprint_definition_resource.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 const RecipeDefinitionScript := preload(
 	"res://src/content/definitions/recipe_definition_resource.gd"
 )
@@ -184,41 +187,41 @@ static func calculate(
 		content_version,
 		ordered_blueprints.size(),
 		ordered_recipes.size(),
-		_encode_string(String(progression_catalog.catalog_id)),
+		ContentValidationSupportScript.encode_string(String(progression_catalog.catalog_id)),
 		ordered_rewards.size(),
 		ordered_mainline.size(),
 		ordered_optional.size(),
-		_encode_string(String(route_catalog.catalog_id)),
+		ContentValidationSupportScript.encode_string(String(route_catalog.catalog_id)),
 		ordered_route_contracts.size(),
-		_encode_string(String(enemy_catalog.catalog_id)),
+		ContentValidationSupportScript.encode_string(String(enemy_catalog.catalog_id)),
 		ordered_enemy_families.size(),
 		ordered_enemy_profiles.size(),
 	]
 	for blueprint: BlueprintDefinitionScript in ordered_blueprints:
 		payload += "B%s;i%d;i%d;i%d;i%d;i%d;%s;%s;%s;%s;" % [
-			_encode_string(String(blueprint.content_id)),
+			ContentValidationSupportScript.encode_string(String(blueprint.content_id)),
 			blueprint.ordinal,
 			blueprint.category,
 			blueprint.tier,
 			blueprint.unlock_chapter,
 			blueprint.default_lifecycle,
-			_encode_string(String(blueprint.standard_recipe_id)),
-			_encode_string(String(blueprint.mechanic_id)),
-			_encode_string(String(blueprint.display_name_text_id)),
-			_encode_string(String(blueprint.function_text_id)),
+			ContentValidationSupportScript.encode_string(String(blueprint.standard_recipe_id)),
+			ContentValidationSupportScript.encode_string(String(blueprint.mechanic_id)),
+			ContentValidationSupportScript.encode_string(String(blueprint.display_name_text_id)),
+			ContentValidationSupportScript.encode_string(String(blueprint.function_text_id)),
 		]
 	for recipe: RecipeDefinitionScript in ordered_recipes:
 		payload += "R%s;%s;%s;i%d;%s;i%d;" % [
-			_encode_string(String(recipe.recipe_id)),
-			_encode_string(String(recipe.output_blueprint_id)),
-			_encode_string(String(recipe.main_material_id)),
+			ContentValidationSupportScript.encode_string(String(recipe.recipe_id)),
+			ContentValidationSupportScript.encode_string(String(recipe.output_blueprint_id)),
+			ContentValidationSupportScript.encode_string(String(recipe.main_material_id)),
 			recipe.main_quantity,
-			_encode_string(String(recipe.auxiliary_material_id)),
+			ContentValidationSupportScript.encode_string(String(recipe.auxiliary_material_id)),
 			recipe.auxiliary_quantity,
 		]
 	var initial_stats: PlayerStatProfileScript = progression_catalog.initial_stats
 	payload += "P%s;i%d;i%d;i%d;i%d;" % [
-		_encode_string(String(initial_stats.profile_id)),
+		ContentValidationSupportScript.encode_string(String(initial_stats.profile_id)),
 		initial_stats.maximum_health,
 		initial_stats.attack,
 		initial_stats.defense,
@@ -226,7 +229,7 @@ static func calculate(
 	]
 	for reward: PermanentGrowthRewardDefinitionScript in ordered_rewards:
 		payload += "A%s;i%d;i%d;" % [
-			_encode_string(String(reward.reward_id)),
+			ContentValidationSupportScript.encode_string(String(reward.reward_id)),
 			reward.stat_kind,
 			reward.increase,
 		]
@@ -235,24 +238,24 @@ static func calculate(
 			definition.reward_ids
 		)
 		payload += "M%s;i%d;a%d;" % [
-			_encode_string(String(definition.content_id)),
+			ContentValidationSupportScript.encode_string(String(definition.content_id)),
 			definition.chapter,
 			ordered_reward_ids.size(),
 		]
 		for reward_id: StringName in ordered_reward_ids:
-			payload += "a%s;" % _encode_string(String(reward_id))
+			payload += "a%s;" % ContentValidationSupportScript.encode_string(String(reward_id))
 	for definition: OptionalProgressionDefinitionScript in ordered_optional:
 		var ordered_reward_ids: Array[StringName] = _ordered_reward_ids(
 			definition.reward_ids
 		)
 		payload += "O%s;%s;i%d;a%d;" % [
-			_encode_string(String(definition.content_id)),
-			_encode_string(String(definition.optional_map_id)),
+			ContentValidationSupportScript.encode_string(String(definition.content_id)),
+			ContentValidationSupportScript.encode_string(String(definition.optional_map_id)),
 			definition.available_after_chapter,
 			ordered_reward_ids.size(),
 		]
 		for reward_id: StringName in ordered_reward_ids:
-			payload += "a%s;" % _encode_string(String(reward_id))
+			payload += "a%s;" % ContentValidationSupportScript.encode_string(String(reward_id))
 	for contract: RepresentativeRouteContractScript in ordered_route_contracts:
 		var ordered_progression_ids: Array[StringName] = _ordered_string_names(
 			contract.mainline_progression_reference_ids
@@ -264,20 +267,20 @@ static func calculate(
 			contract.tradeoff_dimension_ids
 		)
 		payload += "T%s;i%d;i%d;%s;p%d;" % [
-			_encode_string(String(contract.contract_id)),
+			ContentValidationSupportScript.encode_string(String(contract.contract_id)),
 			contract.stage_start_chapter,
 			contract.stage_end_chapter,
-			_encode_string(String(contract.player_profile_id)),
+			ContentValidationSupportScript.encode_string(String(contract.player_profile_id)),
 			ordered_progression_ids.size(),
 		]
 		for content_id: StringName in ordered_progression_ids:
-			payload += "p%s;" % _encode_string(String(content_id))
+			payload += "p%s;" % ContentValidationSupportScript.encode_string(String(content_id))
 		payload += "b%d;" % ordered_blueprint_ids.size()
 		for content_id: StringName in ordered_blueprint_ids:
-			payload += "b%s;" % _encode_string(String(content_id))
+			payload += "b%s;" % ContentValidationSupportScript.encode_string(String(content_id))
 		payload += "d%d;" % ordered_tradeoff_ids.size()
 		for dimension_id: StringName in ordered_tradeoff_ids:
-			payload += "d%s;" % _encode_string(String(dimension_id))
+			payload += "d%s;" % ContentValidationSupportScript.encode_string(String(dimension_id))
 		payload += "i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;" % [
 			contract.backpack_slot_capacity,
 			contract.encounter_group_minimum,
@@ -298,24 +301,24 @@ static func calculate(
 		]
 	for family: EnemyFamilyDefinitionScript in ordered_enemy_families:
 		payload += "F%s;i%d;i%d;i%d;%s;%s;%s;" % [
-			_encode_string(String(family.family_id)),
+			ContentValidationSupportScript.encode_string(String(family.family_id)),
 			family.ordinal,
 			family.source,
 			family.numeric_archetype,
-			_encode_string(String(family.display_name_text_id)),
-			_encode_string(String(family.regional_role_id)),
-			_encode_string(String(family.visual_family_id)),
+			ContentValidationSupportScript.encode_string(String(family.display_name_text_id)),
+			ContentValidationSupportScript.encode_string(String(family.regional_role_id)),
+			ContentValidationSupportScript.encode_string(String(family.visual_family_id)),
 		]
 	for profile: EnemyProfileDefinitionScript in ordered_enemy_profiles:
 		var ordered_trait_ids: Array[StringName] = _ordered_string_names(
 			profile.combat_trait_ids
 		)
 		payload += "E%s;%s;i%d;i%d;%s;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;i%d;%s;x%d;" % [
-			_encode_string(String(profile.profile_id)),
-			_encode_string(String(profile.family_id)),
+			ContentValidationSupportScript.encode_string(String(profile.profile_id)),
+			ContentValidationSupportScript.encode_string(String(profile.family_id)),
 			profile.tier,
 			profile.source,
-			_encode_string(String(profile.balance_contract_id)),
+			ContentValidationSupportScript.encode_string(String(profile.balance_contract_id)),
 			profile.maximum_durability,
 			profile.attack,
 			profile.defense,
@@ -325,24 +328,22 @@ static func calculate(
 			profile.alternate_attack,
 			profile.alternate_defense,
 			profile.alternate_speed,
-			_encode_string(String(profile.behavior_id)),
+			ContentValidationSupportScript.encode_string(String(profile.behavior_id)),
 			ordered_trait_ids.size(),
 		]
 		for trait_id: StringName in ordered_trait_ids:
-			payload += "x%s;" % _encode_string(String(trait_id))
-		payload += "v%s;" % _encode_string(String(profile.visual_binding_id))
+			payload += "x%s;" % ContentValidationSupportScript.encode_string(String(trait_id))
+		payload += "v%s;" % ContentValidationSupportScript.encode_string(String(profile.visual_binding_id))
 	return payload.sha256_text()
-
-
-static func _encode_string(value: String) -> String:
-	return "%d:%s" % [value.to_utf8_buffer().size(), value]
 
 
 static func _ordered_reward_ids(reward_ids: Array[StringName]) -> Array[StringName]:
 	var ordered_reward_ids: Array[StringName] = []
 	for reward_id: StringName in reward_ids:
 		ordered_reward_ids.append(reward_id)
-	ordered_reward_ids.sort_custom(_string_name_less_than)
+	ordered_reward_ids.sort_custom(
+		ContentValidationSupportScript.string_name_less_than
+	)
 	return ordered_reward_ids
 
 
@@ -350,7 +351,7 @@ static func _ordered_string_names(values: Array[StringName]) -> Array[StringName
 	var result: Array[StringName] = []
 	for value: StringName in values:
 		result.append(value)
-	result.sort_custom(_string_name_less_than)
+	result.sort_custom(ContentValidationSupportScript.string_name_less_than)
 	return result
 
 
@@ -414,7 +415,3 @@ static func _enemy_profile_less_than(
 	right: EnemyProfileDefinitionScript,
 ) -> bool:
 	return String(left.profile_id) < String(right.profile_id)
-
-
-static func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)

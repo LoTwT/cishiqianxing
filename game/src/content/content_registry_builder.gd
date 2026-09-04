@@ -20,6 +20,9 @@ const ContentValidationIssueScript := preload(
 const ContentValidationReportScript := preload(
 	"res://src/content/content_validation_report.gd"
 )
+const ContentValidationSupportScript := preload(
+	"res://src/content/content_validation_support.gd"
+)
 const GlobalProgressionCatalogScript := preload(
 	"res://src/content/definitions/global_progression_catalog_resource.gd"
 )
@@ -140,7 +143,7 @@ static func build_canonical() -> ContentRegistryBuildResultScript:
 static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 	var issues: Array[ContentValidationIssueScript] = []
 	if manifest == null:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_LOAD_FAILED,
 			&"",
@@ -149,7 +152,7 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		)
 		return _failure(issues)
 	if manifest.get_script() != ContentManifestScript:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_INVALID_SCRIPT,
 			&"",
@@ -226,7 +229,7 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		enemy_catalog,
 	)
 	if not registry.is_initialized():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_CONTRACT_FINGERPRINT_MISMATCH,
 			&"",
@@ -248,7 +251,7 @@ static func _validate_manifest_header(
 	issues: Array[ContentValidationIssueScript],
 ) -> void:
 	if schema_version != SUPPORTED_SCHEMA_VERSION:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_SCHEMA_VERSION_UNSUPPORTED,
 			&"",
@@ -257,7 +260,7 @@ static func _validate_manifest_header(
 			% [SUPPORTED_SCHEMA_VERSION, schema_version],
 		)
 	if content_version != SUPPORTED_CONTENT_VERSION:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_CONTENT_VERSION_UNSUPPORTED,
 			&"",
@@ -266,7 +269,7 @@ static func _validate_manifest_header(
 			% [SUPPORTED_CONTENT_VERSION, content_version],
 		)
 	if blueprint_count != EXPECTED_DEFINITION_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_BLUEPRINT_COUNT_INVALID,
 			&"",
@@ -275,7 +278,7 @@ static func _validate_manifest_header(
 			% [EXPECTED_DEFINITION_COUNT, blueprint_count],
 		)
 	if recipe_count != EXPECTED_DEFINITION_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_RECIPE_COUNT_INVALID,
 			&"",
@@ -294,7 +297,7 @@ static func _snapshot_blueprints(
 		var blueprint: BlueprintDefinitionScript = raw_blueprints[index]
 		var field_path: String = "blueprints[%d]" % index
 		if blueprint == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_ENTRY_NULL,
 				&"",
@@ -303,7 +306,7 @@ static func _snapshot_blueprints(
 			)
 			continue
 		if blueprint.get_script() != BlueprintDefinitionScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_ENTRY_INVALID_SCRIPT,
 				&"",
@@ -324,7 +327,7 @@ static func _snapshot_recipes(
 		var recipe: RecipeDefinitionScript = raw_recipes[index]
 		var field_path: String = "recipes[%d]" % index
 		if recipe == null:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_ENTRY_NULL,
 				&"",
@@ -333,7 +336,7 @@ static func _snapshot_recipes(
 			)
 			continue
 		if recipe.get_script() != RecipeDefinitionScript:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_ENTRY_INVALID_SCRIPT,
 				&"",
@@ -362,60 +365,61 @@ static func _validate_blueprints(
 
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		_validate_blueprint_fields(blueprint, issues)
-		_increment_string_name_count(content_id_counts, blueprint.content_id)
-		_increment_int_count(ordinal_counts, blueprint.ordinal)
-		_increment_string_name_count(recipe_id_counts, blueprint.standard_recipe_id)
-		_increment_string_name_count(mechanic_id_counts, blueprint.mechanic_id)
-		_increment_string_name_count(
+		ContentValidationSupportScript.increment_string_name_count(content_id_counts, blueprint.content_id)
+		ContentValidationSupportScript.increment_int_count(ordinal_counts, blueprint.ordinal)
+		ContentValidationSupportScript.increment_string_name_count(recipe_id_counts, blueprint.standard_recipe_id)
+		ContentValidationSupportScript.increment_string_name_count(mechanic_id_counts, blueprint.mechanic_id)
+		ContentValidationSupportScript.increment_string_name_count(
 			display_name_id_counts,
 			blueprint.display_name_text_id,
 		)
-		_increment_string_name_count(function_id_counts, blueprint.function_text_id)
+		ContentValidationSupportScript.increment_string_name_count(function_id_counts, blueprint.function_text_id)
 		if _is_valid_category(blueprint.category):
-			_increment_int_count(category_counts, blueprint.category)
+			ContentValidationSupportScript.increment_int_count(category_counts, blueprint.category)
 		if _is_valid_tier(blueprint.tier):
-			_increment_int_count(tier_counts, blueprint.tier)
+			ContentValidationSupportScript.increment_int_count(tier_counts, blueprint.tier)
 		if _is_valid_lifecycle(blueprint.default_lifecycle):
-			_increment_int_count(lifecycle_counts, blueprint.default_lifecycle)
+			ContentValidationSupportScript.increment_int_count(lifecycle_counts, blueprint.default_lifecycle)
 		if blueprint.unlock_chapter >= 1 and blueprint.unlock_chapter <= 9:
-			_increment_int_count(unlock_counts, blueprint.unlock_chapter)
+			ContentValidationSupportScript.increment_int_count(unlock_counts, blueprint.unlock_chapter)
 
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		content_id_counts,
 		ContentValidationIssueScript.BLUEPRINT_CONTENT_ID_DUPLICATE,
 		"content_id",
 		"Blueprint content ID",
 		issues,
 	)
-	_add_duplicate_int_issues(
+	ContentValidationSupportScript.add_duplicate_int_issues(
 		ordinal_counts,
 		ContentValidationIssueScript.BLUEPRINT_ORDINAL_DUPLICATE,
 		"ordinal",
 		"Blueprint ordinal",
+		_expected_blueprint_id,
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		recipe_id_counts,
 		ContentValidationIssueScript.BLUEPRINT_STANDARD_RECIPE_ID_DUPLICATE,
 		"standard_recipe_id",
 		"Blueprint standard recipe ID",
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		mechanic_id_counts,
 		ContentValidationIssueScript.BLUEPRINT_MECHANIC_ID_DUPLICATE,
 		"mechanic_id",
 		"Blueprint mechanic ID",
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		display_name_id_counts,
 		ContentValidationIssueScript.BLUEPRINT_DISPLAY_NAME_TEXT_ID_DUPLICATE,
 		"display_name_text_id",
 		"Blueprint display-name text ID",
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		function_id_counts,
 		ContentValidationIssueScript.BLUEPRINT_FUNCTION_TEXT_ID_DUPLICATE,
 		"function_text_id",
@@ -425,7 +429,7 @@ static func _validate_blueprints(
 
 	for ordinal: int in range(1, EXPECTED_DEFINITION_COUNT + 1):
 		if not ordinal_counts.has(ordinal):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_ORDINAL_MISSING,
 				_expected_blueprint_id(ordinal),
@@ -523,7 +527,7 @@ static func _validate_blueprint_fields(
 	var content_id: StringName = blueprint.content_id
 	var issue_subject: StringName = content_id
 	if content_id.is_empty():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_CONTENT_ID_EMPTY,
 			issue_subject,
@@ -531,7 +535,7 @@ static func _validate_blueprint_fields(
 			"Blueprint content ID must not be empty.",
 		)
 	if blueprint.ordinal < 1 or blueprint.ordinal > EXPECTED_DEFINITION_COUNT:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_ORDINAL_OUT_OF_RANGE,
 			issue_subject,
@@ -543,7 +547,7 @@ static func _validate_blueprint_fields(
 		var expected_index: int = blueprint.ordinal - 1
 		var expected_content_id: StringName = _expected_blueprint_id(blueprint.ordinal)
 		if content_id != expected_content_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_CONTENT_ID_ORDINAL_MISMATCH,
 				issue_subject,
@@ -553,7 +557,7 @@ static func _validate_blueprint_fields(
 			)
 		var expected_recipe_id: StringName = _expected_recipe_id(blueprint.ordinal)
 		if blueprint.standard_recipe_id != expected_recipe_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_STANDARD_RECIPE_ID_ORDINAL_MISMATCH,
 				issue_subject,
@@ -565,7 +569,7 @@ static func _validate_blueprint_fields(
 			"blueprint.%02d.display_name" % blueprint.ordinal
 		)
 		if blueprint.display_name_text_id != expected_display_name_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_DISPLAY_NAME_TEXT_ID_INVALID,
 				issue_subject,
@@ -577,7 +581,7 @@ static func _validate_blueprint_fields(
 			"blueprint.%02d.function" % blueprint.ordinal
 		)
 		if blueprint.function_text_id != expected_function_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_FUNCTION_TEXT_ID_INVALID,
 				issue_subject,
@@ -586,7 +590,7 @@ static func _validate_blueprint_fields(
 				% [blueprint.ordinal, String(expected_function_id)],
 			)
 		if blueprint.category != EXPECTED_CATEGORIES[expected_index]:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_CATEGORY_ORDINAL_MISMATCH,
 				issue_subject,
@@ -595,7 +599,7 @@ static func _validate_blueprint_fields(
 				% [blueprint.ordinal, EXPECTED_CATEGORIES[expected_index]],
 			)
 		if blueprint.unlock_chapter != EXPECTED_UNLOCK_CHAPTERS[expected_index]:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_UNLOCK_CHAPTER_ORDINAL_MISMATCH,
 				issue_subject,
@@ -604,7 +608,7 @@ static func _validate_blueprint_fields(
 				% [blueprint.ordinal, EXPECTED_UNLOCK_CHAPTERS[expected_index]],
 			)
 		if blueprint.default_lifecycle != EXPECTED_LIFECYCLES[expected_index]:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_LIFECYCLE_ORDINAL_MISMATCH,
 				issue_subject,
@@ -613,7 +617,7 @@ static func _validate_blueprint_fields(
 				% [blueprint.ordinal, EXPECTED_LIFECYCLES[expected_index]],
 			)
 		if blueprint.mechanic_id != EXPECTED_MECHANIC_IDS[expected_index]:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_MECHANIC_ID_ORDINAL_MISMATCH,
 				issue_subject,
@@ -622,7 +626,7 @@ static func _validate_blueprint_fields(
 				% [blueprint.ordinal, String(EXPECTED_MECHANIC_IDS[expected_index])],
 			)
 	if not content_id.is_empty() and not String(content_id).begins_with("blueprint."):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_CONTENT_ID_INVALID,
 			issue_subject,
@@ -630,7 +634,7 @@ static func _validate_blueprint_fields(
 			"Blueprint content ID must use the 'blueprint.NN' namespace.",
 		)
 	if not _is_valid_category(blueprint.category):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_CATEGORY_INVALID,
 			issue_subject,
@@ -638,7 +642,7 @@ static func _validate_blueprint_fields(
 			"Blueprint category is not one of the five supported values.",
 		)
 	if not _is_valid_tier(blueprint.tier):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_TIER_INVALID,
 			issue_subject,
@@ -650,7 +654,7 @@ static func _validate_blueprint_fields(
 		if ADVANCED_ORDINALS.has(blueprint.ordinal):
 			expected_tier = BlueprintDefinitionScript.Tier.ADVANCED
 		if blueprint.tier != expected_tier:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.BLUEPRINT_TIER_ORDINAL_MISMATCH,
 				issue_subject,
@@ -658,7 +662,7 @@ static func _validate_blueprint_fields(
 				"Blueprint ordinal %d has the wrong tier." % blueprint.ordinal,
 			)
 	if blueprint.unlock_chapter < 1 or blueprint.unlock_chapter > 9:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_UNLOCK_CHAPTER_INVALID,
 			issue_subject,
@@ -666,7 +670,7 @@ static func _validate_blueprint_fields(
 			"Blueprint unlock chapter must be in the inclusive range 1 through 9.",
 		)
 	if not _is_valid_lifecycle(blueprint.default_lifecycle):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_LIFECYCLE_INVALID,
 			issue_subject,
@@ -674,7 +678,7 @@ static func _validate_blueprint_fields(
 			"Blueprint lifecycle must be recoverable or consumable.",
 		)
 	if blueprint.standard_recipe_id.is_empty():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_STANDARD_RECIPE_ID_EMPTY,
 			issue_subject,
@@ -682,7 +686,7 @@ static func _validate_blueprint_fields(
 			"Blueprint standard recipe ID must not be empty.",
 		)
 	elif not String(blueprint.standard_recipe_id).begins_with("recipe.standard."):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_STANDARD_RECIPE_ID_INVALID,
 			issue_subject,
@@ -690,7 +694,7 @@ static func _validate_blueprint_fields(
 			"Blueprint standard recipe ID must use the 'recipe.standard.NN' namespace.",
 		)
 	if blueprint.mechanic_id.is_empty():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_MECHANIC_ID_EMPTY,
 			issue_subject,
@@ -701,7 +705,7 @@ static func _validate_blueprint_fields(
 		not String(blueprint.mechanic_id).begins_with("mechanic.blueprint.")
 		or String(blueprint.mechanic_id).trim_prefix("mechanic.blueprint.").is_empty()
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_MECHANIC_ID_INVALID,
 			issue_subject,
@@ -720,14 +724,14 @@ static func _validate_recipes(
 	var recipes_by_id: Dictionary[StringName, RecipeDefinitionScript] = {}
 	var blueprints_by_id: Dictionary[StringName, BlueprintDefinitionScript] = {}
 	for blueprint: BlueprintDefinitionScript in blueprints:
-		_increment_string_name_count(output_id_counts, blueprint.content_id)
+		ContentValidationSupportScript.increment_string_name_count(output_id_counts, blueprint.content_id)
 	for recipe: RecipeDefinitionScript in recipes:
 		_validate_recipe_fields(recipe, issues)
-		_increment_string_name_count(recipe_id_counts, recipe.recipe_id)
+		ContentValidationSupportScript.increment_string_name_count(recipe_id_counts, recipe.recipe_id)
 	var blueprint_id_counts: Dictionary[StringName, int] = output_id_counts
 	output_id_counts = {}
 	for recipe: RecipeDefinitionScript in recipes:
-		_increment_string_name_count(output_id_counts, recipe.output_blueprint_id)
+		ContentValidationSupportScript.increment_string_name_count(output_id_counts, recipe.output_blueprint_id)
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		if blueprint_id_counts.get(blueprint.content_id, 0) == 1:
 			blueprints_by_id[blueprint.content_id] = blueprint
@@ -735,14 +739,14 @@ static func _validate_recipes(
 		if recipe_id_counts.get(recipe.recipe_id, 0) == 1:
 			recipes_by_id[recipe.recipe_id] = recipe
 
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		recipe_id_counts,
 		ContentValidationIssueScript.RECIPE_ID_DUPLICATE,
 		"recipe_id",
 		"Recipe ID",
 		issues,
 	)
-	_add_duplicate_string_name_issues(
+	ContentValidationSupportScript.add_duplicate_string_name_issues(
 		output_id_counts,
 		ContentValidationIssueScript.RECIPE_OUTPUT_BLUEPRINT_ID_DUPLICATE,
 		"output_blueprint_id",
@@ -752,7 +756,7 @@ static func _validate_recipes(
 	for ordinal: int in range(1, EXPECTED_DEFINITION_COUNT + 1):
 		var expected_recipe_id: StringName = _expected_recipe_id(ordinal)
 		if not recipe_id_counts.has(expected_recipe_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_ID_MISSING,
 				expected_recipe_id,
@@ -765,7 +769,7 @@ static func _validate_recipes(
 		if recipe.output_blueprint_id.is_empty():
 			continue
 		if not blueprints_by_id.has(recipe.output_blueprint_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_OUTPUT_BLUEPRINT_ID_UNKNOWN,
 				recipe_subject,
@@ -779,7 +783,7 @@ static func _validate_recipes(
 		]
 		var expected_recipe_id: StringName = _expected_recipe_id(output_blueprint.ordinal)
 		if recipe.recipe_id != expected_recipe_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_OUTPUT_BLUEPRINT_ID_MISMATCH,
 				recipe_subject,
@@ -788,7 +792,7 @@ static func _validate_recipes(
 				% [String(output_blueprint.content_id), String(expected_recipe_id)],
 			)
 		if output_blueprint.standard_recipe_id != recipe.recipe_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_BLUEPRINT_REFERENCE_MISMATCH,
 				recipe_subject,
@@ -802,7 +806,7 @@ static func _validate_recipes(
 		if blueprint.standard_recipe_id.is_empty():
 			continue
 		if not recipes_by_id.has(blueprint.standard_recipe_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_BLUEPRINT_REFERENCE_MISSING,
 				blueprint.content_id,
@@ -818,7 +822,7 @@ static func _validate_recipe_fields(
 ) -> void:
 	var recipe_subject: StringName = recipe.recipe_id
 	if recipe.recipe_id.is_empty():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_ID_EMPTY,
 			recipe_subject,
@@ -826,7 +830,7 @@ static func _validate_recipe_fields(
 			"Recipe ID must not be empty.",
 		)
 	elif not String(recipe.recipe_id).begins_with("recipe.standard."):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_ID_INVALID,
 			recipe_subject,
@@ -834,7 +838,7 @@ static func _validate_recipe_fields(
 			"Recipe ID must use the 'recipe.standard.NN' namespace.",
 		)
 	if recipe.output_blueprint_id.is_empty():
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_OUTPUT_BLUEPRINT_ID_EMPTY,
 			recipe_subject,
@@ -842,7 +846,7 @@ static func _validate_recipe_fields(
 			"Recipe output blueprint ID must not be empty.",
 		)
 	elif not String(recipe.output_blueprint_id).begins_with("blueprint."):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_OUTPUT_BLUEPRINT_ID_INVALID,
 			recipe_subject,
@@ -850,7 +854,7 @@ static func _validate_recipe_fields(
 			"Recipe output blueprint ID must use the 'blueprint.NN' namespace.",
 		)
 	if not _is_allowed_material_id(recipe.main_material_id):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_MAIN_MATERIAL_ID_INVALID,
 			recipe_subject,
@@ -858,7 +862,7 @@ static func _validate_recipe_fields(
 			"Recipe main material must be one of the three allowed material IDs.",
 		)
 	if recipe.main_quantity <= 0:
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_MAIN_QUANTITY_INVALID,
 			recipe_subject,
@@ -867,7 +871,7 @@ static func _validate_recipe_fields(
 		)
 	if recipe.auxiliary_material_id.is_empty():
 		if recipe.auxiliary_quantity != 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_AUXILIARY_QUANTITY_INVALID,
 				recipe_subject,
@@ -876,7 +880,7 @@ static func _validate_recipe_fields(
 			)
 	else:
 		if not _is_allowed_material_id(recipe.auxiliary_material_id):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_AUXILIARY_MATERIAL_ID_INVALID,
 				recipe_subject,
@@ -884,7 +888,7 @@ static func _validate_recipe_fields(
 				"Recipe auxiliary material must be one of the three allowed material IDs.",
 			)
 		if recipe.auxiliary_quantity <= 0:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_AUXILIARY_QUANTITY_INVALID,
 				recipe_subject,
@@ -892,7 +896,7 @@ static func _validate_recipe_fields(
 				"Recipe auxiliary quantity must be positive when present.",
 			)
 		if recipe.main_material_id == recipe.auxiliary_material_id:
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_MATERIALS_MUST_DIFFER,
 				recipe_subject,
@@ -913,7 +917,7 @@ static func _validate_recipe_profile(
 			or recipe.auxiliary_material_id
 			!= EXPECTED_AUXILIARY_MATERIAL_IDS[expected_index]
 		):
-			_add_issue(
+			ContentValidationSupportScript.add_issue(
 				issues,
 				ContentValidationIssueScript.RECIPE_MATERIAL_MAPPING_MISMATCH,
 				recipe.recipe_id,
@@ -950,56 +954,12 @@ static func _validate_recipe_profile(
 		or recipe.auxiliary_quantity != expected_auxiliary_quantity
 		or not auxiliary_presence_matches
 	):
-		_add_issue(
+		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.RECIPE_PROFILE_MISMATCH,
 			recipe.recipe_id,
 			"material_profile",
 			"Recipe quantities or auxiliary-material presence do not match its blueprint tier and lifecycle.",
-		)
-
-
-static func _add_duplicate_string_name_issues(
-	counts: Dictionary[StringName, int],
-	code: StringName,
-	field_path: String,
-	label: String,
-	issues: Array[ContentValidationIssueScript],
-) -> void:
-	var sorted_ids: Array[StringName] = []
-	for value: StringName in counts:
-		if not value.is_empty() and counts[value] > 1:
-			sorted_ids.append(value)
-	sorted_ids.sort_custom(_string_name_less_than)
-	for value: StringName in sorted_ids:
-		_add_issue(
-			issues,
-			code,
-			value,
-			field_path,
-			"%s '%s' occurs %d times." % [label, String(value), counts[value]],
-		)
-
-
-static func _add_duplicate_int_issues(
-	counts: Dictionary[int, int],
-	code: StringName,
-	field_path: String,
-	label: String,
-	issues: Array[ContentValidationIssueScript],
-) -> void:
-	var sorted_values: Array[int] = []
-	for value: int in counts:
-		if counts[value] > 1:
-			sorted_values.append(value)
-	sorted_values.sort()
-	for value: int in sorted_values:
-		_add_issue(
-			issues,
-			code,
-			_expected_blueprint_id(value),
-			field_path,
-			"%s %d occurs %d times." % [label, value, counts[value]],
 		)
 
 
@@ -1014,7 +974,7 @@ static func _validate_count(
 	var actual_count: int = counts.get(value, 0)
 	if actual_count == expected_count:
 		return
-	_add_issue(
+	ContentValidationSupportScript.add_issue(
 		issues,
 		code,
 		&"",
@@ -1022,17 +982,6 @@ static func _validate_count(
 		"Expected %d entries for %s, got %d."
 		% [expected_count, field_path, actual_count],
 	)
-
-
-static func _increment_string_name_count(
-	counts: Dictionary[StringName, int],
-	value: StringName,
-) -> void:
-	counts[value] = counts.get(value, 0) + 1
-
-
-static func _increment_int_count(counts: Dictionary[int, int], value: int) -> void:
-	counts[value] = counts.get(value, 0) + 1
 
 
 static func _is_valid_category(value: int) -> bool:
@@ -1082,7 +1031,7 @@ static func _failure_with_single_issue(
 	message: String,
 ) -> ContentRegistryBuildResultScript:
 	var issues: Array[ContentValidationIssueScript] = []
-	_add_issue(issues, code, content_id, field_path, message)
+	ContentValidationSupportScript.add_issue(issues, code, content_id, field_path, message)
 	return _failure(issues)
 
 
@@ -1092,18 +1041,6 @@ static func _failure(
 	_sort_issues(issues)
 	return ContentRegistryBuildResultScript.failure(
 		ContentValidationReportScript.new(issues)
-	)
-
-
-static func _add_issue(
-	issues: Array[ContentValidationIssueScript],
-	code: StringName,
-	content_id: StringName,
-	field_path: String,
-	message: String,
-) -> void:
-	issues.append(
-		ContentValidationIssueScript.new(code, content_id, field_path, message)
 	)
 
 
@@ -1126,7 +1063,3 @@ static func _issue_less_than(
 	if left.field_path() != right.field_path():
 		return left.field_path() < right.field_path()
 	return left.message() < right.message()
-
-
-static func _string_name_less_than(left: StringName, right: StringName) -> bool:
-	return String(left) < String(right)
