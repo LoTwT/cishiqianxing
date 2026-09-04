@@ -23,6 +23,9 @@ const PermanentGrowthClaimKernelTests := preload(
 const ContactCombatKernelTests := preload(
 	"res://tests/rules/contact_combat_kernel_tests.gd"
 )
+const PortableInventoryTests := preload(
+	"res://tests/rules/portable_inventory_tests.gd"
+)
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
@@ -122,6 +125,16 @@ func _initialize() -> void:
 		_fail_empty_suite("contact_combat")
 		return
 
+	var portable_inventory_test_suite: PortableInventoryTests = (
+		PortableInventoryTests.new()
+	)
+	var portable_inventory_test_cases: Array[HeadlessTestCaseScript] = (
+		portable_inventory_test_suite.cases()
+	)
+	if portable_inventory_test_cases.is_empty():
+		_fail_empty_suite("portable_inventory")
+		return
+
 	var test_cases: Array[HeadlessTestCaseScript] = []
 	test_cases.append_array(grid_rule_kernel_test_cases)
 	test_cases.append_array(content_registry_test_cases)
@@ -132,6 +145,7 @@ func _initialize() -> void:
 	test_cases.append_array(enemy_world_test_cases)
 	test_cases.append_array(permanent_growth_claim_test_cases)
 	test_cases.append_array(contact_combat_test_cases)
+	test_cases.append_array(portable_inventory_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
 		print("[TEST][SUMMARY] total=0 passed=0 failed=1 assertions=0")
