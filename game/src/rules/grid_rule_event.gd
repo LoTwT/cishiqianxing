@@ -93,6 +93,7 @@ func copy() -> GridRuleEvent:
 func is_equal_to(other: GridRuleEvent) -> bool:
 	return (
 		other != null
+		and other.get_script() == get_script()
 		and other.kind() == _kind
 		and other.actor_id() == _actor_id
 		and other.from_cell() == _from_cell

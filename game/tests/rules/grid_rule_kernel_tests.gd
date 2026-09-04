@@ -641,11 +641,11 @@ func _rejects_invalid_directions(context: HeadlessTestContextScript) -> void:
 func _rejects_unknown_command(context: HeadlessTestContextScript) -> void:
 	var state: GridRuleStateScript = MinimalGridFixture.create_state()
 	var before: GridRuleStateScript = state.copy()
-	var command := GridRuleCommandScript.new(
-		999,
-		MinimalGridFixture.PRIMARY_ACTOR_ID,
-		Vector3i(-1, 0, 0),
-	)
+	var command := GridRuleCommandScript.new()
+	command._kind = 999
+	command._actor_id = MinimalGridFixture.PRIMARY_ACTOR_ID
+	command._direction = Vector3i(-1, 0, 0)
+	command._initialized = true
 	var result: GridRuleResultScript = GridRuleKernelScript.execute(state, command)
 	_expect_rejection(
 		context,

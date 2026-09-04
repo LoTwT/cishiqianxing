@@ -117,7 +117,11 @@ func _init() -> void:
 	pass
 
 
-func _initialize_validated(
+# 构建器与内容测试专用的封印构造协议：仅接受与冻结 v5 内容合同指纹完全一致的
+# 输入，成功封印返回 true；已初始化或指纹不匹配时不做任何改动并返回 false，
+# 调用方可据此区分「封印成功」与「无操作」。通用调用方应通过
+# ContentRegistryBuilder.build() 获得注册表，不应直接调用本方法。
+func initialize_validated(
 	schema_version: int,
 	content_version: int,
 	blueprints: Array[BlueprintDefinitionScript],
@@ -125,9 +129,9 @@ func _initialize_validated(
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
 	enemy_catalog: EnemyProfileCatalogScript,
-) -> void:
+) -> bool:
 	if is_initialized():
-		return
+		return false
 	if not ContentContractFingerprintScript.matches(
 		schema_version,
 		content_version,
@@ -137,7 +141,7 @@ func _initialize_validated(
 		route_catalog,
 		enemy_catalog,
 	):
-		return
+		return false
 	var stored_material_ids: Array[StringName] = (
 		RecipeDefinitionScript.allowed_material_ids()
 	)
@@ -288,6 +292,7 @@ func _initialize_validated(
 	_enemy_profile_ids = stored_enemy_profile_ids
 	_enemy_profiles = stored_enemy_profiles
 	_enemy_profiles_by_id = stored_enemy_profiles_by_id
+	return true
 
 
 func is_initialized() -> bool:

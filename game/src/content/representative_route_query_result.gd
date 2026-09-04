@@ -26,19 +26,17 @@ func _init(
 	stage_end_available_blueprints: Array[BlueprintDefinitionScript],
 	issue: ContentValidationIssueScript,
 ) -> void:
-	if contract != null:
-		_contract = RepresentativeRouteContractScript.snapshot(contract)
-	if stage_end_minimum_player_stats != null:
-		_stage_end_minimum_player_stats = PlayerStatProfileScript.snapshot(
-			stage_end_minimum_player_stats
-		)
+	# 审计 INCR-10：字段私有且读取边界统一做单次快照；传入资源由封印注册表
+	# 保证不可变（注册表封印时已快照至私有只读存储；关卡末属性为注册表每次
+	# 查询新建的局部快照），构造时直接持有引用，不再做构造期防御拷贝。
+	# 蓝图数组的容器拷贝保留：其职责是隔离调用方数组（防止构造后被外部改写）
+	# 并封印内部字段为只读，数组元素本身不再逐个快照——读取边界已做单次快照。
+	_contract = contract
+	_stage_end_minimum_player_stats = stage_end_minimum_player_stats
 	for blueprint: BlueprintDefinitionScript in stage_end_available_blueprints:
-		_stage_end_available_blueprints.append(
-			BlueprintDefinitionScript.snapshot(blueprint)
-		)
+		_stage_end_available_blueprints.append(blueprint)
 	_stage_end_available_blueprints.make_read_only()
-	if issue != null:
-		_issue = issue.snapshot()
+	_issue = issue
 
 
 static func found(

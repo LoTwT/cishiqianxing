@@ -869,47 +869,71 @@ func _rejects_invalid_input_matrices(context: HeadlessTestContextScript) -> void
 			ContactCombatResultScript.RejectionReason.INVALID_COMMAND,
 			"Null or wrong command",
 		)
+	var invalid_kind_command := ContactCombatCommandScript.new()
+	invalid_kind_command._kind = 999
+	invalid_kind_command._initiator_side = 0
+	invalid_kind_command._temporary_effect = -1
+	invalid_kind_command._supporting_opponents_alive = -1
+	invalid_kind_command._initialized = true
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
 			valid_state,
 			valid_opponent,
-			ContactCombatCommandScript.new(999, 0, -1, -1),
+			invalid_kind_command,
 			registry,
 		),
 		ContactCombatResultScript.RejectionReason.INVALID_COMMAND,
 		"Invalid kind before all dependent command fields",
 	)
+	var invalid_initiator_command := ContactCombatCommandScript.new()
+	invalid_initiator_command._kind = 1
+	invalid_initiator_command._initiator_side = 0
+	invalid_initiator_command._temporary_effect = -1
+	invalid_initiator_command._supporting_opponents_alive = -1
+	invalid_initiator_command._initialized = true
 	_expect_rejected(
 		context,
 		ContactCombatKernelScript.evaluate(
 			valid_state,
 			valid_opponent,
-			ContactCombatCommandScript.new(1, 0, -1, -1),
+			invalid_initiator_command,
 			registry,
 		),
 		ContactCombatResultScript.RejectionReason.INVALID_INITIATOR,
 		"Invalid initiator before effect and support",
 	)
 	for invalid_effect: int in [-1, 6, 999]:
+		var invalid_effect_command := ContactCombatCommandScript.new()
+		invalid_effect_command._kind = 1
+		invalid_effect_command._initiator_side = 1
+		invalid_effect_command._temporary_effect = invalid_effect
+		invalid_effect_command._supporting_opponents_alive = -1
+		invalid_effect_command._initialized = true
 		_expect_rejected(
 			context,
 			ContactCombatKernelScript.evaluate(
 				valid_state,
 				valid_opponent,
-				ContactCombatCommandScript.new(1, 1, invalid_effect, -1),
+				invalid_effect_command,
 				registry,
 			),
 			ContactCombatResultScript.RejectionReason.INVALID_TEMPORARY_EFFECT,
 			"Invalid temporary effect before support count",
 		)
 	for invalid_support: int in [-1, 3, 999]:
+		var invalid_support_command := ContactCombatCommandScript.new()
+		invalid_support_command._kind = 1
+		invalid_support_command._initiator_side = 1
+		invalid_support_command._temporary_effect = 0
+		invalid_support_command._supporting_opponents_alive = invalid_support
+		invalid_support_command._initialized = true
 		_expect_rejected(
 			context,
 			ContactCombatKernelScript.evaluate(
 				valid_state,
 				valid_opponent,
-				ContactCombatCommandScript.new(1, 1, 0, invalid_support),
+				invalid_support_command,
 				registry,
 			),
 			ContactCombatResultScript.RejectionReason.INVALID_SUPPORT_COUNT,

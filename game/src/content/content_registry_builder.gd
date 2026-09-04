@@ -159,7 +159,7 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 
 	var report := ContentValidationReportScript.new(issues)
 	var registry := ContentRegistryScript.new()
-	registry._initialize_validated(
+	if not registry.initialize_validated(
 		schema_version,
 		content_version,
 		blueprints,
@@ -167,8 +167,7 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		progression_catalog,
 		route_catalog,
 		enemy_catalog,
-	)
-	if not registry.is_initialized():
+	):
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_CONTRACT_FINGERPRINT_MISMATCH,

@@ -104,6 +104,8 @@ func blocked_cells() -> Array[Vector3i]:
 func is_equal_to(other: GridRuleState) -> bool:
 	if other == null:
 		return false
+	if other.get_script() != get_script():
+		return false
 	if (
 		other._initialized != _initialized
 		or other.world_step() != _world_step

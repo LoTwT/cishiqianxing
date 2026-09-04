@@ -856,6 +856,23 @@ static func _validate_aggregate_contract(
 	rewards: Array[PermanentGrowthRewardDefinitionScript],
 	issues: Array[ContentValidationIssueScript],
 ) -> void:
+	# 审计 I-5：下方序数索引（stat_kind - 1）的安全性原先依赖 _validate_rewards
+	# 先行拒绝非法 stat_kind 的执行顺序约定。此处改为函数内先行断言：非法值
+	# 在本地拒绝并提前返回，不再依赖任何上游校验顺序；合法值 1-4 行为不变。
+	var has_invalid_stat_kind: bool = false
+	for reward: PermanentGrowthRewardDefinitionScript in rewards:
+		if _is_valid_stat_kind(reward.stat_kind):
+			continue
+		has_invalid_stat_kind = true
+		ContentValidationSupportScript.add_issue(
+			issues,
+			ContentValidationIssueScript.PROGRESSION_REWARD_STAT_KIND_INVALID,
+			reward.reward_id,
+			"permanent_growth_rewards.stat_kind",
+			"Permanent growth reward stat kind must be one of the four supported values.",
+		)
+	if has_invalid_stat_kind:
+		return
 	var rewards_by_id: Dictionary[StringName, PermanentGrowthRewardDefinitionScript] = {}
 	for reward: PermanentGrowthRewardDefinitionScript in rewards:
 		rewards_by_id[reward.reward_id] = reward

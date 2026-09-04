@@ -151,6 +151,7 @@ func copy() -> PermanentGrowthClaimEvent:
 func is_equal_to(other: PermanentGrowthClaimEvent) -> bool:
 	return (
 		other != null
+		and other.get_script() == get_script()
 		and other.kind() == _kind
 		and other.profile_id() == _profile_id
 		and other.content_schema_version() == _content_schema_version

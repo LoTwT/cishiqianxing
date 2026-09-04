@@ -111,6 +111,7 @@ func is_equal_to(other: EnemyInstanceState) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and other.instance_id() == _instance_id
 		and other.profile_id() == _profile_id

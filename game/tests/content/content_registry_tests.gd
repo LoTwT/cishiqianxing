@@ -162,7 +162,7 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 	)
 	var no_blueprints: Array[BlueprintDefinitionScript] = []
 	var no_recipes: Array[RecipeDefinitionScript] = []
-	raw_registry._initialize_validated(
+	var seal_attempt_succeeded: bool = raw_registry.initialize_validated(
 		999,
 		999,
 		no_blueprints,
@@ -170,6 +170,10 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 		null,
 		null,
 		null,
+	)
+	context.expect_true(
+		not seal_attempt_succeeded,
+		"The seal protocol must report a no-op for an unsealed content contract.",
 	)
 	context.expect_true(
 		not raw_registry.is_initialized(),
