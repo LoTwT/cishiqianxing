@@ -29,9 +29,20 @@ const PermanentGrowthClaimEventScript := preload(
 const PermanentGrowthClaimResultScript := preload(
 	"res://src/rules/permanent_growth_claim_result.gd"
 )
+const PermanentGrowthArithmeticScript := preload(
+	"res://src/rules/permanent_growth_arithmetic.gd"
+)
 const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
 const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
+
+# 投影记忆化：注册表投影是封印内容的纯函数，同一注册表实例在全进程内必然得到
+# 完全相同的投影（RegistryProjection 冻结后只读，可安全共享）。缓存以实例身份
+# 为键，且仅在注册表当前仍通过 is_initialized() 复验时命中——封印后被篡改的
+# 注册表会绕过缓存、按原路径完整重算并失败，防篡改语义保持不变。
+# 此前一次接触战事务 prepare 链路会触发 6+ 次全量投影重建。
+static var _cached_projection_registry: RefCounted = null
+static var _cached_projection: RegistryProjection = null
 
 
 class RegistryProjection extends RefCounted:
@@ -102,10 +113,12 @@ static func _derive_snapshot_from_projection(
 			PlayerProgressionDerivationResultScript.FailureReason.PROFILE_ID_MISMATCH
 		)
 
-	var maximum_health: int = projection.initial_maximum_health
-	var attack: int = projection.initial_attack
-	var defense: int = projection.initial_defense
-	var speed: int = projection.initial_speed
+	var stat_values: Array[int] = [
+		projection.initial_maximum_health,
+		projection.initial_attack,
+		projection.initial_defense,
+		projection.initial_speed,
+	]
 	for reward_id: StringName in authoritative_state.claimed_reward_ids():
 		if not projection.reward_stat_kinds.has(reward_id):
 			return PlayerProgressionDerivationResultScript.failure(
@@ -115,49 +128,22 @@ static func _derive_snapshot_from_projection(
 					.UNKNOWN_CLAIMED_REWARD_ID
 				)
 			)
-		var stat_kind: int = projection.reward_stat_kinds[reward_id]
-		var increase: int = projection.reward_increases[reward_id]
-		match stat_kind:
-			PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH:
-				if ValidationSupportScript.would_add_overflow(maximum_health, increase):
-					return PlayerProgressionDerivationResultScript.failure(
-						(
-							PlayerProgressionDerivationResultScript
-							.FailureReason
-							.INTEGER_OVERFLOW
-						)
-					)
-				maximum_health += increase
-			PermanentGrowthRewardDefinitionScript.StatKind.ATTACK:
-				if ValidationSupportScript.would_add_overflow(attack, increase):
-					return PlayerProgressionDerivationResultScript.failure(
-						(
-							PlayerProgressionDerivationResultScript
-							.FailureReason
-							.INTEGER_OVERFLOW
-						)
-					)
-				attack += increase
-			PermanentGrowthRewardDefinitionScript.StatKind.DEFENSE:
-				if ValidationSupportScript.would_add_overflow(defense, increase):
-					return PlayerProgressionDerivationResultScript.failure(
-						(
-							PlayerProgressionDerivationResultScript
-							.FailureReason
-							.INTEGER_OVERFLOW
-						)
-					)
-				defense += increase
-			PermanentGrowthRewardDefinitionScript.StatKind.SPEED:
-				if ValidationSupportScript.would_add_overflow(speed, increase):
-					return PlayerProgressionDerivationResultScript.failure(
-						(
-							PlayerProgressionDerivationResultScript
-							.FailureReason
-							.INTEGER_OVERFLOW
-						)
-					)
-				speed += increase
+		if not PermanentGrowthArithmeticScript.add_reward_increase_with_overflow_guard(
+			stat_values,
+			projection.reward_stat_kinds[reward_id],
+			projection.reward_increases[reward_id],
+		):
+			return PlayerProgressionDerivationResultScript.failure(
+				(
+					PlayerProgressionDerivationResultScript
+					.FailureReason
+					.INTEGER_OVERFLOW
+				)
+			)
+	var maximum_health: int = stat_values[0]
+	var attack: int = stat_values[1]
+	var defense: int = stat_values[2]
+	var speed: int = stat_values[3]
 	if authoritative_state.current_health() > maximum_health:
 		return PlayerProgressionDerivationResultScript.failure(
 			(
@@ -321,6 +307,14 @@ static func execute(
 
 
 static func _capture_registry_projection(registry: RefCounted) -> RegistryProjection:
+	if (
+		_cached_projection != null
+		and registry != null
+		and registry.get_script() == ContentRegistryScript
+		and registry == _cached_projection_registry
+		and (registry as ContentRegistryScript).is_initialized()
+	):
+		return _cached_projection
 	var projection := RegistryProjection.new()
 	if registry == null or registry.get_script() != ContentRegistryScript:
 		projection.failure_reason = (
@@ -419,6 +413,8 @@ static func _capture_registry_projection(registry: RefCounted) -> RegistryProjec
 	projection.initial_speed = initial_stats.speed
 	projection.failure_reason = PlayerProgressionDerivationResultScript.FailureReason.NONE
 	projection.freeze()
+	_cached_projection_registry = registry
+	_cached_projection = projection
 	return projection
 
 

@@ -74,7 +74,7 @@ static func add_duplicate_string_name_issues(
 
 
 # 重复整数检测。issue 的 content_id 由调用方通过 formatter 提供：
-# 构建器传蓝图序号的领域格式（_expected_blueprint_id），
+# 蓝图/配方校验器传蓝图序号的领域格式（_expected_blueprint_id），
 # 其余校验器传 string_name_from_int（数值字符串形式）。
 static func add_duplicate_int_issues(
 	counts: Dictionary[int, int],

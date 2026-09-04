@@ -56,6 +56,9 @@ const ContentValidationIssueScript := preload(
 const ContentValidationSupportScript := preload(
 	"res://src/content/content_validation_support.gd"
 )
+const PermanentGrowthArithmeticScript := preload(
+	"res://src/rules/permanent_growth_arithmetic.gd"
+)
 
 const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
 const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
@@ -1217,25 +1220,10 @@ func _apply_permanent_growth_rewards(
 	reward_ids: Array[StringName],
 ) -> void:
 	for reward_id: StringName in reward_ids:
-		_apply_permanent_growth_reward(
+		PermanentGrowthArithmeticScript.apply_reward_to_player_stats(
 			stats,
 			_permanent_growth_rewards_by_id[reward_id],
 		)
-
-
-static func _apply_permanent_growth_reward(
-	stats: PlayerStatProfileScript,
-	reward: PermanentGrowthRewardDefinitionScript,
-) -> void:
-	match reward.stat_kind:
-		PermanentGrowthRewardDefinitionScript.StatKind.MAXIMUM_HEALTH:
-			stats.maximum_health += reward.increase
-		PermanentGrowthRewardDefinitionScript.StatKind.ATTACK:
-			stats.attack += reward.increase
-		PermanentGrowthRewardDefinitionScript.StatKind.DEFENSE:
-			stats.defense += reward.increase
-		PermanentGrowthRewardDefinitionScript.StatKind.SPEED:
-			stats.speed += reward.increase
 
 
 static func _copy_ids(source: Array[StringName]) -> Array[StringName]:
