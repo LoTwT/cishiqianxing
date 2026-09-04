@@ -117,6 +117,9 @@ jobs:
             --import \
             2>&1 | tee "$import_log"
 
+          # Non-anchored 'ERROR:' also catches 'SCRIPT ERROR:' and mid-line
+          # error markers, failing closed by design. Keep this pattern in sync
+          # with game/tools/run_headless_tests.sh.
           if grep --fixed-strings --quiet 'ERROR:' "$import_log"; then
             echo 'Godot reported one or more resource import errors.' >&2
             exit 1

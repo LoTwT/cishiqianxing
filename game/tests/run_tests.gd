@@ -35,6 +35,28 @@ const PortableInventoryTests := preload(
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
+const REGISTERED_SUITES: Array[Script] = [
+	GridRuleKernelTests,
+	ContentRegistryTests,
+	GlobalProgressionRegistryTests,
+	RepresentativeRouteContractTests,
+	EnemyProfileRegistryTests,
+	EnemyInstanceResolverTests,
+	EnemyWorldResolverTests,
+	PermanentGrowthClaimKernelTests,
+	ContactCombatKernelTests,
+	ContactCombatTransactionTests,
+	WorldStepContactKernelTests,
+	PortableInventoryTests,
+]
+
+var _runner_abort_triggered := false
+
+# 测试体 Callable 绑定在各套件实例上，而 Callable 不会延长 RefCounted 的生命
+# 周期（Godot 4.7.2 已实证：实例被释放后全部测试体变为 invalid），必须把套件
+# 实例保活到执行结束。
+var _live_suite_instances: Array[RefCounted] = []
+
 
 func _initialize() -> void:
 	var user_arguments := OS.get_cmdline_user_args()
@@ -47,133 +69,9 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	var grid_rule_kernel_test_suite: GridRuleKernelTests = GridRuleKernelTests.new()
-	var grid_rule_kernel_test_cases: Array[HeadlessTestCaseScript] = (
-		grid_rule_kernel_test_suite.cases()
-	)
-	if grid_rule_kernel_test_cases.is_empty():
-		_fail_empty_suite("grid_rule_kernel")
+	var test_cases := _collect_registered_test_cases()
+	if _runner_abort_triggered:
 		return
-
-	var content_registry_test_suite: ContentRegistryTests = ContentRegistryTests.new()
-	var content_registry_test_cases: Array[HeadlessTestCaseScript] = (
-		content_registry_test_suite.cases()
-	)
-	if content_registry_test_cases.is_empty():
-		_fail_empty_suite("content_registry")
-		return
-
-	var global_progression_test_suite: GlobalProgressionRegistryTests = (
-		GlobalProgressionRegistryTests.new()
-	)
-	var global_progression_test_cases: Array[HeadlessTestCaseScript] = (
-		global_progression_test_suite.cases()
-	)
-	if global_progression_test_cases.is_empty():
-		_fail_empty_suite("global_progression")
-		return
-
-	var representative_route_test_suite: RepresentativeRouteContractTests = (
-		RepresentativeRouteContractTests.new()
-	)
-	var representative_route_test_cases: Array[HeadlessTestCaseScript] = (
-		representative_route_test_suite.cases()
-	)
-	if representative_route_test_cases.is_empty():
-		_fail_empty_suite("representative_routes")
-		return
-
-	var enemy_profile_test_suite: EnemyProfileRegistryTests = (
-		EnemyProfileRegistryTests.new()
-	)
-	var enemy_profile_test_cases: Array[HeadlessTestCaseScript] = (
-		enemy_profile_test_suite.cases()
-	)
-	if enemy_profile_test_cases.is_empty():
-		_fail_empty_suite("enemy_profiles")
-		return
-
-	var enemy_instance_test_suite: EnemyInstanceResolverTests = (
-		EnemyInstanceResolverTests.new()
-	)
-	var enemy_instance_test_cases: Array[HeadlessTestCaseScript] = (
-		enemy_instance_test_suite.cases()
-	)
-	if enemy_instance_test_cases.is_empty():
-		_fail_empty_suite("enemy_instances")
-		return
-
-	var enemy_world_test_suite: EnemyWorldResolverTests = EnemyWorldResolverTests.new()
-	var enemy_world_test_cases: Array[HeadlessTestCaseScript] = (
-		enemy_world_test_suite.cases()
-	)
-	if enemy_world_test_cases.is_empty():
-		_fail_empty_suite("enemy_world")
-		return
-
-	var permanent_growth_claim_test_suite: PermanentGrowthClaimKernelTests = (
-		PermanentGrowthClaimKernelTests.new()
-	)
-	var permanent_growth_claim_test_cases: Array[HeadlessTestCaseScript] = (
-		permanent_growth_claim_test_suite.cases()
-	)
-	if permanent_growth_claim_test_cases.is_empty():
-		_fail_empty_suite("permanent_growth_claim")
-		return
-
-	var contact_combat_test_suite: ContactCombatKernelTests = (
-		ContactCombatKernelTests.new()
-	)
-	var contact_combat_test_cases: Array[HeadlessTestCaseScript] = (
-		contact_combat_test_suite.cases()
-	)
-	if contact_combat_test_cases.is_empty():
-		_fail_empty_suite("contact_combat")
-		return
-
-	var contact_transaction_test_suite: ContactCombatTransactionTests = (
-		ContactCombatTransactionTests.new()
-	)
-	var contact_transaction_test_cases: Array[HeadlessTestCaseScript] = (
-		contact_transaction_test_suite.cases()
-	)
-	if contact_transaction_test_cases.is_empty():
-		_fail_empty_suite("contact_transaction")
-		return
-
-	var world_step_contact_test_suite: WorldStepContactKernelTests = (
-		WorldStepContactKernelTests.new()
-	)
-	var world_step_contact_test_cases: Array[HeadlessTestCaseScript] = (
-		world_step_contact_test_suite.cases()
-	)
-	if world_step_contact_test_cases.is_empty():
-		_fail_empty_suite("world_step_contact")
-		return
-
-	var portable_inventory_test_suite: PortableInventoryTests = (
-		PortableInventoryTests.new()
-	)
-	var portable_inventory_test_cases: Array[HeadlessTestCaseScript] = (
-		portable_inventory_test_suite.cases()
-	)
-	if portable_inventory_test_cases.is_empty():
-		_fail_empty_suite("portable_inventory")
-		return
-
-	var test_cases: Array[HeadlessTestCaseScript] = []
-	test_cases.append_array(grid_rule_kernel_test_cases)
-	test_cases.append_array(content_registry_test_cases)
-	test_cases.append_array(global_progression_test_cases)
-	test_cases.append_array(representative_route_test_cases)
-	test_cases.append_array(enemy_profile_test_cases)
-	test_cases.append_array(enemy_instance_test_cases)
-	test_cases.append_array(enemy_world_test_cases)
-	test_cases.append_array(permanent_growth_claim_test_cases)
-	test_cases.append_array(contact_combat_test_cases)
-	test_cases.append_array(contact_transaction_test_cases)
-	test_cases.append_array(world_step_contact_test_cases)
-	test_cases.append_array(portable_inventory_test_cases)
 	if test_cases.is_empty():
 		print("[TEST][FAIL] runner.discovery: No tests were registered.")
 		print("[TEST][SUMMARY] total=0 passed=0 failed=1 assertions=0")
@@ -183,11 +81,9 @@ func _initialize() -> void:
 	var names: Dictionary[String, bool] = {}
 	var passed := 0
 	var failed := 0
-	var executed := 0
 	var assertions := 0
 
 	for test_case: HeadlessTestCaseScript in test_cases:
-		executed += 1
 		var context: HeadlessTestContextScript = HeadlessTestContextScript.new()
 		if test_case.name.is_empty():
 			context.record_runner_failure("Test names cannot be empty.")
@@ -213,12 +109,6 @@ func _initialize() -> void:
 			for failure: String in failures:
 				print("[TEST][FAIL] %s: %s" % [test_case.name, failure])
 
-	if executed != test_cases.size():
-		failed += 1
-		print(
-			"[TEST][FAIL] runner.execution: Registered %d tests but executed %d."
-			% [test_cases.size(), executed]
-		)
 	if assertions == 0:
 		failed += 1
 		print("[TEST][FAIL] runner.assertions: The suite executed zero assertions.")
@@ -230,10 +120,76 @@ func _initialize() -> void:
 	quit(0 if failed == 0 else 1)
 
 
-func _fail_empty_suite(suite_name: String) -> void:
-	print(
-		"[TEST][FAIL] runner.discovery: Registered suite '%s' contains no tests."
-		% suite_name
-	)
+func _collect_registered_test_cases() -> Array[HeadlessTestCaseScript]:
+	var collected: Array[HeadlessTestCaseScript] = []
+	for suite_script: Script in REGISTERED_SUITES:
+		_collect_suite_cases(suite_script, collected)
+		if _runner_abort_triggered:
+			return []
+	return collected
+
+
+func _collect_suite_cases(
+	suite_script: Script,
+	collected: Array[HeadlessTestCaseScript],
+) -> void:
+	var suite_label := suite_script.resource_path
+	var suite_instance: Variant = _constructed_suite(suite_script)
+	if not suite_instance is RefCounted:
+		_fail_suite(
+			"runner.construction",
+			"Suite '%s' could not be constructed." % suite_label
+		)
+		return
+	var suite: RefCounted = suite_instance as RefCounted
+	var cases_result: Variant = _discovered_cases(suite)
+	if not cases_result is Array:
+		_fail_suite(
+			"runner.discovery",
+			"Suite '%s' did not return an array of test cases." % suite_label
+		)
+		return
+	var typed_cases: Array[HeadlessTestCaseScript] = []
+	for case_candidate: Variant in cases_result as Array:
+		if not is_instance_of(case_candidate, HeadlessTestCaseScript):
+			_fail_suite(
+				"runner.discovery",
+				"Suite '%s' returned an entry that is not a headless test case."
+				% suite_label
+			)
+			return
+		typed_cases.append(case_candidate)
+	if typed_cases.is_empty():
+		_fail_suite(
+			"runner.discovery",
+			"Registered suite '%s' contains no tests." % suite_label
+		)
+		return
+	_live_suite_instances.append(suite)
+	collected.append_array(typed_cases)
+
+
+# 经 Callable 间接构造套件：_init() 中的运行期脚本错误会中止被调帧，调用链
+# 继续执行而不是中止 _initialize 导致进程永不退出（Godot 4.7.2 已实证）。
+# 注意：此时 Script.new() 可能返回一个部分初始化的实例（而非 null），后续
+# cases()/空套件守卫与脚本层的 SCRIPT ERROR grep 共同保证 fail-closed。
+func _constructed_suite(suite_script: Script) -> Variant:
+	var constructor := func() -> Variant:
+		return suite_script.new()
+	return constructor.call()
+
+
+# 经 Callable 间接调用 cases()，理由同 _constructed_suite。已实证：带类型
+# 签名的函数（如 `-> Array`）中止时，Godot 以声明类型的默认值（空数组）返回
+# 而非 null——下方 is-Array 检查与空套件守卫共同保证 fail-closed。
+func _discovered_cases(suite_instance: RefCounted) -> Variant:
+	var discovery := func() -> Variant:
+		return suite_instance.call(&"cases")
+	return discovery.call()
+
+
+func _fail_suite(stage: String, detail: String) -> void:
+	print("[TEST][FAIL] %s: %s" % [stage, detail])
 	print("[TEST][SUMMARY] total=0 passed=0 failed=1 assertions=0")
 	quit(1)
+	_runner_abort_triggered = true
