@@ -33,8 +33,15 @@ const PermanentGrowthArithmeticScript := preload(
 	"res://src/rules/permanent_growth_arithmetic.gd"
 )
 const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 
-const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
+# 冻结内容合同期望计数的再导出：权威数值只在 content_contract_constants.gd
+# 定义一次，此处保留原常量名以维持调用点稳定。
+const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
+)
 
 # 投影记忆化：注册表投影是封印内容的纯函数，同一注册表实例在全进程内必然得到
 # 完全相同的投影（RegistryProjection 冻结后只读，可安全共享）。缓存以实例身份

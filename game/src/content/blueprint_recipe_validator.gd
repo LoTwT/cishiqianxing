@@ -23,8 +23,15 @@ const ContentValidationIssueScript := preload(
 const ContentValidationSupportScript := preload(
 	"res://src/content/content_validation_support.gd"
 )
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 
 const EXPECTED_DEFINITION_COUNT: int = 24
+# 以下四张期望表与 validate_blueprints 中的计数检查（分类 7/7/4/1/5、
+# 档位 16 基础/8 进阶、生命周期 16 可回收/8 消耗、按章解锁 4/4/4/2/3/3/2/2/0）
+# 是刻意独立的双重编码：逐条期望值与聚合计数各自声明，一处改动而另一处
+# 不动时测试失败。这是交叉校验强度而非冗余，不得改写为推导生成。
 const ADVANCED_ORDINALS: Array[int] = [6, 7, 13, 14, 18, 19, 23, 24]
 const EXPECTED_CATEGORIES: Array[int] = [
 	1, 1, 1, 1, 1, 1, 1,
@@ -186,7 +193,11 @@ static func validate_blueprints(
 			ContentValidationSupportScript.increment_int_count(tier_counts, blueprint.tier)
 		if _is_valid_lifecycle(blueprint.default_lifecycle):
 			ContentValidationSupportScript.increment_int_count(lifecycle_counts, blueprint.default_lifecycle)
-		if blueprint.unlock_chapter >= 1 and blueprint.unlock_chapter <= 9:
+		if (
+			blueprint.unlock_chapter >= 1
+			and blueprint.unlock_chapter
+			<= ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
+		):
 			ContentValidationSupportScript.increment_int_count(unlock_counts, blueprint.unlock_chapter)
 
 	ContentValidationSupportScript.add_duplicate_string_name_issues(
@@ -242,6 +253,8 @@ static func validate_blueprints(
 				"ordinal",
 				"Blueprint ordinal %d is missing." % ordinal,
 			)
+	# 以下分类计数检查（7/7/4/1/5）与文件头 EXPECTED_CATEGORIES 期望表
+	# 刻意独立编码：双重编码交叉校验 oracle，一处改动而另一处不动时测试失败。
 	_validate_count(
 		category_counts,
 		BlueprintDefinitionScript.Category.STRUCTURE,
@@ -282,6 +295,8 @@ static func validate_blueprints(
 		"category.attribute",
 		issues,
 	)
+	# 档位计数检查（16 基础/8 进阶）与 ADVANCED_ORDINALS 期望表刻意独立
+	# 编码：双重编码交叉校验 oracle，一处改动而另一处不动时测试失败。
 	_validate_count(
 		tier_counts,
 		BlueprintDefinitionScript.Tier.BASIC,
@@ -298,6 +313,8 @@ static func validate_blueprints(
 		"tier.advanced",
 		issues,
 	)
+	# 生命周期计数检查（16 可回收/8 消耗）与 EXPECTED_LIFECYCLES 期望表
+	# 刻意独立编码：双重编码交叉校验 oracle，一处改动而另一处不动时测试失败。
 	_validate_count(
 		lifecycle_counts,
 		BlueprintDefinitionScript.Lifecycle.RECOVERABLE,
@@ -314,6 +331,9 @@ static func validate_blueprints(
 		"default_lifecycle.consumable",
 		issues,
 	)
+	# 按章解锁计数（第 1-9 章各 4/4/4/2/3/3/2/2/0）与 EXPECTED_UNLOCK_CHAPTERS
+	# 期望表刻意独立编码：双重编码交叉校验 oracle，一处改动而另一处不动时
+	# 测试失败。
 	var expected_unlock_counts: Array[int] = [4, 4, 4, 2, 3, 3, 2, 2, 0]
 	for chapter_index: int in range(expected_unlock_counts.size()):
 		_validate_count(
@@ -569,7 +589,11 @@ static func _validate_blueprint_fields(
 				"tier",
 				"Blueprint ordinal %d has the wrong tier." % blueprint.ordinal,
 			)
-	if blueprint.unlock_chapter < 1 or blueprint.unlock_chapter > 9:
+	if (
+		blueprint.unlock_chapter < 1
+		or blueprint.unlock_chapter
+		> ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER
+	):
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.BLUEPRINT_UNLOCK_CHAPTER_INVALID,

@@ -56,16 +56,33 @@ const ContentValidationIssueScript := preload(
 const ContentValidationSupportScript := preload(
 	"res://src/content/content_validation_support.gd"
 )
+const ContentContractConstantsScript := preload(
+	"res://src/content/content_contract_constants.gd"
+)
 const PermanentGrowthArithmeticScript := preload(
 	"res://src/rules/permanent_growth_arithmetic.gd"
 )
 
-const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = 9
-const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = 4
-const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = 30
-const EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT: int = 5
-const EXPECTED_ENEMY_FAMILY_COUNT: int = 12
-const EXPECTED_ENEMY_PROFILE_COUNT: int = 24
+# 冻结内容合同期望计数的再导出：权威数值只在 content_contract_constants.gd
+# 定义一次，此处保留原常量名以维持调用点稳定。
+const EXPECTED_MAINLINE_PROGRESSION_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_MAINLINE_PROGRESSION_COUNT
+)
+const EXPECTED_OPTIONAL_PROGRESSION_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_OPTIONAL_PROGRESSION_COUNT
+)
+const EXPECTED_PERMANENT_GROWTH_REWARD_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_PERMANENT_GROWTH_REWARD_COUNT
+)
+const EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_REPRESENTATIVE_ROUTE_CONTRACT_COUNT
+)
+const EXPECTED_ENEMY_FAMILY_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_ENEMY_FAMILY_COUNT
+)
+const EXPECTED_ENEMY_PROFILE_COUNT: int = (
+	ContentContractConstantsScript.EXPECTED_ENEMY_PROFILE_COUNT
+)
 
 var _schema_version: int
 var _content_version: int
@@ -670,7 +687,7 @@ func mainline_stats_after_chapter(
 			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
 			requested_chapter_id,
 		)
-	if chapter < 1 or chapter > 9:
+	if chapter < 1 or chapter > ContentContractConstantsScript.MAXIMUM_MAINLINE_CHAPTER:
 		return GlobalProgressionQueryResultScript.failed(
 			GlobalProgressionQueryResultScript.Kind.PLAYER_STATS,
 			ContentValidationIssueScript.new(
