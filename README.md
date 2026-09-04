@@ -36,6 +36,8 @@ GitHub Actions 的 `Baseline / verify` 检查会在 pull request 与 `main` 更�
 bash game/tools/run_headless_tests.sh
 ```
 
+- 测试入口自带三道环境守卫：本地 Godot 必须是 `4.7.2.stable.official` 前缀的 Standard 构建；每次运行先执行 `--import` 重建导入缓存，新 clone 或拉取后未开过编辑器时不会因类缓存过期报出与源码无关的编译错误；`game/tests` 下每个 `*_tests.gd` 套件都必须在 `run_tests.gd` 显式注册，未注册或注册了不存在的文件都会在进入 Godot 前失败并列出差异。
+- 错误检测的可靠闸门在 bash 层脚本内：已实证 `--check-only` 遇脚本解析错误时退出码仍为 0，且测试体内部的运行期错误可能被计为通过，二者都由脚本对输出流的错误扫描兜底。直接执行 `godot --script res://tests/run_tests.gd` 会绕过本脚本的全部保护，不要这样做。
 - `game/src/rules/` 保存不依赖场景树、渲染、物理或输入设备的权威规则类型，包括整数格规则、永久成长的纯运行时领取事务、敌人实例档案解析、敌人世界编目与格位生命周期、便携成品方块背包与临时属性选择候选、确定性接触战候选内核、复验全部相关前态后发布三份新状态的接触战原子提交子事务，以及组合当前空间格网／敌人投影并推导本步接触锁定的非提交内核。
 - `game/src/content/` 保存强类型 `Resource` 内容定义，以及不依赖场景树的 `RefCounted` 注册、校验和快照查询类型；蓝图、配方、全局永久成长、代表路线合同与敌人档案共用同一注册职责和内容封印。
 - `game/content/` 保存正式 `.tres` 内容；`res://content/content_manifest.tres` 是唯一规范清单入口，并显式引用永久成长、五阶段代表路线合同与敌人档案目录，内容发现不扫描目录。
