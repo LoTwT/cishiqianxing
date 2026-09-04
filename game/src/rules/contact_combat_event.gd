@@ -65,6 +65,7 @@ func is_equal_to(other: ContactCombatEvent) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._kind == _kind
 		and other._resolution != null
 		and _resolution != null

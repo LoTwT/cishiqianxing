@@ -6,7 +6,11 @@ var _actor_id_reads: int = 0
 
 
 func _init(actor_id: StringName) -> void:
-	super(Kind.MOVE, actor_id, Vector3i(-1, 0, 0))
+	super()
+	_kind = Kind.MOVE
+	_actor_id = actor_id
+	_direction = Vector3i(-1, 0, 0)
+	_initialized = true
 
 
 func direction() -> Vector3i:

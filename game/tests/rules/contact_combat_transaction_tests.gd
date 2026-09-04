@@ -118,6 +118,10 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_isolates_outputs_and_fails_closed,
 		),
 		HeadlessTestCaseScript.new(
+			"contact_transaction.invalidates_committed_world_not_applying_resolution",
+			_invalidates_committed_world_not_applying_resolution,
+		),
+		HeadlessTestCaseScript.new(
 			"contact_transaction.replays_deterministically",
 			_replays_deterministically,
 		),
@@ -949,6 +953,48 @@ func _isolates_outputs_and_fails_closed(
 		invalid_nested_rejection.rejection_reason(),
 		ContactCombatTransactionResultScript.RejectionReason.INVALID_RESULT,
 		"Combat rejection requires a nested combat reason.",
+	)
+
+
+func _invalidates_committed_world_not_applying_resolution(
+	context: HeadlessTestContextScript,
+) -> void:
+	var registry: ContentRegistryScript = CanonicalRegistryFixtureScript.canonical_registry(context, "Contact transaction")
+	var player_state: PlayerProgressionStateScript = _player_state(100)
+	var world_state: EnemyWorldStateScript = _simple_world()
+	var inventory_state: PortableInventoryStateScript = _inventory([], 1)
+	var prepared: ContactCombatTransactionResultScript = (
+		ContactCombatTransactionKernelScript.prepare(
+			player_state,
+			world_state,
+			inventory_state,
+			_simple_command(),
+			registry,
+		)
+	)
+	_expect_prepared(context, prepared, "Unapplied world fixture")
+	if not prepared.is_prepared():
+		return
+	var committed: ContactCombatTransactionResultScript = (
+		ContactCombatTransactionKernelScript.commit(
+			player_state,
+			world_state,
+			inventory_state,
+			prepared,
+			registry,
+		)
+	)
+	_expect_committed(context, committed, "Unapplied world fixture")
+	if not committed.was_committed():
+		return
+	# 用前态世界同时替换业务字段与完整性镜像：结构合法、world_step 与前态一致，
+	# 但目标记录的终值耐久、护盾、生命周期与地址变更均未应用。完整性镜像自洽，
+	# 只有已提交世界与候选决议的交叉核对能识破这种「决议未应用」的世界。
+	committed.set("_committed_enemy_world_state", world_state)
+	committed.set("_integrity_committed_enemy_world_state", world_state)
+	context.expect_true(
+		not committed.was_committed(),
+		"A structurally valid world that does not apply the resolution must be rejected.",
 	)
 
 

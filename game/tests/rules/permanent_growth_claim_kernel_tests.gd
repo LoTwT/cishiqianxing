@@ -719,10 +719,10 @@ func _rejects_invalid_restored_ledger_matrix(
 		excessive_health,
 		"Restored current health above derived maximum",
 	)
-	var invalid_kind_command := PermanentGrowthClaimCommandScript.new(
-		999,
-		&"progression.reward.main.chapter.01.attack",
-	)
+	var invalid_kind_command := PermanentGrowthClaimCommandScript.new()
+	invalid_kind_command._kind = 999
+	invalid_kind_command._reward_id = &"progression.reward.main.chapter.01.attack"
+	invalid_kind_command._initialized = true
 	_expect_rejected(
 		context,
 		PermanentGrowthClaimKernelScript.execute(
@@ -814,7 +814,10 @@ func _fails_closed_for_registry_and_versions(
 		not tampered_registry.is_initialized(),
 		"A post-build reward mutation must invalidate the registry seal.",
 	)
-	var invalid_kind_command := PermanentGrowthClaimCommandScript.new(999, reward_id)
+	var invalid_kind_command := PermanentGrowthClaimCommandScript.new()
+	invalid_kind_command._kind = 999
+	invalid_kind_command._reward_id = reward_id
+	invalid_kind_command._initialized = true
 	var healthy_state: PlayerProgressionStateScript = _state(100)
 	_expect_rejected(
 		context,
@@ -936,10 +939,10 @@ func _rejects_null_wrong_and_derived_inputs(
 			state,
 			"Null or wrong command",
 		)
-	var invalid_kind_command := PermanentGrowthClaimCommandScript.new(
-		999,
-		&"progression.reward.main.chapter.01.attack",
-	)
+	var invalid_kind_command := PermanentGrowthClaimCommandScript.new()
+	invalid_kind_command._kind = 999
+	invalid_kind_command._reward_id = &"progression.reward.main.chapter.01.attack"
+	invalid_kind_command._initialized = true
 	_expect_rejected(
 		context,
 		PermanentGrowthClaimKernelScript.execute(state, invalid_kind_command, registry),
@@ -952,10 +955,10 @@ func _rejects_null_wrong_and_derived_inputs(
 		&"",
 		&"progression.reward.unknown",
 	]:
-		var invalid_kind_and_id_command := PermanentGrowthClaimCommandScript.new(
-			999,
-			invalid_reward_id,
-		)
+		var invalid_kind_and_id_command := PermanentGrowthClaimCommandScript.new()
+		invalid_kind_and_id_command._kind = 999
+		invalid_kind_and_id_command._reward_id = invalid_reward_id
+		invalid_kind_and_id_command._initialized = true
 		_expect_rejected(
 			context,
 			PermanentGrowthClaimKernelScript.execute(

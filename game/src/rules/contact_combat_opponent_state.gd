@@ -90,6 +90,7 @@ func is_equal_to(other: ContactCombatOpponentState) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and other.opponent_instance_id() == _opponent_instance_id
 		and other.maximum_durability() == _maximum_durability

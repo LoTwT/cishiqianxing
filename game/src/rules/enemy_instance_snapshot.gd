@@ -224,6 +224,7 @@ func is_equal_to(other: EnemyInstanceSnapshot) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and _instance_state != null
 		and other._instance_state != null

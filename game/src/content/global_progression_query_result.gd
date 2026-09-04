@@ -40,23 +40,16 @@ func _init(
 	permanent_growth_reward: PermanentGrowthRewardDefinitionScript,
 	issue: ContentValidationIssueScript,
 ) -> void:
+	# 审计 INCR-10：字段私有且读取边界统一做单次快照；传入资源由封印注册表
+	# 保证不可变（注册表封印时已快照至私有只读存储；章节/全通属性为注册表
+	# 每次查询新建的局部快照），构造时直接持有引用，不再做构造期防御拷贝，
+	# 避免与读取边界构成双重快照。
 	_kind = kind
-	if player_stats != null:
-		_player_stats = PlayerStatProfileScript.snapshot(player_stats)
-	if mainline_progression != null:
-		_mainline_progression = MainlineProgressionDefinitionScript.snapshot(
-			mainline_progression
-		)
-	if optional_progression != null:
-		_optional_progression = OptionalProgressionDefinitionScript.snapshot(
-			optional_progression
-		)
-	if permanent_growth_reward != null:
-		_permanent_growth_reward = PermanentGrowthRewardDefinitionScript.snapshot(
-			permanent_growth_reward
-		)
-	if issue != null:
-		_issue = issue.snapshot()
+	_player_stats = player_stats
+	_mainline_progression = mainline_progression
+	_optional_progression = optional_progression
+	_permanent_growth_reward = permanent_growth_reward
+	_issue = issue
 
 
 static func found_player_stats(

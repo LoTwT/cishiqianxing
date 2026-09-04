@@ -28,13 +28,13 @@ func _init(
 	recipe: RecipeDefinitionScript,
 	issue: ContentValidationIssueScript,
 ) -> void:
+	# 审计 INCR-10：字段私有且读取边界统一做单次快照；传入资源由封印注册表
+	# 保证不可变（注册表封印时已快照至私有只读存储），构造时直接持有引用，
+	# 不再做构造期防御拷贝，避免与读取边界构成双重快照。
 	_kind = kind
-	if blueprint != null:
-		_blueprint = BlueprintDefinitionScript.snapshot(blueprint)
-	if recipe != null:
-		_recipe = RecipeDefinitionScript.snapshot(recipe)
-	if issue != null:
-		_issue = issue.snapshot()
+	_blueprint = blueprint
+	_recipe = recipe
+	_issue = issue
 
 
 static func found_blueprint(

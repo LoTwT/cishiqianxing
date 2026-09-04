@@ -94,6 +94,7 @@ func is_equal_to(other: ContactCombatPlayerStateCandidate) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and other.profile_id() == _profile_id
 		and other.content_schema_version() == _content_schema_version

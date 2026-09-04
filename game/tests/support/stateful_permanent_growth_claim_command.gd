@@ -6,7 +6,10 @@ var _reward_id_reads: int = 0
 
 
 func _init() -> void:
-	super(Kind.CLAIM, &"progression.reward.main.chapter.01.attack")
+	super()
+	_kind = Kind.CLAIM
+	_reward_id = &"progression.reward.main.chapter.01.attack"
+	_initialized = true
 
 
 func copy() -> PermanentGrowthClaimCommand:

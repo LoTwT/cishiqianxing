@@ -124,6 +124,7 @@ func claimed_reward_ids() -> Array[StringName]:
 func is_equal_to(other: PlayerProgressionSnapshot) -> bool:
 	return (
 		other != null
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and other.profile_id() == _profile_id
 		and other.content_schema_version() == _content_schema_version

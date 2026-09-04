@@ -28,13 +28,13 @@ func _init(
 	profile: EnemyProfileDefinitionScript,
 	issue: ContentValidationIssueScript,
 ) -> void:
+	# 审计 INCR-10：字段私有且读取边界统一做单次快照；传入资源由封印注册表
+	# 保证不可变（注册表封印时已快照至私有只读存储），构造时直接持有引用，
+	# 不再做构造期防御拷贝，避免与读取边界构成双重快照。
 	_kind = kind
-	if family != null:
-		_family = EnemyFamilyDefinitionScript.snapshot(family)
-	if profile != null:
-		_profile = EnemyProfileDefinitionScript.snapshot(profile)
-	if issue != null:
-		_issue = issue.snapshot()
+	_family = family
+	_profile = profile
+	_issue = issue
 
 
 static func found_family(

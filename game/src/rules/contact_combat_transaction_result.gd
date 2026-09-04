@@ -14,6 +14,10 @@ const ContactCombatTransactionEventScript := preload(
 	"res://src/rules/contact_combat_transaction_event.gd"
 )
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
+const EnemyWorldAddressScript := preload(
+	"res://src/rules/enemy_world_address.gd"
+)
+const EnemyWorldRecordScript := preload("res://src/rules/enemy_world_record.gd")
 const EnemyWorldStateScript := preload(
 	"res://src/rules/enemy_world_state.gd"
 )
@@ -360,6 +364,36 @@ static func _event_matches_candidate_and_states(
 	var previous_inventory = candidate_value.previous_inventory_state()
 	var previous_player = candidate_value.previous_player_state()
 	var candidate_resolution = candidate_value.resolution()
+	# 已提交敌人世界与候选决议的交叉核对：提交内核会把决议的终值耐久、护盾、
+	# 生命周期与地址变更应用到目标记录上；这里独立复验同一合同，防止一个
+	# 结构合法但「决议未应用」的世界通过结果自校验。读取方式与
+	# EnemyWorldReadSnapshot 相同（直读封印状态的内部集合，只读不复制）。
+	var committed_target_record: EnemyWorldRecordScript = null
+	for record: EnemyWorldRecordScript in committed_enemy_world_state._records:
+		if record.instance_id() == command.target_instance_id():
+			committed_target_record = record
+			break
+	var previous_target_record: EnemyWorldRecordScript = null
+	for record: EnemyWorldRecordScript in previous_world._records:
+		if record.instance_id() == command.target_instance_id():
+			previous_target_record = record
+			break
+	if committed_target_record == null or previous_target_record == null:
+		return false
+	var expected_target_lifecycle: int = EnemyWorldRecordScript.Lifecycle.ACTIVE
+	if candidate_resolution.next_opponent_durability() == 0:
+		expected_target_lifecycle = EnemyWorldRecordScript.Lifecycle.RESOLVED
+	var committed_target_address: EnemyWorldAddressScript = null
+	if (
+		committed_enemy_world_state._addresses_by_instance_id.has(
+			command.target_instance_id()
+		)
+	):
+		committed_target_address = (
+			committed_enemy_world_state._addresses_by_instance_id[
+				command.target_instance_id()
+			]
+		)
 	var expected_consumed_stack_id: StringName = &""
 	if candidate_resolution.temporary_effect_should_be_consumed():
 		expected_consumed_stack_id = (
@@ -384,6 +418,24 @@ static func _event_matches_candidate_and_states(
 		and committed_player_state.current_health()
 		== candidate_resolution.next_player_health()
 		and committed_enemy_world_state.world_step() == previous_world.world_step()
+		and committed_target_record.instance_state().current_durability()
+		== candidate_resolution.next_opponent_durability()
+		and committed_target_record.instance_state().shield_intact()
+		== candidate_resolution.opponent_shield_intact_after()
+		and committed_target_record.instance_state().state_kind()
+		== previous_target_record.instance_state().state_kind()
+		and committed_target_record.lifecycle() == expected_target_lifecycle
+		and (
+			candidate_resolution.next_opponent_durability() != 0
+			or committed_target_address == null
+		)
+		and (
+			candidate_resolution.next_opponent_durability() == 0
+			or (
+				committed_target_address != null
+				and committed_target_address.is_equal_to(command.contact_address())
+			)
+		)
 	)
 
 

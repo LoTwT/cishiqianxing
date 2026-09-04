@@ -12,12 +12,16 @@ func is_initialized() -> bool:
 
 func schema_version() -> int:
 	_schema_reads += 1
-	return 3
+	# 该值不会被读取——规则层用 get_script() 精确身份检查先行拒绝替身，
+	# 此值仅为避免误导维护者而与现行版本保持一致。
+	return 5
 
 
 func content_version() -> int:
 	_content_reads += 1
-	return 3
+	# 该值不会被读取——规则层用 get_script() 精确身份检查先行拒绝替身，
+	# 此值仅为避免误导维护者而与现行版本保持一致。
+	return 5
 
 
 func read_count() -> int:

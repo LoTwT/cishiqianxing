@@ -307,6 +307,7 @@ func is_equal_to(other: ContactCombatResolution) -> bool:
 	return (
 		other != null
 		and is_instance_valid(other)
+		and other.get_script() == get_script()
 		and other._player_profile_id == _player_profile_id
 		and other._content_schema_version == _content_schema_version
 		and other._content_version == _content_version

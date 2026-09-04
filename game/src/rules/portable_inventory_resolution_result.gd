@@ -238,10 +238,14 @@ func matches_exact_prestate(expected: RefCounted) -> bool:
 		or not is_instance_valid(expected)
 		or expected.get_script() != get_script()
 		or not succeeded()
-		or not bool(expected.call(&"succeeded"))
 	):
 		return false
-	var expected_snapshot_candidate: Variant = expected.call(&"read_snapshot")
+	var expected_result: PortableInventoryResolutionResult = (
+		expected as PortableInventoryResolutionResult
+	)
+	if not expected_result.succeeded():
+		return false
+	var expected_snapshot_candidate: Variant = expected_result.read_snapshot()
 	return (
 		expected_snapshot_candidate is RefCounted
 		and (

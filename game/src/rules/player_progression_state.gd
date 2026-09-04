@@ -111,6 +111,7 @@ func has_claimed_reward(reward_id: StringName) -> bool:
 func is_equal_to(other: PlayerProgressionState) -> bool:
 	return (
 		other != null
+		and other.get_script() == get_script()
 		and other._initialized == _initialized
 		and other.profile_id() == _profile_id
 		and other.content_schema_version() == _content_schema_version
