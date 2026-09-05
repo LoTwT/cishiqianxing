@@ -111,6 +111,21 @@ var _enemy_families_by_id: Dictionary[StringName, EnemyFamilyDefinitionScript] =
 var _enemy_profile_ids: Array[StringName] = []
 var _enemy_profiles: Array[EnemyProfileDefinitionScript] = []
 var _enemy_profiles_by_id: Dictionary[StringName, EnemyProfileDefinitionScript] = {}
+var _verified_read_scope: WeakRef
+
+
+# 仅供同步规则事务使用。作用域独占深拷贝；副本只弱引用作用域，异常退出时
+# 也不会因引用环把校验复用永久保留。不得跨 await、外部回调或结果发布边界。
+class _VerifiedReadScope extends RefCounted:
+	var _registry: ContentRegistry
+
+	func _close() -> bool:
+		var captured_registry := _registry
+		_registry = null
+		if captured_registry == null:
+			return false
+		captured_registry._verified_read_scope = null
+		return captured_registry._has_valid_contract()
 
 
 func _init() -> void:
@@ -296,7 +311,35 @@ func initialize_validated(
 
 
 func is_initialized() -> bool:
+	if _verified_read_scope != null:
+		var scope := _verified_read_scope.get_ref() as _VerifiedReadScope
+		if scope != null and scope._registry == self:
+			return true
 	return _has_valid_contract()
+
+
+# 不在来源实例开启快速路径。复用公开快照和唯一封印构造协议，确保所有
+# Resource、嵌套集合与索引属于副本；副本本身验封后才交给局部作用域持有。
+func _begin_verified_read_scope() -> _VerifiedReadScope:
+	if get_script() != ContentRegistry or not _has_valid_contract():
+		return null
+	var copied_registry := ContentRegistry.new()
+	if not copied_registry.initialize_validated(
+		_schema_version,
+		_content_version,
+		blueprints(),
+		recipes(),
+		global_progression_catalog(),
+		representative_route_contract_catalog(),
+		enemy_profile_catalog(),
+	):
+		return null
+	if not copied_registry._has_valid_contract():
+		return null
+	var scope := _VerifiedReadScope.new()
+	scope._registry = copied_registry
+	copied_registry._verified_read_scope = weakref(scope)
+	return scope
 
 
 # 规则层各内核原先各自复制的注册表身份检查（精确脚本 + 已初始化状态），

@@ -15,7 +15,7 @@
 #    与续行中的错误标记，宁误报不漏报（fail-closed）；与
 #    .github/workflows/baseline.yml 的 import 检查保持同一标准。
 #
-# 直接执行 `godot --script res://tests/run_tests.gd` 会绕过本脚本的全部保护。
+# 直接执行 `godot --script res://tests/run_tests.gd` 会绕过本脚本的环境校验、错误扫描和汇总校验。
 
 set -euo pipefail
 
@@ -38,42 +38,8 @@ if (( godot_version_probe_exit != 0 )) || [[ "${godot_version}" != "${required_g
   exit 1
 fi
 
-# 注册完备性守卫：game/tests 下每个 *_tests.gd 套件文件都必须在 run_tests.gd
-# 中显式注册；support/、oracle 与 fixtures 不以 *_tests.gd 命名，天然不在比对
-# 范围内。忘注册的套件会被静默跳过，此守卫把该风险变成显式失败。
-present_suite_paths="$(
-  find "${game_directory}/tests" -type f -name '*_tests.gd' ! -name 'run_tests.gd' \
-    | sed "s|^${game_directory}/|res://|" \
-    | sort --unique
-)"
-registered_suite_paths="$(
-  grep --only-matching --extended-regexp 'res://tests/[[:alnum:]_/]+_tests\.gd' \
-    "${game_directory}/tests/run_tests.gd" \
-    | sort --unique \
-  || true
-)"
-unregistered_suite_paths="$(
-  comm -23 \
-    <(printf '%s\n' "${present_suite_paths}") \
-    <(printf '%s\n' "${registered_suite_paths}")
-)"
-unavailable_suite_paths="$(
-  comm -13 \
-    <(printf '%s\n' "${present_suite_paths}") \
-    <(printf '%s\n' "${registered_suite_paths}")
-)"
-if [[ -n "${unregistered_suite_paths}" || -n "${unavailable_suite_paths}" ]]; then
-  echo '[TEST][FAIL] runner.registration: Registered suites do not match the *_tests.gd files under game/tests.' >&2
-  if [[ -n "${unregistered_suite_paths}" ]]; then
-    echo '  Not registered in run_tests.gd:' >&2
-    printf '%s\n' "${unregistered_suite_paths}" | sed 's/^/    /' >&2
-  fi
-  if [[ -n "${unavailable_suite_paths}" ]]; then
-    echo '  Registered but no such file:' >&2
-    printf '%s\n' "${unavailable_suite_paths}" | sed 's/^/    /' >&2
-  fi
-  exit 1
-fi
+# 在隔离微型项目中回归实际运行器的注册守卫。
+bash "${game_directory}/tests/runner/check_registration_guard.sh"
 
 import_log="$(mktemp "${TMPDIR:-/tmp}/cishiqianxing-import.XXXXXX")"
 static_log="$(mktemp "${TMPDIR:-/tmp}/cishiqianxing-static-tests.XXXXXX")"
