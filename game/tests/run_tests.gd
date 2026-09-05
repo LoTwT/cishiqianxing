@@ -69,6 +69,8 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	if not _validate_suite_registration():
+		return
 	var test_cases := _collect_registered_test_cases()
 	if _runner_abort_triggered:
 		return
@@ -118,6 +120,55 @@ func _initialize() -> void:
 		% [test_cases.size(), passed, failed, assertions]
 	)
 	quit(0 if failed == 0 else 1)
+
+
+# 目录遍历只核对元数据；实际构造与执行仍严格使用 REGISTERED_SUITES。
+# preload、注释和字符串中提到套件，都不等于把套件加入执行清单。
+func _validate_suite_registration() -> bool:
+	var present_paths: Array[String] = []
+	_collect_present_suite_paths("res://tests", present_paths)
+	if _runner_abort_triggered:
+		return false
+	var registered_paths: Array[String] = []
+	for suite_script: Script in REGISTERED_SUITES:
+		if suite_script == null or registered_paths.has(suite_script.resource_path):
+			_fail_suite("runner.registration", "Null or duplicate suite in REGISTERED_SUITES.")
+			return false
+		registered_paths.append(suite_script.resource_path)
+	present_paths.sort()
+	registered_paths.sort()
+	if present_paths != registered_paths:
+		_fail_suite(
+			"runner.registration",
+			"Suite files %s do not match REGISTERED_SUITES %s."
+			% [str(present_paths), str(registered_paths)],
+		)
+		return false
+	return true
+
+
+func _collect_present_suite_paths(directory_path: String, paths: Array[String]) -> void:
+	var directory := DirAccess.open(directory_path)
+	if directory == null:
+		_fail_suite("runner.registration", "Cannot open suite directory: %s" % directory_path)
+		return
+	directory.include_hidden = true
+	if directory.list_dir_begin() != OK:
+		_fail_suite("runner.registration", "Cannot list suite directory: %s" % directory_path)
+		return
+	var entry := directory.get_next()
+	while not entry.is_empty():
+		var entry_path := directory_path.path_join(entry)
+		if directory.is_link(entry):
+			_fail_suite("runner.registration", "Suite tree contains a symbolic link: %s" % entry_path)
+		elif directory.current_is_dir():
+			_collect_present_suite_paths(entry_path, paths)
+		elif entry.ends_with("_tests.gd") and entry_path != "res://tests/run_tests.gd":
+			paths.append(entry_path)
+		if _runner_abort_triggered:
+			break
+		entry = directory.get_next()
+	directory.list_dir_end()
 
 
 func _collect_registered_test_cases() -> Array[HeadlessTestCaseScript]:

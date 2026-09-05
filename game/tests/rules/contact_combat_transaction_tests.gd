@@ -78,6 +78,10 @@ const EFFECT_STACK_ID: StringName = &"stack.effect.attack"
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
 		HeadlessTestCaseScript.new(
+			"contact_transaction.rechecks_content_between_operations",
+			_rechecks_content_between_operations,
+		),
+		HeadlessTestCaseScript.new(
 			"contact_transaction.prepares_without_publishing_authoritative_state",
 			_prepares_without_publishing_authoritative_state,
 		),
@@ -126,6 +130,55 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_replays_deterministically,
 		),
 	]
+
+
+func _rechecks_content_between_operations(context: HeadlessTestContextScript) -> void:
+	var registry := CanonicalRegistryFixtureScript.fresh_canonical_registry(
+		context, "Contact content drift",
+	)
+	var player_state := _player_state(100)
+	var world_state := _simple_world()
+	var inventory_state := _inventory([], 3)
+	var prepared := ContactCombatTransactionKernelScript.prepare(
+		player_state, world_state, inventory_state, _simple_command(), registry,
+	)
+	_expect_prepared(context, prepared, "Before content drift")
+	if not prepared.is_prepared():
+		return
+	var committed := ContactCombatTransactionKernelScript.commit(
+		player_state, world_state, inventory_state, prepared, registry,
+	)
+	context.expect_true(committed.was_committed(), "Sealed content commits normally.")
+	context.expect_true(
+		registry._verified_read_scope == null,
+		"Neither operation leaves a fast path on its input Registry.",
+	)
+	registry._enemy_profiles[0].attack += 1
+	context.expect_true(not registry.is_initialized(), "Ordinary queries still detect content drift.")
+	_expect_rejected(
+		context,
+		ContactCombatTransactionKernelScript.prepare(
+			player_state, world_state, inventory_state, _simple_command(), registry,
+		),
+		ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY,
+		"Prepare after content drift",
+	)
+	_expect_rejected(
+		context,
+		ContactCombatTransactionKernelScript.commit(
+			player_state, world_state, inventory_state, prepared, registry,
+		),
+		ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY,
+		"Commit after content drift",
+	)
+	_expect_rejected(
+		context,
+		ContactCombatTransactionKernelScript.commit(
+			player_state, world_state, inventory_state, RefCounted.new(), registry,
+		),
+		ContactCombatTransactionResultScript.RejectionReason.INVALID_PREPARED_RESULT,
+		"Invalid prepared result still precedes Registry rejection",
+	)
 
 
 func _prepares_without_publishing_authoritative_state(

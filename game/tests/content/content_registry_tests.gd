@@ -43,6 +43,14 @@ const HeadlessTestContextScript := preload("res://tests/support/headless_test_co
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
 		HeadlessTestCaseScript.new(
+			"content_registry.isolates_verified_read_scopes",
+			_isolates_verified_read_scopes,
+		),
+		HeadlessTestCaseScript.new(
+			"content_registry.expires_verified_read_scopes",
+			_expires_verified_read_scopes,
+		),
+		HeadlessTestCaseScript.new(
 			"content_registry.builds_canonical_manifest",
 			_builds_canonical_manifest,
 		),
@@ -115,6 +123,95 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_revalidates_canonical_data_deterministically,
 		),
 	]
+
+
+func _isolates_verified_read_scopes(context: HeadlessTestContextScript) -> void:
+	var registry := ContentRegistryBuilderScript.build_canonical().registry()
+	var scope := registry._begin_verified_read_scope()
+	context.expect_true(scope != null, "Canonical content opens a verified read scope.")
+	if scope == null:
+		return
+	var captured := scope._registry
+	context.expect_true(
+		captured != registry and captured.get_script() == ContentRegistryScript,
+		"The scope owns a distinct exact-script Registry.",
+	)
+	context.expect_true(
+		registry._verified_read_scope == null,
+		"The source Registry never receives a validation bypass.",
+	)
+	var nested_scope := captured._begin_verified_read_scope()
+	context.expect_true(nested_scope != null, "Nested reads capture their own sealed content.")
+	if nested_scope == null:
+		scope._close()
+		return
+	context.expect_true(
+		nested_scope._registry != captured,
+		"Nested scopes do not share an active Registry.",
+	)
+	var queried_catalog := captured.enemy_profile_catalog()
+	queried_catalog.profiles[0].attack += 1
+	queried_catalog.profiles[0].combat_trait_ids.append(&"test.query.drift")
+	context.expect_true(
+		captured._has_valid_contract(),
+		"Queries during a scope still return independent deep snapshots.",
+	)
+	registry._initial_player_stats.attack += 1
+	registry._enemy_profiles[0].combat_trait_ids.append(&"test.source.drift")
+	registry._representative_route_contracts[0].available_blueprint_reference_ids.clear()
+	context.expect_true(
+		not registry.is_initialized(),
+		"Source drift is rejected immediately while a scope is active.",
+	)
+	context.expect_true(
+		captured._has_valid_contract() and nested_scope._registry._has_valid_contract(),
+		"Source Resources and nested arrays cannot alter either independent capture.",
+	)
+	context.expect_true(scope._close(), "An unchanged capture passes its closing seal.")
+	context.expect_true(
+		nested_scope._registry.is_initialized(),
+		"Closing the parent scope does not close an independent nested scope.",
+	)
+	context.expect_true(nested_scope._close(), "The nested scope closes independently.")
+	context.expect_true(
+		registry._begin_verified_read_scope() == null,
+		"A drifted source cannot open another verified read scope.",
+	)
+
+
+func _expires_verified_read_scopes(context: HeadlessTestContextScript) -> void:
+	var registry := ContentRegistryBuilderScript.build_canonical().registry()
+	var scope := registry._begin_verified_read_scope()
+	context.expect_true(scope != null, "The expiry fixture must open a scope.")
+	if scope == null:
+		return
+	var retained_capture := scope._registry
+	context.expect_true(scope._close(), "Closing a canonical scope succeeds.")
+	retained_capture._enemy_profiles[0].attack += 1
+	context.expect_true(
+		not retained_capture.is_initialized(),
+		"A retained capture returns to full sealing after explicit close.",
+	)
+	context.expect_true(not scope._close(), "A closed scope cannot be closed successfully again.")
+	scope = registry._begin_verified_read_scope()
+	var abandoned_capture := scope._registry
+	scope = null
+	abandoned_capture._enemy_profiles[0].attack += 1
+	context.expect_true(
+		not abandoned_capture.is_initialized(),
+		"Dropping the last scope reference also expires validation reuse.",
+	)
+	scope = registry._begin_verified_read_scope()
+	var drifted_capture := scope._registry
+	drifted_capture._enemy_profiles[0].attack += 1
+	context.expect_true(
+		not scope._close() and not drifted_capture.is_initialized(),
+		"Closing rechecks captured content and rejects internal drift before publication.",
+	)
+	context.expect_true(
+		registry.is_initialized() and registry._verified_read_scope == null,
+		"Capture drift and scope expiry leave the source sealed and unscoped.",
+	)
 
 
 func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:

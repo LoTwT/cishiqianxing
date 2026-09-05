@@ -72,7 +72,80 @@ const PortableInventoryStateScript := preload(
 	"res://src/rules/portable_inventory_state.gd"
 )
 
+# 包装层在所有结果（含拒绝与阻断）发布前撤销局部校验复用，并复验来源。
+# 私有核心保持同步，不保存注册表、不执行外部回调。
 static func prepare(
+	player_state_candidate: RefCounted,
+	enemy_world_state_candidate: RefCounted,
+	inventory_state_candidate: RefCounted,
+	command_candidate: RefCounted,
+	registry: RefCounted,
+) -> ContactCombatTransactionResultScript:
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	var scope := (registry as ContentRegistryScript)._begin_verified_read_scope()
+	if scope == null:
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	var result := _prepare_with_verified_registry(
+		player_state_candidate,
+		enemy_world_state_candidate,
+		inventory_state_candidate,
+		command_candidate,
+		scope._registry,
+	)
+	var captured_content_is_valid := scope._close()
+	if not captured_content_is_valid or not ContentRegistryScript.is_exact_initialized_instance(registry):
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	return result
+
+
+static func commit(
+	current_player_state_candidate: RefCounted,
+	current_enemy_world_state_candidate: RefCounted,
+	current_inventory_state_candidate: RefCounted,
+	prepared_result_candidate: RefCounted,
+	registry: RefCounted,
+) -> ContactCombatTransactionResultScript:
+	if (
+		prepared_result_candidate == null
+		or not is_instance_valid(prepared_result_candidate)
+		or prepared_result_candidate.get_script() != ContactCombatTransactionResultScript
+		or not (prepared_result_candidate as ContactCombatTransactionResultScript).is_prepared()
+	):
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_PREPARED_RESULT
+		)
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	var scope := (registry as ContentRegistryScript)._begin_verified_read_scope()
+	if scope == null:
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	var result := _commit_with_verified_registry(
+		current_player_state_candidate,
+		current_enemy_world_state_candidate,
+		current_inventory_state_candidate,
+		prepared_result_candidate,
+		scope._registry,
+	)
+	var captured_content_is_valid := scope._close()
+	if not captured_content_is_valid or not ContentRegistryScript.is_exact_initialized_instance(registry):
+		return _rejected(
+			ContactCombatTransactionResultScript.RejectionReason.INVALID_REGISTRY
+		)
+	return result
+
+
+static func _prepare_with_verified_registry(
 	player_state_candidate: RefCounted,
 	enemy_world_state_candidate: RefCounted,
 	inventory_state_candidate: RefCounted,
@@ -249,7 +322,7 @@ static func prepare(
 	)
 
 
-static func commit(
+static func _commit_with_verified_registry(
 	current_player_state_candidate: RefCounted,
 	current_enemy_world_state_candidate: RefCounted,
 	current_inventory_state_candidate: RefCounted,
