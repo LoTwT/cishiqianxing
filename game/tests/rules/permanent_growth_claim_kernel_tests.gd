@@ -4,6 +4,9 @@ const CanonicalRegistryFixtureScript := preload(
 	"res://tests/support/canonical_registry_fixture.gd"
 )
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
+const PermanentGrowthArithmeticScript := preload(
+	"res://src/rules/permanent_growth_arithmetic.gd"
+)
 const PlayerProgressionDerivationResultScript := preload(
 	"res://src/rules/player_progression_derivation_result.gd"
 )
@@ -45,12 +48,18 @@ const DerivedPermanentGrowthClaimEventScript := preload(
 	"res://tests/support/derived_permanent_growth_claim_event.gd"
 )
 
+const MAX_INT: int = 9_223_372_036_854_775_807
+
 
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
 		HeadlessTestCaseScript.new(
 			"permanent_growth_claim.freezes_literal_oracle",
 			_freezes_literal_oracle,
+		),
+		HeadlessTestCaseScript.new(
+			"permanent_growth_claim.guards_arithmetic_boundaries",
+			_guards_arithmetic_boundaries,
 		),
 		HeadlessTestCaseScript.new(
 			"permanent_growth_claim.derives_restored_state_without_replay",
@@ -141,6 +150,37 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_rejects_inconsistent_public_result_deltas,
 		),
 	]
+
+
+func _guards_arithmetic_boundaries(context: HeadlessTestContextScript) -> void:
+	# 直接验证算术边界，避免冻结内容的低数值上界遮住溢出守卫回归。
+	# 四维顺序与字面成长 oracle 一致：生命上限、攻击、防御、速度。
+	for stat_index: int in range(4):
+		for increase: int in [1, 2, 10, MAX_INT]:
+			var values: Array[int] = [100, 10, 5, 10]
+			values[stat_index] = MAX_INT - increase
+			var expected_values: Array[int] = values.duplicate()
+			expected_values[stat_index] = MAX_INT
+			context.expect_true(
+				PermanentGrowthArithmeticScript.add_reward_increase_with_overflow_guard(
+					values, stat_index + 1, increase,
+				),
+				"Stat %d must accept an increase ending exactly at MAX_INT." % stat_index,
+			)
+			context.expect_equal(values, expected_values, "Only the rewarded stat may change.")
+
+			values[stat_index] = MAX_INT - increase + 1
+			var previous_values: Array[int] = values.duplicate()
+			context.expect_true(
+				not PermanentGrowthArithmeticScript.add_reward_increase_with_overflow_guard(
+					values, stat_index + 1, increase,
+				),
+				"Stat %d must reject an increase exceeding MAX_INT." % stat_index,
+			)
+			context.expect_equal(
+				values, previous_values,
+				"Rejected growth must leave every stat unchanged.",
+			)
 
 
 func _freezes_literal_oracle(context: HeadlessTestContextScript) -> void:
