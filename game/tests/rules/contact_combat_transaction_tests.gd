@@ -122,6 +122,10 @@ func cases() -> Array[HeadlessTestCaseScript]:
 			_isolates_outputs_and_fails_closed,
 		),
 		HeadlessTestCaseScript.new(
+			"contact_transaction.isolates_candidate_nested_snapshots",
+			_isolates_candidate_nested_snapshots,
+		),
+		HeadlessTestCaseScript.new(
 			"contact_transaction.invalidates_committed_world_not_applying_resolution",
 			_invalidates_committed_world_not_applying_resolution,
 		),
@@ -1006,6 +1010,65 @@ func _isolates_outputs_and_fails_closed(
 		invalid_nested_rejection.rejection_reason(),
 		ContactCombatTransactionResultScript.RejectionReason.INVALID_RESULT,
 		"Combat rejection requires a nested combat reason.",
+	)
+
+
+func _isolates_candidate_nested_snapshots(context: HeadlessTestContextScript) -> void:
+	var registry := CanonicalRegistryFixtureScript.canonical_registry(
+		context, "Candidate nested snapshots",
+	)
+	var player_state := _player_state(100)
+	var world_state := _simple_world()
+	var inventory_state := _inventory([], 1)
+	var prepared := ContactCombatTransactionKernelScript.prepare(
+		player_state, world_state, inventory_state, _simple_command(), registry,
+	)
+	_expect_prepared(context, prepared, "Candidate nested snapshots")
+	if not prepared.is_prepared():
+		return
+	var getter_mutations: Array[Array] = [
+		[&"command", &"_target_instance_id", &"enemy.instance.tampered"],
+		[&"previous_player_state", &"_current_health", 1],
+		[&"previous_enemy_world_state", &"_world_step", 999],
+		[&"previous_inventory_state", &"_revision", 999],
+		[&"resolution", &"_next_player_health", 1],
+	]
+	for mutation: Array in getter_mutations:
+		var getter_name: StringName = mutation[0]
+		var field_name: StringName = mutation[1]
+		# 每次从 prepared 取得独立 candidate；检查的是同一个 candidate 的
+		# 再次查询，不能用外层 prepared 的复制掩盖内层 getter 别名。
+		var candidate := prepared.candidate()
+		var expected_candidate := candidate.copy()
+		var returned_snapshot: RefCounted = candidate.call(getter_name)
+		context.expect_true(returned_snapshot != null, "%s must return a snapshot." % getter_name)
+		if returned_snapshot == null:
+			continue
+		var previous_value: Variant = returned_snapshot.get(field_name)
+		returned_snapshot.set(field_name, mutation[2])
+		context.expect_equal(
+			returned_snapshot.get(field_name), mutation[2],
+			"%s mutation must reach the returned snapshot." % getter_name,
+		)
+		context.expect_true(
+			candidate.is_equal_to(expected_candidate),
+			"Mutating %s output must preserve the same candidate." % getter_name,
+		)
+		var refreshed_snapshot: RefCounted = candidate.call(getter_name)
+		context.expect_true(
+			refreshed_snapshot != null,
+			"%s must remain readable on the same candidate." % getter_name,
+		)
+		if refreshed_snapshot != null:
+			context.expect_equal(
+				refreshed_snapshot.get(field_name), previous_value,
+				"A second %s read must retain the original value." % getter_name,
+			)
+	context.expect_true(
+		ContactCombatTransactionKernelScript.commit(
+			player_state, world_state, inventory_state, prepared, registry,
+		).was_committed(),
+		"Nested query mutations must not invalidate the prepared transaction.",
 	)
 
 
