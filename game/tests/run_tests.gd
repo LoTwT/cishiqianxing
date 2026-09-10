@@ -37,7 +37,12 @@ const HeadlessTestContextScript := preload("res://tests/support/headless_test_co
 
 const WorldStepTransactionTests := preload("res://tests/rules/world_step_transaction_tests.gd")
 
+const StaticMapRegistryTests := preload("res://tests/content/static_map_registry_tests.gd")
+const StaticMapInitializationTests := preload("res://tests/rules/static_map_initialization_tests.gd")
+const StaticMapSourceLoadingTests := preload("res://tests/content/static_map_source_loading_tests.gd")
+
 const REGISTERED_SUITES: Array[Script] = [
+	StaticMapSourceLoadingTests,
 	GridRuleKernelTests,
 	ContentRegistryTests,
 	GlobalProgressionRegistryTests,
@@ -51,6 +56,8 @@ const REGISTERED_SUITES: Array[Script] = [
 	WorldStepContactKernelTests,
 	WorldStepTransactionTests,
 	PortableInventoryTests,
+	StaticMapRegistryTests,
+	StaticMapInitializationTests,
 ]
 
 var _runner_abort_triggered := false

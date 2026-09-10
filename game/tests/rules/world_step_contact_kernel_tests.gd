@@ -40,8 +40,8 @@ const WorldStepContactResultScript := preload(
 	"res://src/rules/world_step_contact_result.gd"
 )
 
-const CONTENT_SCHEMA_VERSION: int = 5
-const CONTENT_VERSION: int = 5
+const CONTENT_SCHEMA_VERSION: int = 6
+const CONTENT_VERSION: int = 6
 const PLAYER_PROFILE_ID: StringName = &"progression.player.loer"
 const PLAYER_ACTOR_ID: StringName = &"actor.loer"
 const TARGET_PROFILE_ID: StringName = &"enemy.profile.f01.base"

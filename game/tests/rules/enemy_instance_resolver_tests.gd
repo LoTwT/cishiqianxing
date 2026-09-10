@@ -48,8 +48,8 @@ const HeadlessTestContextScript := preload(
 	"res://tests/support/headless_test_context.gd"
 )
 
-const CONTENT_SCHEMA_VERSION: int = 5
-const CONTENT_VERSION: int = 5
+const CONTENT_SCHEMA_VERSION: int = 6
+const CONTENT_VERSION: int = 6
 const EXPECTED_PRIMARY_PROJECTION_COUNT: int = 24
 const EXPECTED_ALTERNATE_PROJECTION_COUNT: int = 4
 const EXPECTED_TOTAL_PROJECTION_COUNT: int = 28
@@ -171,12 +171,12 @@ func _freezes_literal_runtime_oracle(context: HeadlessTestContextScript) -> void
 	context.expect_equal(
 		registry.schema_version(),
 		CONTENT_SCHEMA_VERSION,
-		"Runtime resolution must retain manifest schema v5.",
+		"Runtime resolution must retain manifest schema v6.",
 	)
 	context.expect_equal(
 		registry.content_version(),
 		CONTENT_VERSION,
-		"Runtime resolution must retain manifest content v5.",
+		"Runtime resolution must retain manifest content v6.",
 	)
 	context.expect_true(
 		EnemyInstanceStateScript.is_valid_instance_id(
@@ -494,8 +494,8 @@ func _rejects_invalid_inputs_in_stable_priority(
 			false,
 		),
 		_state(&"enemy.instance.empty-profile", &"", 12, 1, false),
-		_state(&"enemy.instance.bad-schema", &"enemy.profile.f01.base", 12, 1, false, 0, 5),
-		_state(&"enemy.instance.bad-content", &"enemy.profile.f01.base", 12, 1, false, 5, 0),
+		_state(&"enemy.instance.bad-schema", &"enemy.profile.f01.base", 12, 1, false, 0, 6),
+		_state(&"enemy.instance.bad-content", &"enemy.profile.f01.base", 12, 1, false, 6, 0),
 	]:
 		_expect_failure(
 			context,
@@ -572,7 +572,7 @@ func _rejects_invalid_inputs_in_stable_priority(
 	_expect_failure(
 		context,
 		EnemyInstanceResolverScript.resolve(
-			_state(&"enemy.instance.version", &"enemy.profile.f01.base", 12, 1, false, 5, 4),
+			_state(&"enemy.instance.version", &"enemy.profile.f01.base", 12, 1, false, 6, 5),
 			registry,
 		),
 		EnemyInstanceResolutionResultScript.FailureReason.CONTENT_VERSION_MISMATCH,
@@ -587,8 +587,8 @@ func _rejects_invalid_inputs_in_stable_priority(
 				0,
 				EnemyInstanceStateScript.StateKind.PRIMARY,
 				false,
+				6,
 				5,
-				4,
 			),
 			registry,
 		),

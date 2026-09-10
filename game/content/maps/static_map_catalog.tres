@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StaticMapCatalogResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/static_map_catalog_resource.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://content/maps/static_initialization_acceptance.tres" id="2_map"]
+
+[resource]
+script = ExtResource("1_catalog")
+catalog_id = &"map.catalog.static"
+maps = Array[StaticMapDefinitionResource]([ExtResource("2_map")])

@@ -44,8 +44,8 @@ const HeadlessTestContextScript := preload(
 )
 const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 
-const CONTENT_SCHEMA_VERSION: int = 5
-const CONTENT_VERSION: int = 5
+const CONTENT_SCHEMA_VERSION: int = 6
+const CONTENT_VERSION: int = 6
 const PRIMARY_PROFILE_ID := &"enemy.profile.f01.base"
 const ALTERNATE_SHIELD_PROFILE_ID := &"enemy.profile.f12.enhanced"
 const PRIMARY_MAXIMUM_DURABILITY: int = 12

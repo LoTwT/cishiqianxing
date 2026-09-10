@@ -60,8 +60,8 @@ const HeadlessTestContextScript := preload(
 	"res://tests/support/headless_test_context.gd"
 )
 
-const CONTENT_SCHEMA_VERSION: int = 5
-const CONTENT_VERSION: int = 5
+const CONTENT_SCHEMA_VERSION: int = 6
+const CONTENT_VERSION: int = 6
 const PLAYER_PROFILE_ID: StringName = &"progression.player.loer"
 const SIMPLE_PROFILE_ID: StringName = &"enemy.profile.f01.base"
 const SHIELD_PROFILE_ID: StringName = &"enemy.profile.f03.base"

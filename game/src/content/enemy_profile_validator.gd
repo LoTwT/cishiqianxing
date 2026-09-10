@@ -39,6 +39,8 @@ const ContentContractConstantsScript := preload(
 	"res://src/content/content_contract_constants.gd"
 )
 
+const MainlineProgressionDefinitionScript := preload("res://src/content/definitions/mainline_progression_definition_resource.gd")
+
 const EXPECTED_CATALOG_ID: StringName = &"enemy.profile.catalog.main"
 # 冻结内容合同期望计数的再导出：权威数值只在 content_contract_constants.gd
 # 定义一次，此处保留原常量名以维持调用点稳定。
@@ -235,7 +237,7 @@ static func validate_balance(
 			ContentValidationIssueScript.ENEMY_PROFILE_BALANCE_CONTEXT_INVALID,
 			&"",
 			"enemy_profile_catalog",
-			"Enemy balance validation requires the complete sealed v5 Registry and catalog.",
+			"Enemy balance validation requires the complete sealed v6 Registry and catalog.",
 		)
 		return
 
@@ -304,35 +306,77 @@ static func validate_balance(
 			player_stats.maximum_health,
 			reward_ids,
 		)
+		_validate_profile_with_player(profile, families_by_id[profile.family_id], player_state, player_stats.maximum_health, player_stats.speed, registry, issues)
+
+
+# 地图按声明章的主线最低状态复用同一平衡验收，不能套用阶段末数值。
+static func validate_profile_at_chapter(
+	registry: ContentRegistryScript,
+	profile_id: StringName,
+	chapter: int,
+	issues: Array[ContentValidationIssueScript],
+) -> void:
+	if not ContentRegistryScript.is_exact_initialized_instance(registry):
+		ContentValidationSupportScript.add_issue(issues, ContentValidationIssueScript.ENEMY_PROFILE_BALANCE_CONTEXT_INVALID, profile_id, "registry", "Chapter balance requires sealed content.")
+		return
+	var query := registry.lookup_enemy_profile(profile_id)
+	var stats_query := registry.mainline_stats_after_chapter(chapter)
+	if not query.succeeded() or not stats_query.succeeded():
+		ContentValidationSupportScript.add_issue(issues, ContentValidationIssueScript.ENEMY_PROFILE_BALANCE_CONTEXT_INVALID, profile_id, "chapter", "Unknown profile or invalid mainline chapter.")
+		return
+	var profile := query.profile()
+	var route := registry.lookup_representative_route_contract(profile.balance_contract_id)
+	var family := registry.lookup_enemy_family(profile.family_id)
+	if not route.succeeded() or not family.succeeded() or chapter < route.contract().stage_start_chapter:
+		ContentValidationSupportScript.add_issue(issues, ContentValidationIssueScript.ENEMY_PROFILE_BALANCE_CONTEXT_INVALID, profile_id, "chapter", "Profile cannot appear before its balance stage group.")
+		return
+	var stats := stats_query.player_stats()
+	var rewards: Array[StringName] = []
+	for progression: MainlineProgressionDefinitionScript in registry.mainline_progression_definitions():
+		if progression.chapter <= chapter:
+			rewards.append_array(progression.reward_ids)
+	var player := PlayerProgressionStateScript.create(stats.profile_id, registry.schema_version(), registry.content_version(), stats.maximum_health, rewards)
+	_validate_profile_with_player(profile, family.family(), player, stats.maximum_health, stats.speed, registry, issues)
+
+
+static func _validate_profile_with_player(
+	profile: EnemyProfileDefinitionScript,
+	family: EnemyFamilyDefinitionScript,
+	player_state: PlayerProgressionStateScript,
+	player_maximum_health: int,
+	player_speed: int,
+	registry: ContentRegistryScript,
+	issues: Array[ContentValidationIssueScript],
+) -> void:
+	_validate_balance_state(
+		profile,
+		family,
+		"primary",
+		profile.maximum_durability,
+		profile.attack,
+		profile.defense,
+		profile.speed,
+		player_state,
+		player_maximum_health,
+		player_speed,
+		registry,
+		issues,
+	)
+	if profile.has_alternate_state:
 		_validate_balance_state(
 			profile,
-			families_by_id[profile.family_id],
-			"primary",
-			profile.maximum_durability,
-			profile.attack,
-			profile.defense,
-			profile.speed,
+			family,
+			"alternate",
+			profile.alternate_maximum_durability,
+			profile.alternate_attack,
+			profile.alternate_defense,
+			profile.alternate_speed,
 			player_state,
-			player_stats.maximum_health,
-			player_stats.speed,
+			player_maximum_health,
+			player_speed,
 			registry,
 			issues,
 		)
-		if profile.has_alternate_state:
-			_validate_balance_state(
-				profile,
-				families_by_id[profile.family_id],
-				"alternate",
-				profile.alternate_maximum_durability,
-				profile.alternate_attack,
-				profile.alternate_defense,
-				profile.alternate_speed,
-				player_state,
-				player_stats.maximum_health,
-				player_stats.speed,
-				registry,
-				issues,
-			)
 
 
 static func _validate_families(

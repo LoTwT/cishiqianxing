@@ -412,6 +412,19 @@ const LOOKUP_ENEMY_REGISTRY_UNINITIALIZED: StringName = (
 	&"lookup.enemy.registry.uninitialized"
 )
 
+const MAP_INVALID_RESOURCE: StringName = &"map.resource.invalid"
+const MAP_SOURCE_DECLARATION_INVALID: StringName = &"map.sources.invalid"
+const MAP_CATALOG_INVALID: StringName = &"map.catalog.invalid"
+const MAP_ID_INVALID: StringName = &"map.id.invalid"
+const MAP_SPACE_ID_INVALID: StringName = &"map.space_id.invalid"
+const MAP_INSTANCE_ID_INVALID: StringName = &"map.instance_id.invalid"
+const MAP_REFERENCE_INVALID: StringName = &"map.reference.invalid"
+const MAP_CHAPTER_INVALID: StringName = &"map.chapter.invalid"
+const MAP_UNSUPPORTED_CONTENT: StringName = &"map.content.unsupported"
+const MAP_GEOMETRY_INVALID: StringName = &"map.geometry.invalid"
+const MAP_BALANCE_INVALID: StringName = &"map.balance.invalid"
+const LOOKUP_UNKNOWN_MAP_ID: StringName = &"lookup.map_id.unknown"
+
 var _code: StringName
 var _content_id: StringName
 var _field_path: String

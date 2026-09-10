@@ -84,6 +84,11 @@ const EXPECTED_ENEMY_PROFILE_COUNT: int = (
 	ContentContractConstantsScript.EXPECTED_ENEMY_PROFILE_COUNT
 )
 
+const StaticMapCatalogScript := preload("res://src/content/definitions/static_map_catalog_resource.gd")
+const StaticMapDefinitionScript := preload("res://src/content/definitions/static_map_definition_resource.gd")
+const StaticMapQueryResultScript := preload("res://src/content/static_map_query_result.gd")
+
+var _static_map_catalog: StaticMapCatalogScript
 var _schema_version: int
 var _content_version: int
 var _material_ids: Array[StringName] = []
@@ -132,7 +137,7 @@ func _init() -> void:
 	pass
 
 
-# 构建器与内容测试专用的封印构造协议：仅接受与冻结 v5 内容合同指纹完全一致的
+# 构建器与内容测试专用的封印构造协议：仅接受与冻结 v6 内容合同指纹完全一致的
 # 输入，成功封印返回 true；已初始化或指纹不匹配时不做任何改动并返回 false，
 # 调用方可据此区分「封印成功」与「无操作」。通用调用方应通过
 # ContentRegistryBuilder.build() 获得注册表，不应直接调用本方法。
@@ -144,6 +149,7 @@ func initialize_validated(
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
 	enemy_catalog: EnemyProfileCatalogScript,
+	map_catalog: StaticMapCatalogScript,
 ) -> bool:
 	if is_initialized():
 		return false
@@ -155,6 +161,7 @@ func initialize_validated(
 		progression_catalog,
 		route_catalog,
 		enemy_catalog,
+		map_catalog,
 	):
 		return false
 	var stored_material_ids: Array[StringName] = (
@@ -278,6 +285,7 @@ func initialize_validated(
 	stored_route_contracts_by_id.make_read_only()
 	stored_enemy_families_by_id.make_read_only()
 	stored_enemy_profiles_by_id.make_read_only()
+	_static_map_catalog = StaticMapCatalogScript.snapshot(map_catalog)
 	_schema_version = schema_version
 	_content_version = content_version
 	_material_ids = stored_material_ids
@@ -332,6 +340,7 @@ func _begin_verified_read_scope() -> _VerifiedReadScope:
 		global_progression_catalog(),
 		representative_route_contract_catalog(),
 		enemy_profile_catalog(),
+		static_map_catalog(),
 	):
 		return null
 	if not copied_registry._has_valid_contract():
@@ -412,6 +421,32 @@ func recipes() -> Array[RecipeDefinitionScript]:
 	for recipe_id: StringName in _recipe_ids:
 		result.append(RecipeDefinitionScript.snapshot(_recipes_by_id[recipe_id]))
 	return result
+
+
+func static_map_catalog() -> StaticMapCatalogScript:
+	return StaticMapCatalogScript.snapshot(_static_map_catalog) if is_initialized() else null
+
+
+func static_map_ids() -> Array[StringName]:
+	var result: Array[StringName] = []
+	if is_initialized():
+		for definition: StaticMapDefinitionScript in _static_map_catalog.maps:
+			result.append(definition.map_id)
+		result.sort_custom(ContentValidationSupportScript.string_name_less_than)
+	return result
+
+
+func lookup_static_map(map_id: StringName) -> StaticMapQueryResultScript:
+	if not is_initialized():
+		return StaticMapQueryResultScript.new(null, ContentValidationIssueScript.new(
+			ContentValidationIssueScript.LOOKUP_REGISTRY_UNINITIALIZED, map_id, "registry", "Map queries require sealed content.",
+		))
+	for definition: StaticMapDefinitionScript in _static_map_catalog.maps:
+		if definition.map_id == map_id:
+			return StaticMapQueryResultScript.new(definition, null)
+	return StaticMapQueryResultScript.new(null, ContentValidationIssueScript.new(
+		ContentValidationIssueScript.LOOKUP_UNKNOWN_MAP_ID, map_id, "map_id", "No static map is registered for this ID.",
+	))
 
 
 func global_progression_catalog() -> GlobalProgressionCatalogScript:
@@ -890,6 +925,8 @@ func _route_contract_query(
 
 
 func _has_valid_contract() -> bool:
+	if not StaticMapCatalogScript.has_exact_entry_types(_static_map_catalog):
+		return false
 	var expected_material_ids: Array[StringName] = (
 		RecipeDefinitionScript.allowed_material_ids()
 	)
@@ -1277,6 +1314,7 @@ func _has_valid_contract() -> bool:
 		progression_catalog,
 		route_catalog,
 		enemy_catalog,
+		_static_map_catalog,
 	)
 
 
