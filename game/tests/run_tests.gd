@@ -35,6 +35,8 @@ const PortableInventoryTests := preload(
 const HeadlessTestCaseScript := preload("res://tests/support/headless_test_case.gd")
 const HeadlessTestContextScript := preload("res://tests/support/headless_test_context.gd")
 
+const WorldStepTransactionTests := preload("res://tests/rules/world_step_transaction_tests.gd")
+
 const REGISTERED_SUITES: Array[Script] = [
 	GridRuleKernelTests,
 	ContentRegistryTests,
@@ -47,6 +49,7 @@ const REGISTERED_SUITES: Array[Script] = [
 	ContactCombatKernelTests,
 	ContactCombatTransactionTests,
 	WorldStepContactKernelTests,
+	WorldStepTransactionTests,
 	PortableInventoryTests,
 ]
 
