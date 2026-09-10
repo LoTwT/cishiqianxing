@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="StaticMapDefinitionResource" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/content/definitions/static_map_definition_resource.gd" id="1_map"]
+[ext_resource type="Script" path="res://src/content/definitions/map_enemy_placement_resource.gd" id="2_placement"]
+
+[sub_resource type="Resource" id="Enemy_first"]
+script = ExtResource("2_placement")
+instance_id = &"enemy.instance.static.first"
+profile_id = &"enemy.profile.f03.enhanced"
+cell = Vector3i(1, 0, 0)
+
+[sub_resource type="Resource" id="Enemy_second"]
+script = ExtResource("2_placement")
+instance_id = &"enemy.instance.static.second"
+profile_id = &"enemy.profile.f09.enhanced"
+cell = Vector3i(2, 0, 0)
+
+[resource]
+script = ExtResource("1_map")
+map_id = &"map.technical.static_initialization"
+space_id = &"space.technical.static_initialization"
+chapter = 6
+grid_cells = Array[Vector3i]([Vector3i(-1, 0, 0), Vector3i(0, 0, -1), Vector3i(0, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 0), Vector3i(2, 0, 0), Vector3i(3, 0, 0)])
+blocked_cells = Array[Vector3i]([Vector3i(0, 0, -1)])
+player_spawn_cell = Vector3i(0, 0, 0)
+enemies = Array[MapEnemyPlacementResource]([SubResource("Enemy_first"), SubResource("Enemy_second")])
+terrain_effect_ids = Array[StringName]([])
+dynamic_behavior_ids = Array[StringName]([])
+other_entity_ids = Array[StringName]([])

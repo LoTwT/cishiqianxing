@@ -17,10 +17,13 @@ const EnemyProfileCatalogScript := preload(
 	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
 )
 
-@export var schema_version: int = 5
-@export var content_version: int = 5
+const StaticMapCatalogScript := preload("res://src/content/definitions/static_map_catalog_resource.gd")
+
+@export var schema_version: int = 6
+@export var content_version: int = 6
 @export var blueprints: Array[BlueprintDefinitionScript] = []
 @export var recipes: Array[RecipeDefinitionScript] = []
 @export var global_progression_catalog: GlobalProgressionCatalogScript
 @export var representative_route_contract_catalog: RepresentativeRouteCatalogScript
 @export var enemy_profile_catalog: EnemyProfileCatalogScript
+@export var static_map_catalog: StaticMapCatalogScript

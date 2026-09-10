@@ -230,8 +230,8 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 		registry.is_initialized(),
 		"A successful build must publish an initialized registry.",
 	)
-	context.expect_equal(registry.schema_version(), 5, "Schema version must be frozen at five.")
-	context.expect_equal(registry.content_version(), 5, "Content version must be frozen at five.")
+	context.expect_equal(registry.schema_version(), 6, "Schema version must be frozen at six.")
+	context.expect_equal(registry.content_version(), 6, "Content version must be frozen at six.")
 	context.expect_equal(registry.blueprint_count(), 24, "The registry must contain 24 blueprints.")
 	context.expect_equal(registry.recipe_count(), 24, "The registry must contain 24 recipes.")
 	context.expect_equal(registry.material_count(), 3, "The registry must expose three materials.")
@@ -264,6 +264,7 @@ func _builds_canonical_manifest(context: HeadlessTestContextScript) -> void:
 		999,
 		no_blueprints,
 		no_recipes,
+		null,
 		null,
 		null,
 		null,
@@ -1428,6 +1429,7 @@ func _manifest_from_registry(registry: ContentRegistryScript) -> ContentManifest
 		registry.representative_route_contract_catalog()
 	)
 	manifest.enemy_profile_catalog = registry.enemy_profile_catalog()
+	manifest.static_map_catalog = registry.static_map_catalog()
 	return manifest
 
 

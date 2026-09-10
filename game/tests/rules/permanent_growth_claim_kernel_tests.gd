@@ -666,15 +666,15 @@ func _rejects_invalid_state_matrix(context: HeadlessTestContextScript) -> void:
 	]
 	var invalid_states: Array[PlayerProgressionStateScript] = [
 		PlayerProgressionStateScript.new(),
-		PlayerProgressionStateScript.create(&"", 5, 5, 100, []),
+		PlayerProgressionStateScript.create(&"", 6, 6, 100, []),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 0, 5, 100, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 0, 6, 100, []
 		),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 5, 0, 100, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 6, 0, 100, []
 		),
 		PlayerProgressionStateScript.create(
-			PermanentGrowthClaimOracle.PROFILE_ID, 5, 5, -1, []
+			PermanentGrowthClaimOracle.PROFILE_ID, 6, 6, -1, []
 		),
 		_state(100, [reward_id, reward_id]),
 		_state(100, [&""]),
@@ -709,7 +709,7 @@ func _rejects_invalid_restored_ledger_matrix(
 		&"progression.reward.main.chapter.01.attack"
 	)
 	var wrong_profile: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		&"progression.player.impostor", 5, 5, 100,
+		&"progression.player.impostor", 6, 6, 100,
 		[&"progression.reward.unknown"],
 	)
 	_expect_rejected(
@@ -786,7 +786,7 @@ func _fails_closed_for_registry_and_versions(
 		reward_id
 	)
 	var schema_mismatch: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		PermanentGrowthClaimOracle.PROFILE_ID, 4, 5, 0, [reward_id]
+		PermanentGrowthClaimOracle.PROFILE_ID, 5, 6, 0, [reward_id]
 	)
 	_expect_rejected(
 		context,
@@ -797,7 +797,7 @@ func _fails_closed_for_registry_and_versions(
 		"Schema mismatch before duplicate and zero health",
 	)
 	var content_mismatch: PlayerProgressionStateScript = PlayerProgressionStateScript.create(
-		PermanentGrowthClaimOracle.PROFILE_ID, 5, 4, 0, [reward_id]
+		PermanentGrowthClaimOracle.PROFILE_ID, 6, 5, 0, [reward_id]
 	)
 	_expect_rejected(
 		context,
@@ -810,8 +810,8 @@ func _fails_closed_for_registry_and_versions(
 	var content_and_profile_mismatch: PlayerProgressionStateScript = (
 		PlayerProgressionStateScript.create(
 			&"progression.player.impostor",
+			6,
 			5,
-			4,
 			100,
 			[],
 		)

@@ -68,8 +68,8 @@ const HeadlessTestContextScript := preload("res://tests/support/headless_test_co
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
 		HeadlessTestCaseScript.new(
-			"enemy_profiles.builds_canonical_v5_catalog",
-			_builds_canonical_v5_catalog,
+			"enemy_profiles.builds_canonical_v6_catalog",
+			_builds_canonical_v6_catalog,
 		),
 		HeadlessTestCaseScript.new(
 			"enemy_profiles.matches_all_literal_fields",
@@ -118,7 +118,7 @@ func cases() -> Array[HeadlessTestCaseScript]:
 	]
 
 
-func _builds_canonical_v5_catalog(context: HeadlessTestContextScript) -> void:
+func _builds_canonical_v6_catalog(context: HeadlessTestContextScript) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
 		"Canonical enemy-profile catalog",
@@ -126,8 +126,8 @@ func _builds_canonical_v5_catalog(context: HeadlessTestContextScript) -> void:
 	if not result.succeeded():
 		return
 	var registry: ContentRegistryScript = result.registry()
-	context.expect_equal(registry.schema_version(), 5, "Enemy schema must be v5.")
-	context.expect_equal(registry.content_version(), 5, "Enemy content must be v5.")
+	context.expect_equal(registry.schema_version(), 6, "Enemy schema must be v6.")
+	context.expect_equal(registry.content_version(), 6, "Enemy content must be v6.")
 	context.expect_equal(
 		registry.enemy_family_count(),
 		EnemyProfileCatalogOracle.EXPECTED_FAMILY_COUNT,
@@ -1004,7 +1004,7 @@ func _fingerprint_covers_fields_and_ignores_set_order(
 	var registry: ContentRegistryScript = canonical.registry()
 	var baseline_manifest: ContentManifestScript = _manifest_from_registry(registry)
 	var baseline: String = _fingerprint(baseline_manifest)
-	context.expect_equal(baseline.length(), 64, "v5 fingerprint must be a SHA-256 digest.")
+	context.expect_equal(baseline.length(), 64, "v6 fingerprint must be a SHA-256 digest.")
 	context.expect_equal(
 		baseline,
 		ContentContractFingerprintScript.EXPECTED_FINGERPRINT,
@@ -1304,6 +1304,7 @@ func _manifest_from_registry(registry: ContentRegistryScript) -> ContentManifest
 		registry.representative_route_contract_catalog()
 	)
 	manifest.enemy_profile_catalog = registry.enemy_profile_catalog()
+	manifest.static_map_catalog = registry.static_map_catalog()
 	return manifest
 
 
@@ -1568,6 +1569,7 @@ func _fingerprint(manifest: ContentManifestScript) -> String:
 		manifest.global_progression_catalog,
 		manifest.representative_route_contract_catalog,
 		manifest.enemy_profile_catalog,
+		manifest.static_map_catalog,
 	)
 
 

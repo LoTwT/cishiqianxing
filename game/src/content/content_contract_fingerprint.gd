@@ -41,8 +41,12 @@ const EnemyProfileCatalogScript := preload(
 	"res://src/content/definitions/enemy_profile_catalog_resource.gd"
 )
 
+const StaticMapCatalogScript := preload("res://src/content/definitions/static_map_catalog_resource.gd")
+const StaticMapDefinitionScript := preload("res://src/content/definitions/static_map_definition_resource.gd")
+const MapEnemyPlacementScript := preload("res://src/content/definitions/map_enemy_placement_resource.gd")
+
 const EXPECTED_FINGERPRINT: String = (
-	"bb06ce6fb51cfd82b40be73cc008a317d966cb344118fe6e4befcee5fc55e33f"
+	"fda9b0dd286340a6ff9eb4a523c2220e6fce7bf7d34f4743b77856d0fed2bc96"
 )
 
 
@@ -54,6 +58,7 @@ static func matches(
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
 	enemy_catalog: EnemyProfileCatalogScript,
+	map_catalog: StaticMapCatalogScript,
 ) -> bool:
 	return (
 		not EXPECTED_FINGERPRINT.is_empty()
@@ -65,6 +70,7 @@ static func matches(
 			progression_catalog,
 			route_catalog,
 			enemy_catalog,
+			map_catalog,
 		)
 		== EXPECTED_FINGERPRINT
 	)
@@ -78,7 +84,11 @@ static func calculate(
 	progression_catalog: GlobalProgressionCatalogScript,
 	route_catalog: RepresentativeRouteCatalogScript,
 	enemy_catalog: EnemyProfileCatalogScript,
+	map_catalog: StaticMapCatalogScript,
 ) -> String:
+	if not StaticMapCatalogScript.has_exact_entry_types(map_catalog):
+		return ""
+	var ordered_maps := StaticMapCatalogScript.snapshot(map_catalog)
 	var ordered_blueprints: Array[BlueprintDefinitionScript] = []
 	for blueprint: BlueprintDefinitionScript in blueprints:
 		if blueprint == null or blueprint.get_script() != BlueprintDefinitionScript:
@@ -182,7 +192,7 @@ static func calculate(
 	ordered_enemy_families.sort_custom(_enemy_family_less_than)
 	ordered_enemy_profiles.sort_custom(_enemy_profile_less_than)
 
-	var payload: String = "contract:v5;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;q%s;t%d;e%s;f%d;n%d;" % [
+	var payload: String = "contract:v6;s%d;c%d;b%d;r%d;g%s;a%d;m%d;o%d;q%s;t%d;e%s;f%d;n%d;" % [
 		schema_version,
 		content_version,
 		ordered_blueprints.size(),
@@ -334,7 +344,37 @@ static func calculate(
 		for trait_id: StringName in ordered_trait_ids:
 			payload += "x%s;" % ContentValidationSupportScript.encode_string(String(trait_id))
 		payload += "v%s;" % ContentValidationSupportScript.encode_string(String(profile.visual_binding_id))
+	payload += "K%s;k%d;" % [ContentValidationSupportScript.encode_string(String(ordered_maps.catalog_id)), ordered_maps.maps.size()]
+	for definition: StaticMapDefinitionScript in ordered_maps.maps:
+		if not definition.source_declarations_are_valid():
+			return ""
+		payload += "D%s;%s;i%d;" % [ContentValidationSupportScript.encode_string(String(definition.map_id)), ContentValidationSupportScript.encode_string(String(definition.space_id)), definition.chapter]
+		payload += "g%d;" % definition.grid_cells.size()
+		for cell: Vector3i in definition.grid_cells:
+			payload += _encode_cell(cell)
+		payload += "b%d;" % definition.blocked_cells.size()
+		for cell: Vector3i in definition.blocked_cells:
+			payload += _encode_cell(cell)
+		payload += "p" + _encode_cell(definition.player_spawn_cell)
+		payload += "e%d;" % definition.enemies.size()
+		for placement: MapEnemyPlacementScript in definition.enemies:
+			payload += "e%s;%s;" % [ContentValidationSupportScript.encode_string(String(placement.instance_id)), ContentValidationSupportScript.encode_string(String(placement.profile_id))]
+			payload += _encode_cell(placement.cell)
+		payload += _encode_sources(definition.terrain_effect_ids_snapshot())
+		payload += _encode_sources(definition.dynamic_behavior_ids_snapshot())
+		payload += _encode_sources(definition.other_entity_ids_snapshot())
 	return payload.sha256_text()
+
+
+static func _encode_cell(cell: Vector3i) -> String:
+	return "(%d,%d,%d);" % [cell.x, cell.y, cell.z]
+
+
+static func _encode_sources(ids: Array[StringName]) -> String:
+	var payload: String = "s%d;" % ids.size()
+	for source_id: StringName in ids:
+		payload += ContentValidationSupportScript.encode_string(String(source_id)) + ";"
+	return payload
 
 
 static func _ordered_reward_ids(reward_ids: Array[StringName]) -> Array[StringName]:

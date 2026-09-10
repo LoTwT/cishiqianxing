@@ -26,7 +26,7 @@ const PermanentGrowthClaimKernelScript := preload("res://src/rules/permanent_gro
 const PortableInventoryResolverScript := preload("res://src/rules/portable_inventory_resolver.gd")
 const ValidationSupportScript := preload("res://src/rules/validation_support.gd")
 const ContentRegistryScript := preload("res://src/content/content_registry.gd")
-const EnemyProfileDefinitionScript := preload("res://src/content/definitions/enemy_profile_definition_resource.gd")
+const WorldStepStaticScenarioScript := preload("res://src/rules/world_step_static_scenario.gd")
 
 const PLAYER_ID: StringName = WorldStepContactCommandScript.AUTHORITATIVE_PLAYER_ACTOR_ID
 const Reason = WorldStepTransactionResultScript.RejectionReason
@@ -304,12 +304,8 @@ static func _validate_world(state: WorldStepStateScript, registry: ContentRegist
 		if record.lifecycle() != EnemyWorldRecordScript.Lifecycle.ACTIVE:
 			continue
 		var enemy := EnemyInstanceResolverScript.resolve(record.instance_state(), registry).snapshot()
-		# 只放行中央已知静态护盾行为；未知行为或复合特性一律关闭。
-		if enemy.behavior_id() != &"enemy.behavior.shield" or enemy.has_alternate_state():
+		if not WorldStepStaticScenarioScript.has_no_pending_enemy_effects(enemy.behavior_id(), enemy.has_alternate_state(), enemy.combat_trait_ids()):
 			return Reason.UNSUPPORTED_SCENARIO
-		for trait_id: StringName in enemy.combat_trait_ids():
-			if trait_id != EnemyProfileDefinitionScript.SHIELD_TRAIT_ID:
-				return Reason.UNSUPPORTED_SCENARIO
 	return Reason.NONE
 
 

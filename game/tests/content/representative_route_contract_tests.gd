@@ -50,8 +50,8 @@ const HeadlessTestContextScript := preload("res://tests/support/headless_test_co
 func cases() -> Array[HeadlessTestCaseScript]:
 	return [
 		HeadlessTestCaseScript.new(
-			"representative_routes.builds_canonical_v5_catalog",
-			_builds_canonical_v5_catalog,
+			"representative_routes.builds_canonical_v6_catalog",
+			_builds_canonical_v6_catalog,
 		),
 		HeadlessTestCaseScript.new(
 			"representative_routes.matches_independent_literal_oracle",
@@ -108,7 +108,7 @@ func cases() -> Array[HeadlessTestCaseScript]:
 	]
 
 
-func _builds_canonical_v5_catalog(context: HeadlessTestContextScript) -> void:
+func _builds_canonical_v6_catalog(context: HeadlessTestContextScript) -> void:
 	var result: ContentRegistryBuildResultScript = _canonical_result(
 		context,
 		"Canonical representative-route catalog",
@@ -116,8 +116,8 @@ func _builds_canonical_v5_catalog(context: HeadlessTestContextScript) -> void:
 	if not result.succeeded():
 		return
 	var registry: ContentRegistryScript = result.registry()
-	context.expect_equal(registry.schema_version(), 5, "Schema version must be v5.")
-	context.expect_equal(registry.content_version(), 5, "Content version must be v5.")
+	context.expect_equal(registry.schema_version(), 6, "Schema version must be v6.")
+	context.expect_equal(registry.content_version(), 6, "Content version must be v6.")
 	context.expect_equal(
 		registry.representative_route_contract_count(),
 		5,
@@ -412,7 +412,7 @@ func _orders_success_deterministically(context: HeadlessTestContextScript) -> vo
 	context.expect_true(reverse_result.succeeded(), "Reversed declaration must build.")
 	if forward_result.succeeded() and reverse_result.succeeded():
 		context.expect_equal(reverse_result.registry().representative_route_contract_ids(), forward_result.registry().representative_route_contract_ids(), "Success order must be stable.")
-	context.expect_equal(_fingerprint(reverse), _fingerprint(forward), "Set-like declaration order must not affect v5 fingerprint.")
+	context.expect_equal(_fingerprint(reverse), _fingerprint(forward), "Set-like declaration order must not affect v6 fingerprint.")
 
 
 func _orders_errors_deterministically(context: HeadlessTestContextScript) -> void:
@@ -547,9 +547,9 @@ func _fingerprints_and_rebuilds_deterministically(
 		return
 	var manifest: ContentManifestScript = _manifest_from_registry(first.registry())
 	var fingerprint: String = _fingerprint(manifest)
-	context.expect_equal(fingerprint, RepresentativeRouteContractOracle.FROZEN_V5_FINGERPRINT, "v5 digest must match independent route oracle.")
-	context.expect_equal(ContentContractFingerprintScript.EXPECTED_FINGERPRINT, RepresentativeRouteContractOracle.FROZEN_V5_FINGERPRINT, "Production seal must match independent route oracle.")
-	context.expect_equal(fingerprint.length(), 64, "v5 seal must be a SHA-256 digest.")
+	context.expect_equal(fingerprint, RepresentativeRouteContractOracle.FROZEN_V6_FINGERPRINT, "v6 digest must match independent route oracle.")
+	context.expect_equal(ContentContractFingerprintScript.EXPECTED_FINGERPRINT, RepresentativeRouteContractOracle.FROZEN_V6_FINGERPRINT, "Production seal must match independent route oracle.")
+	context.expect_equal(fingerprint.length(), 64, "v6 seal must be a SHA-256 digest.")
 	context.expect_true(first.registry() != second.registry(), "Repeated builds must isolate Registry identity.")
 	context.expect_true(first.registry().representative_route_contract_catalog().is_equal_to(second.registry().representative_route_contract_catalog()), "Repeated builds must be value-equal.")
 	context.expect_true(first.registry().representative_route_contracts()[0] != second.registry().representative_route_contracts()[0], "Repeated builds must isolate route Resource identity.")
@@ -646,8 +646,9 @@ func _rejects_v4_without_compatibility(context: HeadlessTestContextScript) -> vo
 			manifest.global_progression_catalog,
 			manifest.representative_route_contract_catalog,
 			manifest.enemy_profile_catalog,
+			manifest.static_map_catalog,
 		),
-		"v4 header must not match the v5 seal.",
+		"v4 header must not match the v6 seal.",
 	)
 
 
@@ -688,6 +689,7 @@ func _manifest_from_registry(registry: ContentRegistryScript) -> ContentManifest
 	manifest.global_progression_catalog = registry.global_progression_catalog()
 	manifest.representative_route_contract_catalog = registry.representative_route_contract_catalog()
 	manifest.enemy_profile_catalog = registry.enemy_profile_catalog()
+	manifest.static_map_catalog = registry.static_map_catalog()
 	return manifest
 
 
@@ -798,6 +800,7 @@ func _fingerprint(manifest: ContentManifestScript) -> String:
 		manifest.global_progression_catalog,
 		manifest.representative_route_contract_catalog,
 		manifest.enemy_profile_catalog,
+		manifest.static_map_catalog,
 	)
 
 

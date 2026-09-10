@@ -45,9 +45,11 @@ const EnemyProfileValidatorScript := preload(
 	"res://src/content/enemy_profile_validator.gd"
 )
 
+const StaticMapValidatorScript := preload("res://src/content/static_map_validator.gd")
+
 const CANONICAL_MANIFEST_PATH: String = "res://content/content_manifest.tres"
-const SUPPORTED_SCHEMA_VERSION: int = 5
-const SUPPORTED_CONTENT_VERSION: int = 5
+const SUPPORTED_SCHEMA_VERSION: int = 6
+const SUPPORTED_CONTENT_VERSION: int = 6
 const EXPECTED_DEFINITION_COUNT: int = 24
 
 
@@ -154,6 +156,9 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 			issues,
 		)
 	)
+	var map_catalog := StaticMapValidatorScript.snapshot_and_validate(
+		exact_manifest.static_map_catalog, enemy_catalog, route_catalog, issues,
+	)
 	if not issues.is_empty():
 		return _failure(issues)
 
@@ -167,16 +172,18 @@ static func build(manifest: Resource) -> ContentRegistryBuildResultScript:
 		progression_catalog,
 		route_catalog,
 		enemy_catalog,
+		map_catalog,
 	):
 		ContentValidationSupportScript.add_issue(
 			issues,
 			ContentValidationIssueScript.MANIFEST_CONTRACT_FINGERPRINT_MISMATCH,
 			&"",
 			"manifest",
-			"Content manifest does not match the frozen v5 contract fingerprint.",
+			"Content manifest does not match the frozen v6 contract fingerprint.",
 		)
 		return _failure(issues)
 	EnemyProfileValidatorScript.validate_balance(registry, enemy_catalog, issues)
+	StaticMapValidatorScript.validate_balance(registry, map_catalog, issues)
 	if not issues.is_empty():
 		return _failure(issues)
 	return ContentRegistryBuildResultScript.success(registry, report)

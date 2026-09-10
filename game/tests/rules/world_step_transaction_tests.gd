@@ -68,7 +68,7 @@ func _state(
 	if profile_id != &"":
 		var profile := _registry().lookup_enemy_profile(profile_id).profile()
 		records.append(EnemyWorldRecordScript.create(EnemyInstanceStateScript.create(
-			TARGET_ID, profile_id, 5, 5, profile.maximum_durability,
+			TARGET_ID, profile_id, 6, 6, profile.maximum_durability,
 			EnemyInstanceStateScript.StateKind.PRIMARY,
 			shield and profile.combat_trait_ids.has(&"enemy.trait.shield"),
 		), EnemyWorldRecordScript.Lifecycle.ACTIVE))
@@ -82,9 +82,9 @@ func _state(
 			PortableInventoryStackScript.Provenance.NON_DISMANTLABLE_GIFT, &"", quantity))
 	return WorldStepStateScript.create(
 		SPACE_ID, GridRuleStateScript.create([Vector3i.ZERO, EAST, EAST * 2, Vector3i(0, 0, 1)], [], positions, step),
-		PlayerProgressionStateScript.create(&"progression.player.loer", 5, 5, health, []),
+		PlayerProgressionStateScript.create(&"progression.player.loer", 6, 6, health, []),
 		EnemyWorldStateScript.create(records, addresses, step),
-		PortableInventoryStateScript.create(5, 5, 12, 3, stacks, selected_id),
+		PortableInventoryStateScript.create(6, 6, 12, 3, stacks, selected_id),
 		WorldStepStageInputsScript.create([], [], [], [], [], true),
 	)
 
@@ -206,7 +206,7 @@ func _shield_and_all_temporary_effects(context: HeadlessTestContextScript) -> vo
 				context.expect_equal(resolution.opponent_shield_absorbed_attack(), intact, "Intact shield absorbs first player attack")
 	var saturated := _state(&"enemy.profile.f03.base", 100, STEP, &"blueprint.20")
 	var inventory := saturated.inventory_state()
-	var overflow_inventory := PortableInventoryStateScript.create(5, 5, 12, PortableInventoryStateScript.MAXIMUM_REVISION, inventory.stack_snapshots(), inventory.selected_temporary_effect_stack_id())
+	var overflow_inventory := PortableInventoryStateScript.create(6, 6, 12, PortableInventoryStateScript.MAXIMUM_REVISION, inventory.stack_snapshots(), inventory.selected_temporary_effect_stack_id())
 	var overflow_state := WorldStepStateScript.create(SPACE_ID, saturated.grid_state(), saturated.player_state(), saturated.enemy_world_state(), overflow_inventory, saturated.stage_inputs())
 	_expect_failed(context, _prepare(overflow_state, _move(overflow_state)), "Temporary consumption revision overflow")
 	context.expect_true(_commit(overflow_state, _prepare(overflow_state, _wait(overflow_state))).was_committed(), "Wait does not consume selected effect at saturated revision")
@@ -344,7 +344,7 @@ func _projection_and_lifecycle(context: HeadlessTestContextScript) -> void:
 		_expect_failed(context, _prepare(bad, _wait(bad)), "Enemy projection mismatch", Reason.PROJECTION_MISMATCH)
 	var bad_step := _replace_grid(state, GridRuleStateScript.create(grid.grid_cells(), [], grid.actor_positions(), STEP + 1))
 	_expect_failed(context, _prepare(bad_step, _wait(bad_step)), "Different component steps", Reason.PROJECTION_MISMATCH)
-	var resolved_instance := EnemyInstanceStateScript.create(TARGET_ID, &"enemy.profile.f03.base", 5, 5, 0, EnemyInstanceStateScript.StateKind.PRIMARY, false)
+	var resolved_instance := EnemyInstanceStateScript.create(TARGET_ID, &"enemy.profile.f03.base", 6, 6, 0, EnemyInstanceStateScript.StateKind.PRIMARY, false)
 	var invalid_world := EnemyWorldStateScript.create([EnemyWorldRecordScript.create(resolved_instance, EnemyWorldRecordScript.Lifecycle.ACTIVE)], {TARGET_ID: EnemyWorldAddressScript.create(SPACE_ID, EAST)}, STEP)
 	var invalid := WorldStepStateScript.create(SPACE_ID, grid, state.player_state(), invalid_world, state.inventory_state(), state.stage_inputs())
 	_expect_failed(context, _prepare(invalid, _wait(state)), "Zero-durability active lifecycle")
@@ -449,7 +449,7 @@ func _contact_binding(context: HeadlessTestContextScript) -> void:
 	var addresses := world.address_snapshots()
 	var second_id: StringName = &"enemy.instance.world.second"
 	var second_cell: Vector3i = Vector3i(0, 0, 1)
-	records.append(EnemyWorldRecordScript.create(EnemyInstanceStateScript.create(second_id, &"enemy.profile.f03.base", 5, 5, 12, EnemyInstanceStateScript.StateKind.PRIMARY, true), EnemyWorldRecordScript.Lifecycle.ACTIVE))
+	records.append(EnemyWorldRecordScript.create(EnemyInstanceStateScript.create(second_id, &"enemy.profile.f03.base", 6, 6, 12, EnemyInstanceStateScript.StateKind.PRIMARY, true), EnemyWorldRecordScript.Lifecycle.ACTIVE))
 	addresses[second_id] = EnemyWorldAddressScript.create(SPACE_ID, second_cell)
 	var positions := state.grid_state().actor_positions()
 	positions[second_id] = second_cell
@@ -474,7 +474,7 @@ func _contact_binding(context: HeadlessTestContextScript) -> void:
 func _cancelled_contact_contract(context: HeadlessTestContextScript) -> void:
 	var state := _state(&"enemy.profile.f03.base")
 	var lock := WorldStepContactKernelScript.prepare(state.grid_state(), state.player_state(), state.enemy_world_state(), WorldStepContactCommandScript.attempt_entry(SPACE_ID, PLAYER_ID, Vector3i.ZERO, EAST, STEP), _registry())
-	var inactive := PlayerProgressionStateScript.create(&"progression.player.loer", 5, 5, 0, [])
+	var inactive := PlayerProgressionStateScript.create(&"progression.player.loer", 6, 6, 0, [])
 	var cancelled := WorldStepContactKernelScript.revalidate(lock, state.grid_state(), inactive, state.enemy_world_state(), _registry())
 	context.expect_true(cancelled.was_cancelled() and not cancelled.was_rejected(), "Periodic inactivity remains cancellation, not validation failure")
 	context.expect_equal(inactive.current_health(), 0, "Cancellation preserves prior-stage effective result")

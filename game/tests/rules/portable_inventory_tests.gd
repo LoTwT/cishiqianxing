@@ -39,8 +39,8 @@ const HeadlessTestContextScript := preload(
 	"res://tests/support/headless_test_context.gd"
 )
 
-const CONTENT_SCHEMA_VERSION: int = 5
-const CONTENT_VERSION: int = 5
+const CONTENT_SCHEMA_VERSION: int = 6
+const CONTENT_VERSION: int = 6
 
 
 class StatefulPortableInventoryState extends PortableInventoryStateScript:
